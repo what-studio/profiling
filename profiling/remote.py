@@ -5,6 +5,7 @@
 """
 from __future__ import absolute_import
 import io
+from logging import getLogger as get_logger
 try:
     import cPickle as pickle
 except ImportError:
@@ -20,6 +21,7 @@ __all__ = ['recv_stats', 'ProfilerServer']
 
 
 SIZE_STRUCT_FORMAT = '<Q'  # unsigned long long
+LOGGER = get_logger('Profiling')
 
 
 def recv_full_buffer(sock, size):
@@ -47,6 +49,7 @@ def recv_stats(sock):
 class ProfilerServer(StreamServer):
 
     greenlet = None
+    log = LOGGER.debug
 
     def __init__(self, listener, profiler, interval=5, **kwargs):
         super(ProfilerServer, self).__init__(listener, spawn=None, **kwargs)
@@ -64,32 +67,44 @@ class ProfilerServer(StreamServer):
     def remove_connection(self, connection):
         self.connections.remove(connection)
 
-    def handle(self, connection, address):
+    def handle(self, connection, address=None):
         self.add_connection(connection)
-        gevent.spawn(self._close_connection, connection)
+        num_connections = len(self.connections)
+        if address:
+            fmt = 'Connected {0} (total: {1})'
+        else:
+            fmt = 'A client connected (total: {1})'
+        self.log(fmt.format(address, num_connections))
+        gevent.spawn(self._detect_closing, connection, address)
         try:
             self.send(connection, self.dump)
         except socket.error:
             pass
 
-    def _close_connection(self, connection):
+    def _detect_closing(self, connection, address=None):
         while True:
             try:
                 if connection.recv(128):
                     continue
             except socket.error:
                 pass
-            self.remove_connection(connection)
             break
+        self.remove_connection(connection)
+        num_connections = len(self.connections)
+        if address:
+            fmt = 'Disconnected from {0} (total: {1})'
+        else:
+            fmt = 'A client disconnected (total: {1})'
+        self.log(fmt.format(address, num_connections))
 
     def profile(self):
-        print 'profile...'
         self.profiler.clear()
         self.profiler.start()
         gevent.sleep(self.interval)
         self.profiler.stop()
 
     def profile_forever(self):
+        self.log('Profiling every {0} seconds...'.format(self.interval))
         while self.connections:
             self.profile()
             self.dump.seek(0)
@@ -98,6 +113,7 @@ class ProfilerServer(StreamServer):
             with open('.tmp/k1server.prof', 'w') as f:
                 f.write(self.dump.getvalue())
             self.broadcast(self.dump)
+        self.log('Profiling disabled')
 
     def _get_length(self, buf):
         buf.seek(0, io.SEEK_END)

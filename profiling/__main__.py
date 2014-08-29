@@ -43,6 +43,7 @@ def main():
 def make_viewer():
     viewer = StatisticsViewer()
     viewer.use_vim_command_map()
+    viewer.use_game_command_map()
     return viewer
 
 
@@ -59,7 +60,8 @@ def get_timer(ctx, param, value):
 @click.argument('script', type=click.File('rb'))
 @click.option('-t', '--timer', callback=get_timer)
 @click.option('-d', '--dump', 'dump_filename', type=click.Path(writable=True))
-def profile(script, timer=None, dump_filename=None):
+@click.option('--mono', is_flag=True)
+def profile(script, timer=None, dump_filename=None, mono=False):
     """Profile a Python script."""
     code = compile(script.read(), script.name, 'exec')
     script.close()
@@ -79,6 +81,8 @@ def profile(script, timer=None, dump_filename=None):
         viewer = make_viewer()
         viewer.set_stats(profiler.stats)
         loop = viewer.loop()
+        if mono:
+            loop.screen.set_terminal_properties(1)
         try:
             loop.run()
         except KeyboardInterrupt:
@@ -139,7 +143,8 @@ def run_client(viewer, address, *socket_options):
 
 @main.command()
 @click.argument('src', metavar='SOURCE')
-def view(src):
+@click.option('--mono', is_flag=True)
+def view(src, mono=False):
     """Inspect statistics by TUI view."""
     try:
         src_type, src = parse_src(src)
@@ -159,6 +164,8 @@ def view(src):
         viewer.set_stats(stats, src, src_time)
         event_loop = None
     loop = viewer.loop(event_loop=event_loop)
+    if mono:
+        loop.screen.set_terminal_properties(1)
     try:
         loop.run()
     except KeyboardInterrupt:

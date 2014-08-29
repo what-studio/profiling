@@ -564,17 +564,17 @@ class StatisticsViewer(object):
     weak_color = 'light green'
     palette = [
         ('weak', weak_color, ''),
-        ('focus', 'standout', ''),
+        ('focus', 'standout', '', 'standout'),
         # ui
-        ('header', 'dark cyan, standout', ''),
-        ('header.interactive', 'dark red, standout', ''),
-        ('header.inactive', 'light cyan, standout', ''),
+        ('header', 'dark cyan, standout', '', 'standout'),
+        ('header.interactive', 'dark red, standout', '', 'blink'),
+        ('header.inactive', 'brown, standout', '', 'standout'),
         ('mark', 'dark cyan', ''),
         # risk
-        ('danger', 'dark red', ''),
-        ('caution', 'light red', ''),
-        ('warning', 'brown', ''),
-        ('notice', 'dark green', ''),
+        ('danger', 'dark red', '', 'blink'),
+        ('caution', 'light red', '', 'blink'),
+        ('warning', 'brown', '', 'blink'),
+        ('notice', 'dark green', '', 'blink'),
         # clock
         ('sec', 'brown', ''),
         ('msec', 'dark green', ''),
@@ -620,3 +620,9 @@ class StatisticsViewer(object):
         urwid.command_map['j'] = urwid.command_map['down']
         urwid.command_map['k'] = urwid.command_map['up']
         urwid.command_map['l'] = urwid.command_map['right']
+
+    def use_game_command_map(self):
+        urwid.command_map['a'] = urwid.command_map['left']
+        urwid.command_map['s'] = urwid.command_map['down']
+        urwid.command_map['w'] = urwid.command_map['up']
+        urwid.command_map['d'] = urwid.command_map['right']
