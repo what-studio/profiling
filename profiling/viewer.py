@@ -9,6 +9,8 @@ import os
 import urwid
 from urwid import connect_signal as on
 
+from .sortkeys import by_total_time
+
 
 class Formatter(object):
 
@@ -306,7 +308,7 @@ class StatNode(StatNodeBase, urwid.ParentNode):
         stat = self.get_value()
         if stat is None:
             return ()
-        return stat.sorted()
+        return stat.sorted(self.table.order)
 
     def load_child_node(self, stat):
         depth = self.get_depth() + 1
@@ -345,6 +347,7 @@ class StatisticsTable(urwid.WidgetWrap):
         (10,),  # own
         (6,),  # own/call
     ]
+    order = by_total_time
 
     _active = False
 
@@ -412,6 +415,9 @@ class StatisticsTable(urwid.WidgetWrap):
         else:
             self.activate()
             self.set_focus(node)
+
+    def sort_stats(self, order=by_total_time):
+        self.order = order
 
     def activate(self):
         self._active = True

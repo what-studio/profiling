@@ -14,19 +14,74 @@ try:
 except ImportError:
     import pickle
 from stat import S_ISREG, S_ISSOCK
+import sys
 
 import click
 import gevent
 from gevent import socket
 from urwid_geventloop import GeventLoop
 
+from .profiler import Profiler
 from .remote import recv_stats
+from .timers import Timer
+from .timers.greenlet import GreenletTimer
 from .viewer import StatisticsViewer
+
+
+def make_viewer():
+    viewer = StatisticsViewer()
+    viewer.use_vim_command_map()
+    return viewer
+
+
+def get_timer(ctx, param, value):
+    if not value:
+        return Timer()
+    elif value == 'greenlet':
+        return GreenletTimer()
+    else:
+        raise ValueError('No such timer: {0}'.format(value))
 
 
 @click.group()
 def main():
-    click.echo()
+    pass
+
+
+@main.command()
+@click.argument('script', type=click.File('rb'))
+@click.option('-t', '--timer', callback=get_timer)
+@click.option('-d', '--dump', 'dump_filename', type=click.Path(writable=True))
+def profile(script, timer=None, dump_filename=None):
+    code = compile(script.read(), script.name, 'exec')
+    script.close()
+    sys.argv[:] = [script.name]
+    globals_ = {
+        '__file__': script.name,
+        '__name__': '__main__',
+        '__package__': None,
+    }
+    profiler = Profiler(timer)
+    profiler.start()
+    try:
+        exec code in globals_
+    finally:
+        profiler.stop()
+    if dump_filename is None:
+        viewer = make_viewer()
+        viewer.set_stats(profiler.stats)
+        loop = viewer.loop()
+        try:
+            loop.run()
+        except KeyboardInterrupt:
+            pass
+    else:
+        stats = profiler.frozen_stats()
+        with open(dump_filename, 'w') as f:
+            pickle.dump(stats, f)
+        click.echo('To view statistics:')
+        click.echo('  $ python -m profiling view ', nl=False)
+        click.secho(dump_filename, underline=True)
 
 
 def parse_src(src):
@@ -81,25 +136,24 @@ def view(src):
         src_type, src = parse_src(src)
     except ValueError as exc:
         raise click.BadParameter(str(exc), param_hint='src')
-    viewer = StatisticsViewer()
-    viewer.use_vim_command_map()
+    viewer = make_viewer()
     if src_type == 'tcp':
         gevent.spawn(run_client, viewer, src)
+        event_loop = GeventLoop()
     elif src_type == 'sock':
         gevent.spawn(run_client, viewer, src, socket.AF_UNIX)
+        event_loop = GeventLoop()
     elif src_type == 'dump':
         with open(src) as f:
             stats = pickle.load(f)
         src_time = datetime.fromtimestamp(os.path.getmtime(src))
         viewer.set_stats(stats, src, src_time)
-    loop = viewer.loop(event_loop=GeventLoop())
-    loop.run()
-    '''
+        event_loop = None
+    loop = viewer.loop(event_loop=event_loop)
     try:
         loop.run()
     except KeyboardInterrupt:
         pass
-    '''
 
 
 if __name__ == '__main__':

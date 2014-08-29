@@ -248,7 +248,10 @@ class Statistics(RecordingStat):
 
     @property
     def cpu_usage(self):
-        return self.cpu_time / self.wall_time
+        try:
+            return self.cpu_time / self.wall_time
+        except ZeroDivisionError:
+            return 0.0
 
     @property
     def total_time(self):
