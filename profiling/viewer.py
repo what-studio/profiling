@@ -526,7 +526,7 @@ class StatisticsHeader(urwid.WidgetWrap):
                 # file path
                 src_string = os.path.basename(src)
             if src_time is not None:
-                src_time_string = src_time.format('%H:%M:%S')
+                src_time_string = '{:%H:%M:%S}'.format(src_time)
             if src and src_time:
                 markup = [('weak', src_string), ' ', src_time_string]
             elif src:
@@ -548,7 +548,7 @@ class StatisticsViewer(object):
         ('focus', 'standout', ''),
         # ui
         ('header', 'dark cyan, standout', ''),
-        ('header.frozen', 'light red, standout', ''),
+        ('header.frozen', 'dark red, standout', ''),
         ('header.inactive', 'light cyan, standout', ''),
         ('mark', 'dark cyan', ''),
         # risk
@@ -584,8 +584,8 @@ class StatisticsViewer(object):
         loop = urwid.MainLoop(self.widget, self.palette, *args, **kwargs)
         return loop
 
-    def set_stats(self, stats):
-        self.header.set_stats(stats)
+    def set_stats(self, stats, src=None, src_time=None):
+        self.header.set_stats(stats, src, src_time)
         self.table.set_stats(stats)
 
     def activate(self):

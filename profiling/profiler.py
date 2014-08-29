@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.timers.greenlet
-    ~~~~~~~~~~~~~~~~~~~~~~~~~
+    profiling.profiler
+    ~~~~~~~~~~~~~~~~~~
 """
 from __future__ import absolute_import
 from collections import deque

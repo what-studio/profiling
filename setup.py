@@ -31,4 +31,5 @@ setup(
                  'Programming Language :: Python',
                  'Programming Language :: Python :: Implementation :: CPython',
                  'Topic :: Software Development :: Debuggers'],
+    install_requires=['click>=3.2', 'gevent', 'urwid', 'urwid-geventloop']
 )

@@ -16,7 +16,32 @@ from gevent import socket
 from gevent.server import StreamServer
 
 
+__all__ = ['recv_stats', 'ProfilerServer']
+
+
 SIZE_STRUCT_FORMAT = '<Q'  # unsigned long long
+
+
+def recv_full_buffer(sock, size):
+    buf = io.BytesIO()
+    while True:
+        size_required = size - buf.tell()
+        if not size_required:
+            break
+        data = sock.recv(size_required)
+        if not data:
+            raise socket.error(54, 'Connection closed')
+        buf.write(data)
+    buf.seek(0)
+    return buf
+
+
+def recv_stats(sock):
+    buf = recv_full_buffer(sock, struct.calcsize(SIZE_STRUCT_FORMAT))
+    size = struct.unpack(SIZE_STRUCT_FORMAT, buf.getvalue())[0]
+    buf = recv_full_buffer(sock, size)
+    stats = pickle.load(buf)
+    return stats
 
 
 class ProfilerServer(StreamServer):
@@ -95,28 +120,3 @@ class ProfilerServer(StreamServer):
                 self.send(connection, buf, length)
             except socket.error:
                 pass
-
-
-class ProfilerClient(object):
-
-    def __init__(self, connection):
-        self.connection = connection
-
-    def recv_stats(self):
-        buf = self.recv_full_buffer(struct.calcsize(SIZE_STRUCT_FORMAT))
-        size = struct.unpack(SIZE_STRUCT_FORMAT, buf.getvalue())[0]
-        buf = self.recv_full_buffer(size)
-        return pickle.load(buf)
-
-    def recv_full_buffer(self, size):
-        buf = io.BytesIO()
-        while True:
-            size_required = size - buf.tell()
-            if not size_required:
-                break
-            data = self.connection.recv(size_required)
-            if not data:
-                raise socket.error(54, 'Connection closed')
-            buf.write(data)
-        buf.seek(0)
-        return buf
