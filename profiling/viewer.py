@@ -485,7 +485,7 @@ class StatisticsTable(urwid.WidgetWrap):
 
     def update_frame(self, focus=None):
         if self.is_browsing(focus):
-            header_attr = 'header.frozen'
+            header_attr = 'header.interactive'
             self.footer = urwid.Text('ESC to melt')
         elif not self._active:
             header_attr = 'header.inactive'
@@ -554,7 +554,7 @@ class StatisticsViewer(object):
         ('focus', 'standout', ''),
         # ui
         ('header', 'dark cyan, standout', ''),
-        ('header.frozen', 'dark red, standout', ''),
+        ('header.interactive', 'dark red, standout', ''),
         ('header.inactive', 'light cyan, standout', ''),
         ('mark', 'dark cyan', ''),
         # risk

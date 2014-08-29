@@ -5,6 +5,10 @@
 
     The command-line interface.
 
+    ::
+
+       $ python -m profiling --help
+
 """
 from __future__ import absolute_import
 from datetime import datetime
@@ -28,6 +32,14 @@ from .timers.greenlet import GreenletTimer
 from .viewer import StatisticsViewer
 
 
+__all__ = ['main', 'profile', 'view']
+
+
+@click.group()
+def main():
+    pass
+
+
 def make_viewer():
     viewer = StatisticsViewer()
     viewer.use_vim_command_map()
@@ -43,16 +55,12 @@ def get_timer(ctx, param, value):
         raise ValueError('No such timer: {0}'.format(value))
 
 
-@click.group()
-def main():
-    pass
-
-
 @main.command()
 @click.argument('script', type=click.File('rb'))
 @click.option('-t', '--timer', callback=get_timer)
 @click.option('-d', '--dump', 'dump_filename', type=click.Path(writable=True))
 def profile(script, timer=None, dump_filename=None):
+    """Profile a Python script."""
     code = compile(script.read(), script.name, 'exec')
     script.close()
     sys.argv[:] = [script.name]
@@ -132,6 +140,7 @@ def run_client(viewer, address, *socket_options):
 @main.command()
 @click.argument('src', metavar='SOURCE')
 def view(src):
+    """Inspect statistics by TUI view."""
     try:
         src_type, src = parse_src(src)
     except ValueError as exc:
