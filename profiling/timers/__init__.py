@@ -12,6 +12,7 @@ __all__ = ['Timer', 'ContextualTimer']
 
 class Timer(object):
 
+    #: The raw function to get the CPU time.
     clock = time.clock
 
     def __call__(self):

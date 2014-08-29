@@ -14,19 +14,19 @@ __all__ = ['Formatter']
 
 class Formatter(object):
 
-    def __init__(self, stat):
+    def __init__(self, stats):
         super(Formatter, self).__init__()
-        self.stat = stat
+        self.stats = stats
 
     def format_stat(self, stat):
-        return '{0:.2%} {1:.6f}/{2:.6f} {3}'.format(
-            stat.total_time / self.stat.total_time, stat.own_time,
-            stat.total_time, stat.name)
+        return '{0:6.2%} {1} {2} calls, {3:.6f} total, {4:.6f} owned'.format(
+            stat.total_time / self.stats.cpu_time, stat.regular_name,
+            stat.calls, stat.total_time, stat.own_time)
 
     def format_stats(self, order=by_total_time, max_depth=3,
                      _stat=None, _depth=0, _buf=None):
         if _stat is None:
-            _stat = self.stat
+            _stat = self.stats
         if _buf is None:
             _buf = [self.format_stat(_stat)]
         for stat in _stat.sorted(order):
@@ -41,3 +41,13 @@ class Formatter(object):
         stream.write('\n'.join(self.format_stats(order, max_depth)))
         stream.write('\n')
         stream.flush()
+
+
+class AsciiTreeFormatter(Formatter):
+
+    def format_stats(self, order=by_total_time, max_depth=3,
+                     _stat=None, _depth=0, _buf=None):
+        from asciitree import draw_tree
+        if _stat is None:
+            _stat = self.stat
+        return [draw_tree(_stat, lambda s: s.sorted(order), self.format_stat)]

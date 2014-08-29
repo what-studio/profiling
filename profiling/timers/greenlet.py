@@ -16,7 +16,7 @@ __all__ = ['GreenletTimer']
 class GreenletTimer(ContextualTimer):
 
     def detect_context(self, context=None):
-        if context is None:
+        if context is None and greenlet:
             context = id(greenlet.getcurrent())
         return context
 
