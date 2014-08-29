@@ -2,6 +2,14 @@
 """
     profiling.viewer
     ~~~~~~~~~~~~~~~~
+
+    A text user interface application which inspects statistics.  To run it
+    easily do:
+
+    .. sourcecode:: console
+
+       $ python -m profiling view SOURCE
+
 """
 from __future__ import absolute_import
 import os
@@ -116,7 +124,6 @@ class StatWidget(urwid.TreeWidget):
     def __init__(self, node):
         super(StatWidget, self).__init__(node)
         self._w = urwid.AttrWrap(self._w, None, StatisticsViewer.focus_map)
-        self.collapse()
 
     @property
     def expanded(self):
@@ -261,8 +268,14 @@ class StatNodeBase(urwid.TreeNode):
 
 class NullStatWidget(StatWidget):
 
+    def __init__(self, node):
+        urwid.TreeWidget.__init__(self, node)
+
     def get_indented_widget(self):
-        return urwid.Text(('weak', 'Not Available'))
+        widget = urwid.Text(('weak', '- Not Available -'), align='center')
+        widget = urwid.Filler(widget)
+        widget = urwid.BoxAdapter(widget, 3)
+        return widget
 
 
 class NullStatNode(StatNodeBase):
@@ -290,7 +303,9 @@ class StatNode(StatNodeBase, urwid.ParentNode):
             widget_class = StatisticsWidget
         else:
             widget_class = StatWidget
-        return widget_class(self)
+        widget = widget_class(self)
+        widget.collapse()
+        return widget
 
     def setup_widget(self, widget):
         super(StatNode, self).setup_widget(widget)
@@ -410,7 +425,7 @@ class StatisticsTable(urwid.WidgetWrap):
 
     def set_stats(self, stat):
         node = StatNode(stat, table=self)
-        if self.is_browsing():
+        if self.is_interactive():
             self._pending_focus = node
         else:
             self.activate()
@@ -445,7 +460,7 @@ class StatisticsTable(urwid.WidgetWrap):
         base = super(StatisticsTable, self)
         command = self._command_map[key]
         if command == self._command_map['esc']:
-            self.end_browsing()
+            self.end_interactive()
             return True
         elif command == self._command_map['right']:
             widget, node = self.body.get_focus()
@@ -463,18 +478,18 @@ class StatisticsTable(urwid.WidgetWrap):
                     self.body.change_focus(size, parent_node)
                 return True
         elif command == self._command_map[' ']:
-            if not self.is_browsing():
+            if not self.is_interactive():
                 key = 'down'
         return base.keypress(size, key)
 
-    def is_browsing(self, focus=None):
-        """Is the user browsing the stats tree?"""
+    def is_interactive(self, focus=None):
+        """Is the user interact with the stats tree?"""
         if focus is None:
             focus = self.get_focus()[1]
         return not focus.is_root()
 
-    def end_browsing(self):
-        """Finalizes tree browsing."""
+    def end_interactive(self):
+        """Finalizes interactive mode."""
         try:
             node = self._pending_focus
         except AttributeError:
@@ -484,7 +499,7 @@ class StatisticsTable(urwid.WidgetWrap):
         self.set_focus(node)
 
     def update_frame(self, focus=None):
-        if self.is_browsing(focus):
+        if self.is_interactive(focus):
             header_attr = 'header.interactive'
             self.footer = urwid.Text('ESC to melt')
         elif not self._active:
@@ -512,9 +527,7 @@ class StatisticsTable(urwid.WidgetWrap):
 class StatisticsHeader(urwid.WidgetWrap):
 
     def __init__(self):
-        self.columns = urwid.Columns([])
-        margin = EmptyWidget(1)
-        widget = urwid.Pile([self.columns, margin])
+        widget = urwid.Columns([])
         super(StatisticsHeader, self).__init__(widget)
 
     def set_stats(self, stats, src=None, src_time=None):
@@ -543,7 +556,7 @@ class StatisticsHeader(urwid.WidgetWrap):
         else:
             src_info = EmptyWidget()
         opts = ('weight', 1, False)
-        self.columns.contents = [(cpu_info, opts), (src_info, opts)]
+        self._w.contents = [(cpu_info, opts), (src_info, opts)]
 
 
 class StatisticsViewer(object):
@@ -583,7 +596,9 @@ class StatisticsViewer(object):
         super(StatisticsViewer, self).__init__()
         self.table = StatisticsTable()
         self.header = StatisticsHeader()
-        self.widget = urwid.Frame(self.table, self.header)
+        widget = urwid.Frame(self.table, self.header)
+        widget = urwid.Padding(widget, right=1)
+        self.widget = widget
 
     def loop(self, *args, **kwargs):
         kwargs.setdefault('unhandled_input', self.unhandled_input)

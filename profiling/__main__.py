@@ -5,7 +5,7 @@
 
     The command-line interface.
 
-    ::
+    .. sourcecode:: console
 
        $ python -m profiling --help
 
