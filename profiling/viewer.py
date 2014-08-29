@@ -200,9 +200,6 @@ class StatWidget(urwid.TreeWidget):
             key = '-'
         return super(StatWidget, self).keypress(size, key)
 
-    def mouse_event(self, *args, **kwargs):
-        pass
-
 
 class EmptyWidget(urwid.Widget):
     """A widget which doesn't render anything."""
@@ -432,6 +429,7 @@ class StatisticsTable(urwid.WidgetWrap):
             self.set_focus(node)
 
     def sort_stats(self, order=by_total_time):
+        # TODO: implement it
         self.order = order
 
     def activate(self):
@@ -456,10 +454,46 @@ class StatisticsTable(urwid.WidgetWrap):
         segments.insert(0, stat.name or '')
         return ':'.join(segments)
 
+    def is_interactive(self, focus=None):
+        """Is the user interact with the stats tree?"""
+        if focus is None:
+            focus = self.get_focus()[1]
+        return not focus.is_root()
+
+    def end_interactive(self):
+        """Finalizes interactive mode."""
+        try:
+            node = self._pending_focus
+        except AttributeError:
+            node = self.get_focus()[1].get_root()
+        else:
+            del self._pending_focus
+        self.set_focus(node)
+
+    def update_frame(self, focus=None):
+        if self.is_interactive(focus):
+            header_attr = 'header.interactive'
+        elif not self._active:
+            header_attr = 'header.inactive'
+        else:
+            header_attr = 'header'
+        self.header.set_attr_map({None: header_attr})
+
+    def focus_hotspot(self, size):
+        widget, __ = self.body.get_focus()
+        while widget:
+            node = widget.get_node()
+            widget.expand()
+            widget = widget.first_child()
+        self.body.change_focus(size, node)
+
     def keypress(self, size, key):
         base = super(StatisticsTable, self)
         command = self._command_map[key]
-        if command == self._command_map['esc']:
+        if key == '>':
+            self.focus_hotspot(size)
+            return True
+        elif command == self._command_map['esc']:
             self.end_interactive()
             return True
         elif command == self._command_map['right']:
@@ -482,34 +516,6 @@ class StatisticsTable(urwid.WidgetWrap):
                 key = 'down'
         return base.keypress(size, key)
 
-    def is_interactive(self, focus=None):
-        """Is the user interact with the stats tree?"""
-        if focus is None:
-            focus = self.get_focus()[1]
-        return not focus.is_root()
-
-    def end_interactive(self):
-        """Finalizes interactive mode."""
-        try:
-            node = self._pending_focus
-        except AttributeError:
-            node = self.get_focus()[1].get_root()
-        else:
-            del self._pending_focus
-        self.set_focus(node)
-
-    def update_frame(self, focus=None):
-        if self.is_interactive(focus):
-            header_attr = 'header.interactive'
-            self.footer = urwid.Text('ESC to melt')
-        elif not self._active:
-            header_attr = 'header.inactive'
-            self.footer = None
-        else:
-            header_attr = 'header'
-            self.footer = None
-        self.header.set_attr_map({None: header_attr})
-
     # signal handlers
 
     def _walker_focus_changed(self, focus):
@@ -527,6 +533,12 @@ class StatisticsTable(urwid.WidgetWrap):
 class StatisticsHeader(urwid.WidgetWrap):
 
     def __init__(self):
+        # self.graph = urwid.BarGraph([None, 'bar'])
+        # widget = urwid.Pile([
+        #     ('pack', urwid.BoxAdapter(self.graph, 5)),
+        #     ('pack', self.info),
+        # ])
+        # self._cpu_usages = deque()
         widget = urwid.Columns([])
         super(StatisticsHeader, self).__init__(widget)
 
@@ -557,6 +569,14 @@ class StatisticsHeader(urwid.WidgetWrap):
             src_info = EmptyWidget()
         opts = ('weight', 1, False)
         self._w.contents = [(cpu_info, opts), (src_info, opts)]
+        # graph
+        # capacity = 80
+        # self._cpu_usages.append(stats.cpu_usage)
+        # if len(self._cpu_usages) > capacity:
+        #     self._cpu_usages.popleft()
+        # graph_data = [(0,)] * (capacity - len(self._cpu_usages))
+        # graph_data.extend((x,) for x in self._cpu_usages)
+        # self.graph.set_data(graph_data, max(max(self._cpu_usages), 0.1))
 
 
 class StatisticsViewer(object):
@@ -570,6 +590,7 @@ class StatisticsViewer(object):
         ('header.interactive', 'dark red, standout', '', 'blink'),
         ('header.inactive', 'brown, standout', '', 'standout'),
         ('mark', 'dark cyan', ''),
+        # ('bar', '', 'dark green', 'standout'),
         # risk
         ('danger', 'dark red', '', 'blink'),
         ('caution', 'light red', '', 'blink'),

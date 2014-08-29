@@ -26,10 +26,17 @@ setup(
     maintainer_email='sub@nexon.co.kr',
     platforms='linux',
     packages=['profiling', 'profiling.timers'],
-    classifiers=['Development Status :: 1 - Planning',
-                 'License :: OSI Approved :: BSD License',
-                 'Programming Language :: Python',
-                 'Programming Language :: Python :: Implementation :: CPython',
-                 'Topic :: Software Development :: Debuggers'],
-    install_requires=['click>=3.2', 'gevent', 'urwid', 'urwid-geventloop']
+    classifiers=[
+        'Development Status :: 1 - Planning',
+        'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Topic :: Software Development :: Debuggers',
+    ],
+    install_requires=[
+        'click>=3.2',
+        'gevent',
+        'urwid>=1.2.1',
+        'urwid-geventloop',
+    ]
 )
