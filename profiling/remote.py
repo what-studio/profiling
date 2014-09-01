@@ -60,7 +60,7 @@ class ProfilerServer(StreamServer):
 
     def add_connection(self, connection):
         self.connections.add(connection)
-        if len(self.connections) == 1 and self.greenlet is None:
+        if self.greenlet is None and len(self.connections) == 1:
             self.greenlet = gevent.spawn(self.profile_forever)
             self.greenlet.link(lambda g: setattr(self, 'greenlet', None))
 
@@ -110,8 +110,6 @@ class ProfilerServer(StreamServer):
             self.dump.seek(0)
             self.dump.truncate(0)
             pickle.dump(self.profiler.frozen_stats(), self.dump)
-            with open('.tmp/k1server.prof', 'w') as f:
-                f.write(self.dump.getvalue())
             self.broadcast(self.dump)
         self.log('Profiling disabled')
 
