@@ -10,6 +10,12 @@
 
        $ python -m profiling view SOURCE
 
+    ::
+
+       viewer = StatisticsViewer()
+       loop = viewer.loop()
+       loop.run()
+
 """
 from __future__ import absolute_import
 import os
@@ -362,14 +368,16 @@ class StatisticsTable(urwid.WidgetWrap):
     order = by_total_time
 
     _active = False
+    _src = None
+    _src_time = None
 
     def __init__(self):
         cls = type(self)
         self._expanded_stat_tokens = set()
         self.walker = StatisticsWalker(NullStatNode())
         on(self.walker, 'focus_changed', self._walker_focus_changed)
-        body = StatisticsListBox(self.walker)
-        header = urwid.AttrMap(cls.make_columns([
+        tbody = StatisticsListBox(self.walker)
+        thead = urwid.AttrMap(cls.make_columns([
             urwid.Text('FUNCTION'),
             urwid.Text('TOTAL%', 'right'),
             urwid.Text('OWN%', 'right'),
@@ -379,7 +387,8 @@ class StatisticsTable(urwid.WidgetWrap):
             urwid.Text('OWN', 'right'),
             urwid.Text('/CALL', 'right'),
         ]), None)
-        widget = urwid.Frame(body, header)
+        header = urwid.Columns([])
+        widget = urwid.Frame(tbody, urwid.Pile([header, thead]))
         super(StatisticsTable, self).__init__(widget)
         self.update_frame()
 
@@ -391,20 +400,28 @@ class StatisticsTable(urwid.WidgetWrap):
         return urwid.Columns(widget_list, 1)
 
     @property
-    def body(self):
+    def tbody(self):
         return self._w.body
 
-    @body.setter
-    def body(self, body):
+    @tbody.setter
+    def tbody(self, body):
         self._w.body = body
 
     @property
+    def thead(self):
+        return self._w.header.contents[1][0]
+
+    @thead.setter
+    def thead(self, thead):
+        self._w.header.contents[1] = (thead, ('pack', None))
+
+    @property
     def header(self):
-        return self._w.header
+        return self._w.header.contents[0][0]
 
     @header.setter
     def header(self, header):
-        self._w.header = header
+        self._w.header.contents[0] = (header, ('pack', None))
 
     @property
     def footer(self):
@@ -415,18 +432,20 @@ class StatisticsTable(urwid.WidgetWrap):
         self._w.footer = footer
 
     def get_focus(self):
-        return self.body.get_focus()
+        return self.tbody.get_focus()
 
     def set_focus(self, focus):
-        self.body.set_focus(focus)
+        self.tbody.set_focus(focus)
 
-    def set_stats(self, stat):
-        node = StatNode(stat, table=self)
-        if self.is_interactive():
-            self._pending_focus = node
-        else:
-            self.activate()
-            self.set_focus(node)
+    def set_stats(self, stats, src=None, src_time=None, force=False):
+        if not force and self.is_interactive():
+            self._pending = (stats, src, src_time)
+            return
+        node = StatNode(stats, table=self)
+        self._src = src
+        self._src_time = src_time
+        self.set_focus(node)
+        self.activate()
 
     def sort_stats(self, order=by_total_time):
         # TODO: implement it
@@ -463,86 +482,30 @@ class StatisticsTable(urwid.WidgetWrap):
     def end_interactive(self):
         """Finalizes interactive mode."""
         try:
-            node = self._pending_focus
+            stats, src, src_time = self._pending
         except AttributeError:
             node = self.get_focus()[1].get_root()
+            self.set_focus(node)
         else:
-            del self._pending_focus
-        self.set_focus(node)
+            del self._pending
+            self.set_stats(stats, src, src_time, force=True)
 
     def update_frame(self, focus=None):
-        if self.is_interactive(focus):
-            header_attr = 'header.interactive'
+        interactive = self.is_interactive(focus)
+        if interactive:
+            header_attr = 'thead.interactive'
         elif not self._active:
-            header_attr = 'header.inactive'
+            header_attr = 'thead.inactive'
         else:
-            header_attr = 'header'
-        self.header.set_attr_map({None: header_attr})
-
-    def focus_hotspot(self, size):
-        widget, __ = self.body.get_focus()
-        while widget:
-            node = widget.get_node()
-            widget.expand()
-            widget = widget.first_child()
-        self.body.change_focus(size, node)
-
-    def keypress(self, size, key):
-        base = super(StatisticsTable, self)
-        command = self._command_map[key]
-        if key == '>':
-            self.focus_hotspot(size)
-            return True
-        elif command == self._command_map['esc']:
-            self.end_interactive()
-            return True
-        elif command == self._command_map['right']:
-            widget, node = self.body.get_focus()
-            if widget.expanded:
-                heavy_widget = widget.first_child()
-                if heavy_widget is not None:
-                    heavy_node = heavy_widget.get_node()
-                    self.body.change_focus(size, heavy_node)
-                return True
-        elif command == self._command_map['left']:
-            widget, node = self.body.get_focus()
-            if not widget.expanded:
-                parent_node = node.get_parent()
-                if not parent_node.is_root():
-                    self.body.change_focus(size, parent_node)
-                return True
-        elif command == self._command_map[' ']:
-            if not self.is_interactive():
-                key = 'down'
-        return base.keypress(size, key)
-
-    # signal handlers
-
-    def _walker_focus_changed(self, focus):
-        self.update_frame(focus)
-
-    def _widget_expanded(self, widget):
-        stat_token = self.tokenize_stat(widget.get_node().get_value())
-        self._expanded_stat_tokens.add(stat_token)
-
-    def _widget_collapsed(self, widget):
-        stat_token = self.tokenize_stat(widget.get_node().get_value())
-        self._expanded_stat_tokens.discard(stat_token)
-
-
-class StatisticsHeader(urwid.WidgetWrap):
-
-    def __init__(self):
-        # self.graph = urwid.BarGraph([None, 'bar'])
-        # widget = urwid.Pile([
-        #     ('pack', urwid.BoxAdapter(self.graph, 5)),
-        #     ('pack', self.info),
-        # ])
-        # self._cpu_usages = deque()
-        widget = urwid.Columns([])
-        super(StatisticsHeader, self).__init__(widget)
-
-    def set_stats(self, stats, src=None, src_time=None):
+            header_attr = 'thead'
+        self.thead.set_attr_map({None: header_attr})
+        if interactive:
+            return
+        stats = self.get_focus()[1].get_value()
+        if stats is None:
+            return
+        src = self._src
+        src_time = self._src_time
         fraction_string = '({0}/{1})'.format(
             fmt.format_clock(stats.cpu_time),
             fmt.format_clock(stats.wall_time))
@@ -568,15 +531,57 @@ class StatisticsHeader(urwid.WidgetWrap):
         else:
             src_info = EmptyWidget()
         opts = ('weight', 1, False)
-        self._w.contents = [(cpu_info, opts), (src_info, opts)]
-        # graph
-        # capacity = 80
-        # self._cpu_usages.append(stats.cpu_usage)
-        # if len(self._cpu_usages) > capacity:
-        #     self._cpu_usages.popleft()
-        # graph_data = [(0,)] * (capacity - len(self._cpu_usages))
-        # graph_data.extend((x,) for x in self._cpu_usages)
-        # self.graph.set_data(graph_data, max(max(self._cpu_usages), 0.1))
+        self.header.contents = [(cpu_info, opts), (src_info, opts)]
+
+    def focus_hotspot(self, size):
+        widget, __ = self.tbody.get_focus()
+        while widget:
+            node = widget.get_node()
+            widget.expand()
+            widget = widget.first_child()
+        self.tbody.change_focus(size, node)
+
+    def keypress(self, size, key):
+        base = super(StatisticsTable, self)
+        command = self._command_map[key]
+        if key == '>':
+            self.focus_hotspot(size)
+            return True
+        elif command == self._command_map['esc']:
+            self.end_interactive()
+            return True
+        elif command == self._command_map['right']:
+            widget, node = self.tbody.get_focus()
+            if widget.expanded:
+                heavy_widget = widget.first_child()
+                if heavy_widget is not None:
+                    heavy_node = heavy_widget.get_node()
+                    self.tbody.change_focus(size, heavy_node)
+                return True
+        elif command == self._command_map['left']:
+            widget, node = self.tbody.get_focus()
+            if not widget.expanded:
+                parent_node = node.get_parent()
+                if not parent_node.is_root():
+                    self.tbody.change_focus(size, parent_node)
+                return True
+        elif command == self._command_map[' ']:
+            if not self.is_interactive():
+                key = 'down'
+        return base.keypress(size, key)
+
+    # signal handlers
+
+    def _walker_focus_changed(self, focus):
+        self.update_frame(focus)
+
+    def _widget_expanded(self, widget):
+        stat_token = self.tokenize_stat(widget.get_node().get_value())
+        self._expanded_stat_tokens.add(stat_token)
+
+    def _widget_collapsed(self, widget):
+        stat_token = self.tokenize_stat(widget.get_node().get_value())
+        self._expanded_stat_tokens.discard(stat_token)
 
 
 class StatisticsViewer(object):
@@ -586,9 +591,9 @@ class StatisticsViewer(object):
         ('weak', weak_color, ''),
         ('focus', 'standout', '', 'standout'),
         # ui
-        ('header', 'dark cyan, standout', '', 'standout'),
-        ('header.interactive', 'dark red, standout', '', 'blink'),
-        ('header.inactive', 'brown, standout', '', 'standout'),
+        ('thead', 'dark cyan, standout', '', 'standout'),
+        ('thead.interactive', 'dark red, standout', '', 'blink'),
+        ('thead.inactive', 'brown, standout', '', 'standout'),
         ('mark', 'dark cyan', ''),
         # ('bar', '', 'dark green', 'standout'),
         # risk
@@ -616,10 +621,7 @@ class StatisticsViewer(object):
     def __init__(self):
         super(StatisticsViewer, self).__init__()
         self.table = StatisticsTable()
-        self.header = StatisticsHeader()
-        widget = urwid.Frame(self.table, self.header)
-        widget = urwid.Padding(widget, right=1)
-        self.widget = widget
+        self.widget = urwid.Padding(self.table, right=1)
 
     def loop(self, *args, **kwargs):
         kwargs.setdefault('unhandled_input', self.unhandled_input)
@@ -627,8 +629,7 @@ class StatisticsViewer(object):
         return loop
 
     def set_stats(self, stats, src=None, src_time=None):
-        self.header.set_stats(stats, src, src_time)
-        self.table.set_stats(stats)
+        self.table.set_stats(stats, src, src_time)
 
     def activate(self):
         return self.table.activate()

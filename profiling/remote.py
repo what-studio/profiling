@@ -2,6 +2,9 @@
 """
     profiling.remote
     ~~~~~~~~~~~~~~~~
+
+    Server and client implementation for remote profiling.
+
 """
 from __future__ import absolute_import
 import io
@@ -14,6 +17,7 @@ import struct
 
 import gevent
 from gevent import socket
+from gevent.lock import Semaphore
 from gevent.server import StreamServer
 
 
@@ -57,6 +61,7 @@ class ProfilerServer(StreamServer):
         self.interval = interval
         self.connections = set()
         self.dump = io.BytesIO()
+        self.lock = Semaphore()
 
     def add_connection(self, connection):
         self.connections.add(connection)
@@ -76,10 +81,8 @@ class ProfilerServer(StreamServer):
             fmt = 'A client connected (total: {1})'
         self.log(fmt.format(address, num_connections))
         gevent.spawn(self._detect_closing, connection, address)
-        try:
+        with self.lock:
             self.send(connection, self.dump)
-        except socket.error:
-            pass
 
     def _detect_closing(self, connection, address=None):
         while True:
@@ -110,7 +113,8 @@ class ProfilerServer(StreamServer):
             self.dump.seek(0)
             self.dump.truncate(0)
             pickle.dump(self.profiler.frozen_stats(), self.dump)
-            self.broadcast(self.dump)
+            with self.lock:
+                self.broadcast(self.dump)
         self.log('Profiling disabled')
 
     def _get_length(self, buf):
@@ -123,8 +127,8 @@ class ProfilerServer(StreamServer):
         if not length:
             return
         buf.seek(0)
-        connection.send(struct.pack(SIZE_STRUCT_FORMAT, length))
-        connection.send(buf.read())
+        connection.sendall(struct.pack(SIZE_STRUCT_FORMAT, length))
+        connection.sendall(buf.read())
 
     def broadcast(self, buf, length=None):
         if length is None:
