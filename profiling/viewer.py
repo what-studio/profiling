@@ -26,6 +26,9 @@ from urwid import connect_signal as on
 from .sortkeys import by_total_time
 
 
+__all__ = ['StatisticsTable', 'StatisticsViewer']
+
+
 class Formatter(object):
 
     def _markup(get_string, get_attr=None):
@@ -48,6 +51,7 @@ class Formatter(object):
     # percent
 
     def format_percent(self, ratio):
+        ratio = round(ratio, 4)
         if ratio >= 1:
             precision = 0
         elif ratio >= 0.1:

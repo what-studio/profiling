@@ -1,0 +1,341 @@
+# -*- coding: utf-8 -*-
+"""
+    profiling.stats
+    ~~~~~~~~~~~~~~~
+
+    Stat classes.
+
+"""
+from __future__ import absolute_import
+from collections import defaultdict
+import inspect
+import time
+
+from .sortkeys import by_total_time
+
+
+__all__ = ['FlatStat', 'FlatStatistics', 'FrozenStat', 'FrozenStatistics',
+           'RecordingStat', 'RecordingStatistics', 'Stat', 'Statistics',
+           'VoidRecordingStat']
+
+
+class Stat(object):
+    """Stat."""
+
+    _state_slots = ['name', 'filename', 'lineno', 'module',
+                    'calls', 'total_time']
+
+    name = None
+    filename = None
+    lineno = None
+    module = None
+    calls = 0
+    total_time = 0.0
+
+    def __init__(self, stat=None, name=None, filename=None, lineno=None,
+                 module=None):
+        super(Stat, self).__init__()
+        if stat is not None:
+            assert name is filename is lineno is module is None
+            name = stat.name
+            filename = stat.filename
+            lineno = stat.lineno
+            module = stat.module
+        if name is not None:
+            self.name = name
+        if filename is not None:
+            self.filename = filename
+        if lineno is not None:
+            self.lineno = lineno
+        if module is not None:
+            self.module = module
+
+    def __iter__(self):
+        """Override it to walk child stats."""
+        return iter(())
+
+    def __len__(self):
+        """Override it to count child stats."""
+        return 0
+
+    @property
+    def regular_name(self):
+        name, module = self.name, self.module
+        if name and module:
+            return ':'.join([module, name])
+        return name or module
+
+    @property
+    def own_time(self):
+        sub_time = sum(stat.total_time for stat in self)
+        return max(0., self.total_time - sub_time)
+
+    @property
+    def total_time_per_call(self):
+        try:
+            return self.total_time / self.calls
+        except ZeroDivisionError:
+            return 0.0
+
+    @property
+    def own_time_per_call(self):
+        try:
+            return self.own_time / self.calls
+        except ZeroDivisionError:
+            return 0.0
+
+    def sorted(self, order=by_total_time):
+        return sorted(self, key=order, reverse=True)
+
+    def __getstate__(self):
+        return tuple(getattr(self, attr) for attr in self._state_slots)
+
+    def __setstate__(self, state):
+        for attr, val in zip(self._state_slots, state):
+            setattr(self, attr, val)
+
+    def __repr__(self):
+        class_name = type(self).__name__
+        regular_name = self.regular_name
+        name_string = '' if regular_name else "'{0}'".format(regular_name)
+        fmt = '<{0} {1}calls={2} total_time={3:.6f} own_time={4:.6f}>'
+        return fmt.format(class_name, name_string, self.calls,
+                          self.total_time, self.own_time)
+
+
+class Statistics(Stat):
+    """Thr root statistic of the statistics tree."""
+
+    _state_slots = ['cpu_time', 'wall_time']
+
+    cpu_time = 0.0
+    wall_time = 0.0
+
+    name = None
+    filename = None
+    lineno = None
+    module = None
+
+    @property
+    def cpu_usage(self):
+        try:
+            return self.cpu_time / self.wall_time
+        except ZeroDivisionError:
+            return 0.0
+
+    @property
+    def total_time(self):
+        return self.wall_time
+
+    @property
+    def own_time(self):
+        return self.cpu_time
+
+    def clear(self):
+        self.children.clear()
+        self.calls = Stat.calls
+        self.cpu_time = Stat.cpu_time
+        self.wall_time = Stat.wall_time
+        try:
+            del self._cpu_time_started
+        except AttributeError:
+            pass
+        try:
+            del self._wall_time_started
+        except AttributeError:
+            pass
+
+    def __repr__(self):
+        class_name = type(self).__name__
+        return '<{0} cpu_usage={1:.2%}>'.format(class_name, self.cpu_usage)
+
+
+class RecordingStat(Stat):
+    """Recordig statistic measures execution time of a code."""
+
+    _state_slots = None
+
+    def __init__(self, code=None):
+        super(RecordingStat, self).__init__()
+        self.code = code
+        self.children = {}
+        self._times_entered = {}
+
+    @property
+    def name(self):
+        if self.code is None:
+            return
+        name = self.code.co_name
+        if name == '<module>':
+            return
+        return name
+
+    @property
+    def filename(self):
+        return self.code and self.code.co_filename
+
+    @property
+    def lineno(self):
+        return self.code and self.code.co_firstlineno
+
+    @property
+    def module(self):
+        if self.code is None:
+            return
+        module = inspect.getmodule(self.code)
+        if not module:
+            return
+        return module.__name__
+
+    def record_entering(self, time, frame=None):
+        self._times_entered[id(frame)] = time
+        self.calls += 1
+
+    def record_leaving(self, time, frame=None):
+        time_entered = self._times_entered.pop(id(frame))
+        time_elapsed = time - time_entered
+        self.total_time += max(0, time_elapsed)
+
+    def clear(self):
+        self.code = None
+        self.children.clear()
+        self.calls = Stat.calls
+        self.total_time = Stat.total_time
+        self._times_entered.clear()
+
+    def get_child(self, code):
+        return self.children[code]
+
+    def add_child(self, code, stat):
+        self.children[code] = stat
+
+    def __iter__(self):
+        return self.children.itervalues()
+
+    def __len__(self):
+        return len(self.children)
+
+    def __getitem__(self, code):
+        return self.get_child(code)
+
+    def __contains__(self, code):
+        return code in self.children
+
+    def __getstate__(self):
+        raise TypeError('Cannot dump recording statistic.')
+
+
+class RecordingStatistics(RecordingStat, Statistics):
+    """Thr root statistic of the recording statistics tree."""
+
+    _state_slots = None
+
+    wall = time.time
+
+    def record_starting(self, time):
+        self._cpu_time_started = time
+        self._wall_time_started = self.wall()
+
+    def record_stopping(self, time):
+        try:
+            self.cpu_time = max(0, time - self._cpu_time_started)
+            self.wall_time = max(0, self.wall() - self._wall_time_started)
+        except AttributeError:
+            raise RuntimeError('Starting does not recorded.')
+        self.calls = 1
+        del self._cpu_time_started
+        del self._wall_time_started
+
+    record_entering = NotImplemented
+    record_leaving = NotImplemented
+
+
+class VoidRecordingStat(RecordingStat):
+    """Stat for an absent frame."""
+
+    _state_slots = None
+
+    @property
+    def total_time(self):
+        return sum(stat.total_time for stat in self)
+
+    def record_entering(self, time, frame=None):
+        pass
+
+    def record_leaving(self, time, frame=None):
+        pass
+
+    clear = NotImplemented
+
+
+class FrozenStat(Stat):
+    """Frozen :class:`Stat` to serialize by Pickle."""
+
+    _state_slots = ['name', 'filename', 'lineno', 'module',
+                    'calls', 'total_time', 'children']
+
+    def __init__(self, stat):
+        super(FrozenStat, self).__init__(stat)
+        self.calls = stat.calls
+        self.total_time = stat.total_time
+        self.children = map(type(self), stat)
+
+    def __iter__(self):
+        return iter(self.children)
+
+    def __len__(self):
+        return len(self.children)
+
+
+class FrozenStatistics(FrozenStat, Statistics):
+    """Frozen :class:`Statistics` to serialize by Pickle."""
+
+    _state_slots = ['cpu_time', 'wall_time', 'children']
+
+    def __init__(self, stats):
+        Stat.__init__(self)
+        self.cpu_time = stats.cpu_time
+        self.wall_time = stats.wall_time
+        self.children = map(FrozenStat, stats)
+
+
+class FlatStatistics(Statistics):
+
+    _state_slots = ['cpu_time', 'wall_time', 'children']
+
+    @classmethod
+    def _flatten_stats(cls, stats, registry=None):
+        if registry is None:
+            registry = {}
+            defaultdict(FlatStat)
+        for stat in stats:
+            try:
+                flatten_stat = registry[stat.regular_name]
+            except KeyError:
+                flatten_stat = FlatStat(stat)
+                registry[stat.regular_name] = flatten_stat
+            for attr in ['calls', 'total_time', 'own_time']:
+                value = getattr(flatten_stat, attr) + getattr(stat, attr)
+                setattr(flatten_stat, attr, value)
+            cls._flatten_stats(stat, registry=registry)
+        return registry.values()
+
+    def __init__(self, stats):
+        Stat.__init__(self)
+        self.cpu_time = stats.cpu_time
+        self.wall_time = stats.wall_time
+        self.children = type(self)._flatten_stats(stats)
+
+    def __iter__(self):
+        return iter(self.children)
+
+    def __len__(self):
+        return len(self.children)
+
+
+class FlatStat(Stat):
+
+    _state_slots = ['name', 'filename', 'lineno', 'module',
+                    'calls', 'total_time', 'own_time']
+
+    own_time = 0.0
