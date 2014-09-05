@@ -467,18 +467,26 @@ class StatisticsTable(urwid.WidgetWrap):
         self.sort_stats(order)
 
     def refresh(self):
+        stats = self.get_stats()
+        node = StatNode(stats, table=self)
+        path = self.get_path()
+        node = self.find_node(node, path)
+        self.set_focus(node)
+
+    def get_path(self):
+        """Gets the path to the focused statistic. Each step is a hash of
+        statistic object.
+        """
         path = deque()
         __, node = self.get_focus()
         while not node.is_root():
             stat = node.get_value()
             path.appendleft(hash(stat))
             node = node.get_parent()
-        stats = self.get_stats()
-        node = StatNode(stats, table=self)
-        node = self.find_node(node, path)
-        self.set_focus(node)
+        return path
 
     def find_node(self, node, path):
+        """Finds a node by the given path from the given node."""
         for hash_value in path:
             for stat in node.get_child_keys():
                 if hash(stat) == hash_value:
@@ -643,7 +651,7 @@ class StatisticsViewer(object):
         ('focus', 'standout', '', 'standout'),
         # ui
         ('thead', 'dark cyan, standout', '', 'standout'),
-        ('thead.interactive', 'dark red, standout', '', 'blink'),
+        ('thead.interactive', 'dark red, standout', '', 'standout'),
         ('thead.inactive', 'brown, standout', '', 'standout'),
         ('mark', 'dark cyan', ''),
         # risk
