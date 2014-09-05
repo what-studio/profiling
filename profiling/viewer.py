@@ -18,6 +18,7 @@
 
 """
 from __future__ import absolute_import
+from collections import deque
 import os
 
 import urwid
@@ -442,8 +443,7 @@ class StatisticsTable(urwid.WidgetWrap):
     def get_stats(self):
         return self._stats
 
-    def set_stats(self, stats, src=None, src_time=None,
-                  activate=True, force=False):
+    def set_stats(self, stats, src=None, src_time=None):
         self._stats = stats
         self._src = src
         self._src_time = src_time
@@ -463,9 +463,26 @@ class StatisticsTable(urwid.WidgetWrap):
         self.sort_stats(order)
 
     def refresh(self):
+        path = deque()
+        __, node = self.get_focus()
+        while not node.is_root():
+            stat = node.get_value()
+            path.appendleft(hash(stat))
+            node = node.get_parent()
         stats = self.get_stats()
         node = StatNode(stats, table=self)
+        node = self.find_node(node, path)
         self.set_focus(node)
+
+    def find_node(self, node, path):
+        for hash_value in path:
+            for stat in node.get_child_keys():
+                if hash(stat) == hash_value:
+                    node = node.get_child_node(stat)
+                    break
+            else:
+                break
+        return node
 
     def activate(self):
         self._active = True
