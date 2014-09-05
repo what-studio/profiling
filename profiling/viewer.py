@@ -23,7 +23,7 @@ import os
 import urwid
 from urwid import connect_signal as on
 
-from .sortkeys import by_total_time
+from . import sortkeys
 
 
 __all__ = ['StatisticsTable', 'StatisticsViewer']
@@ -170,8 +170,9 @@ class StatWidget(urwid.TreeWidget):
     def get_indented_widget(self):
         icon = self.get_mark()
         widget = self.get_inner_widget()
+        node = self.get_node()
         widget = urwid.Columns([('fixed', 1, icon), widget], 1)
-        indent = (self.get_node().get_depth() - 1)
+        indent = (node.get_depth() - 1)
         widget = urwid.Padding(widget, left=indent)
         return widget
 
@@ -359,21 +360,24 @@ class StatisticsWalker(urwid.TreeWalker):
 
 class StatisticsTable(urwid.WidgetWrap):
 
-    column_widths = [
-        ('weight', 1),  # function
-        (6,),  # total%
-        (6,),  # own%
-        (6,),  # calls
-        (10,),  # total
-        (6,),  # total/call
-        (10,),  # own
-        (6,),  # own/call
+    columns = [
+        # name, align, width, order
+        ('FUNCTION', 'left', ('weight', 1), sortkeys.by_name),
+        ('TOTAL%', 'right', (6,), None),
+        ('OWN%', 'right', (6,), None),
+        ('CALLS', 'right', (6,), sortkeys.by_calls),
+        ('TOTAL', 'right', (10,), sortkeys.by_total_time),
+        ('/CALL', 'right', (6,), sortkeys.by_total_time_per_call),
+        ('OWN', 'right', (10,), sortkeys.by_own_time),
+        ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
     ]
-    order = by_total_time
+    order = sortkeys.by_total_time
 
-    _active = False
+    _stats = None
     _src = None
     _src_time = None
+
+    _active = False
 
     def __init__(self):
         cls = type(self)
@@ -382,14 +386,7 @@ class StatisticsTable(urwid.WidgetWrap):
         on(self.walker, 'focus_changed', self._walker_focus_changed)
         tbody = StatisticsListBox(self.walker)
         thead = urwid.AttrMap(cls.make_columns([
-            urwid.Text('FUNCTION'),
-            urwid.Text('TOTAL%', 'right'),
-            urwid.Text('OWN%', 'right'),
-            urwid.Text('CALLS', 'right'),
-            urwid.Text('TOTAL', 'right'),
-            urwid.Text('/CALL', 'right'),
-            urwid.Text('OWN', 'right'),
-            urwid.Text('/CALL', 'right'),
+            urwid.Text(name, align) for name, align, __, __ in self.columns
         ]), None)
         header = urwid.Columns([])
         widget = urwid.Frame(tbody, urwid.Pile([header, thead]))
@@ -399,7 +396,8 @@ class StatisticsTable(urwid.WidgetWrap):
     @classmethod
     def make_columns(cls, column_widgets):
         widget_list = []
-        for width, widget in zip(cls.column_widths, column_widgets):
+        widths = (width for __, __, width, __ in cls.columns)
+        for width, widget in zip(widths, column_widgets):
             widget_list.append(width + (widget,))
         return urwid.Columns(widget_list, 1)
 
@@ -441,19 +439,33 @@ class StatisticsTable(urwid.WidgetWrap):
     def set_focus(self, focus):
         self.tbody.set_focus(focus)
 
-    def set_stats(self, stats, src=None, src_time=None, force=False):
-        if not force and self.is_interactive():
-            self._pending = (stats, src, src_time)
-            return
-        node = StatNode(stats, table=self)
+    def get_stats(self):
+        return self._stats
+
+    def set_stats(self, stats, src=None, src_time=None,
+                  activate=True, force=False):
+        self._stats = stats
         self._src = src
         self._src_time = src_time
-        self.set_focus(node)
-        self.activate()
+        if not self.is_interactive():
+            self.activate()
+            self.refresh()
 
-    def sort_stats(self, order=by_total_time):
-        # TODO: implement it
+    def sort_stats(self, order=sortkeys.by_total_time):
+        assert callable(order)
         self.order = order
+        self.refresh()
+
+    def shift_order(self, delta):
+        orders = [order for __, __, __, order in self.columns if order]
+        x = orders.index(self.order)
+        order = orders[(x + delta) % len(orders)]
+        self.sort_stats(order)
+
+    def refresh(self):
+        stats = self.get_stats()
+        node = StatNode(stats, table=self)
+        self.set_focus(node)
 
     def activate(self):
         self._active = True
@@ -492,19 +504,27 @@ class StatisticsTable(urwid.WidgetWrap):
             self.set_focus(node)
         else:
             del self._pending
-            self.set_stats(stats, src, src_time, force=True)
+            self.set_stats(stats, src, src_time)
 
     def update_frame(self, focus=None):
         interactive = self.is_interactive(focus)
+        # set thead attr
         if interactive:
-            header_attr = 'thead.interactive'
+            thead_attr = 'thead.interactive'
         elif not self._active:
-            header_attr = 'thead.inactive'
+            thead_attr = 'thead.inactive'
         else:
-            header_attr = 'thead'
-        self.thead.set_attr_map({None: header_attr})
+            thead_attr = 'thead'
+        self.thead.set_attr_map({None: thead_attr})
+        # set sorting column in thead attr
+        for x, (__, __, __, order) in enumerate(self.columns):
+            attr = thead_attr + '.sorted' if order is self.order else None
+            widget = self.thead.base_widget.contents[x][0]
+            text, __ = widget.get_text()
+            widget.set_text((attr, text))
         if interactive:
             return
+        # update header
         stats = self.get_focus()[1].get_value()
         if stats is None:
             return
@@ -548,7 +568,13 @@ class StatisticsTable(urwid.WidgetWrap):
     def keypress(self, size, key):
         base = super(StatisticsTable, self)
         command = self._command_map[key]
-        if key == '>':
+        if key == ']':
+            self.shift_order(+1)
+            return True
+        elif key == '[':
+            self.shift_order(-1)
+            return True
+        elif key == '>':
             self.focus_hotspot(size)
             return True
         elif command == self._command_map['esc']:
@@ -599,7 +625,6 @@ class StatisticsViewer(object):
         ('thead.interactive', 'dark red, standout', '', 'blink'),
         ('thead.inactive', 'brown, standout', '', 'standout'),
         ('mark', 'dark cyan', ''),
-        # ('bar', '', 'dark green', 'standout'),
         # risk
         ('danger', 'dark red', '', 'blink'),
         ('caution', 'light red', '', 'blink'),
@@ -614,6 +639,13 @@ class StatisticsViewer(object):
         ('name', 'bold', ''),
         ('module', 'dark blue', ''),
     ]
+    # add thead.*.sorted palette entries
+    for entry in palette[:]:
+        attr = entry[0]
+        if attr is None or not attr.startswith('thead'):
+            continue
+        palette.append((attr + '.sorted', entry[1] + ', underline',
+                        entry[2], entry[3] + ', underline'))
 
     focus_map = {x[0]: 'focus' for x in palette}
     focus_map[None] = 'focus'

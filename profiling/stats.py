@@ -14,9 +14,9 @@ import time
 from .sortkeys import by_total_time
 
 
-__all__ = ['FlatStat', 'FlatStatistics', 'FrozenStat', 'FrozenStatistics',
-           'RecordingStat', 'RecordingStatistics', 'Stat', 'Statistics',
-           'VoidRecordingStat']
+__all__ = ['Stat', 'Statistics', 'RecordingStat', 'RecordingStatistics',
+           'VoidRecordingStat', 'FrozenStat', 'FrozenStatistics', 'FlatStat',
+           'FlatStatistics']
 
 
 class Stat(object):
@@ -299,6 +299,14 @@ class FrozenStatistics(FrozenStat, Statistics):
         self.children = map(FrozenStat, stats)
 
 
+class FlatStat(Stat):
+
+    _state_slots = ['name', 'filename', 'lineno', 'module',
+                    'calls', 'total_time', 'own_time']
+
+    own_time = 0.0
+
+
 class FlatStatistics(Statistics):
 
     _state_slots = ['cpu_time', 'wall_time', 'children']
@@ -331,11 +339,3 @@ class FlatStatistics(Statistics):
 
     def __len__(self):
         return len(self.children)
-
-
-class FlatStat(Stat):
-
-    _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'calls', 'total_time', 'own_time']
-
-    own_time = 0.0

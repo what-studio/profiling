@@ -6,7 +6,7 @@
 from __future__ import absolute_import
 
 
-__all__ = ['by_name', 'by_count', 'by_total_time', 'by_own_time',
+__all__ = ['by_name', 'by_module', 'by_calls', 'by_total_time', 'by_own_time',
            'by_total_time_per_call', 'by_own_time_per_call']
 
 
@@ -25,7 +25,8 @@ class SortKey(object):
 
 
 by_name = SortKey(lambda stat: stat.name)
-by_count = SortKey(lambda stat: stat.count)
+by_module = SortKey(lambda stat: stat.module)
+by_calls = SortKey(lambda stat: stat.calls)
 by_total_time = SortKey(lambda stat: stat.total_time)
 by_own_time = SortKey(lambda stat: stat.own_time)
 by_total_time_per_call = SortKey(lambda stat: stat.total_time_per_call)

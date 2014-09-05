@@ -8,7 +8,7 @@ from collections import deque
 import sys
 
 from .stats import (
-    FrozenStatistics, RecordingStat, RecordingStatistics, VoidRecordingStat)
+    RecordingStat, RecordingStatistics, VoidRecordingStat, FrozenStatistics)
 from .timers import Timer
 
 
