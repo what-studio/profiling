@@ -50,13 +50,8 @@ class Stat(object):
         if module is not None:
             self.module = module
 
-    def __iter__(self):
-        """Override it to walk child stats."""
-        return iter(())
-
-    def __len__(self):
-        """Override it to count child stats."""
-        return 0
+    def __hash__(self):
+        return hash((self.name, self.filename, self.lineno))
 
     @property
     def regular_name(self):
@@ -86,6 +81,14 @@ class Stat(object):
 
     def sorted(self, order=by_total_time):
         return sorted(self, key=order, reverse=True)
+
+    def __iter__(self):
+        """Override it to walk child stats."""
+        return iter(())
+
+    def __len__(self):
+        """Override it to count child stats."""
+        return 0
 
     def __getstate__(self):
         return tuple(getattr(self, attr) for attr in self._state_slots)
