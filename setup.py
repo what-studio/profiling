@@ -37,6 +37,6 @@ setup(
         'click>=3.2',
         'gevent',
         'urwid>=1.2.1',
-        'urwid-geventloop',
+        'urwid-geventloop==0.0.0.dev',
     ]
 )
