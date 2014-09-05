@@ -6,6 +6,7 @@
 from __future__ import absolute_import
 from collections import deque
 import sys
+import threading
 
 from .stats import (
     RecordingStat, RecordingStatistics, VoidRecordingStat, FrozenStatistics)
@@ -37,12 +38,14 @@ class Profiler(object):
             raise RuntimeError('Another profiler already registered.')
         self.frame = sys._getframe().f_back
         sys.setprofile(self._profile)
+        threading.setprofile(self._profile)
         self.timer.start()
         self.stats.record_starting(self.timer.clock())
 
     def stop(self):
         self.stats.record_stopping(self.timer.clock())
         self.timer.stop()
+        threading.setprofile(None)
         sys.setprofile(None)
         self.frame = None
 
