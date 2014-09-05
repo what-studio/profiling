@@ -19,6 +19,7 @@ class Profiler(object):
 
     timer = None
     stats = None
+    frame = None
 
     def __init__(self, timer=None):
         super(Profiler, self).__init__()
@@ -34,6 +35,7 @@ class Profiler(object):
     def start(self):
         if sys.getprofile() is not None:
             raise RuntimeError('Another profiler already registered.')
+        self.frame = sys._getframe().f_back
         sys.setprofile(self._profile)
         self.timer.start()
         self.stats.record_starting(self.timer.clock())
@@ -42,6 +44,7 @@ class Profiler(object):
         self.stats.record_stopping(self.timer.clock())
         self.timer.stop()
         sys.setprofile(None)
+        self.frame = None
 
     def clear(self):
         try:
@@ -91,7 +94,7 @@ class Profiler(object):
 
     def _frame_stack(self, frame):
         frame_stack = deque()
-        while frame is not None:
+        while frame is not None and frame is not self.frame:
             frame_stack.appendleft(frame)
             frame = frame.f_back
         return frame_stack
