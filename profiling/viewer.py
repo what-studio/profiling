@@ -361,6 +361,7 @@ class StatisticsWalker(urwid.TreeWalker):
 
 class StatisticsTable(urwid.WidgetWrap):
 
+    #: The column declarations.
     columns = [
         # name, align, width, order
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_name),
@@ -372,13 +373,16 @@ class StatisticsTable(urwid.WidgetWrap):
         ('OWN', 'right', (10,), sortkeys.by_own_time),
         ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
     ]
+
+    #: The initial order.
     order = sortkeys.by_total_time
 
-    _stats = None
-    _src = None
-    _src_time = None
+    #: Whether the viewer is active.
+    active = False
 
-    _active = False
+    stats = None
+    src = None
+    src_time = None
 
     def __init__(self):
         cls = type(self)
@@ -441,12 +445,12 @@ class StatisticsTable(urwid.WidgetWrap):
         self.tbody.set_focus(focus)
 
     def get_stats(self):
-        return self._stats
+        return self.stats
 
     def set_stats(self, stats, src=None, src_time=None):
-        self._stats = stats
-        self._src = src
-        self._src_time = src_time
+        self.stats = stats
+        self.src = src
+        self.src_time = src_time
         if not self.is_interactive():
             self.activate()
             self.refresh()
@@ -485,11 +489,11 @@ class StatisticsTable(urwid.WidgetWrap):
         return node
 
     def activate(self):
-        self._active = True
+        self.active = True
         self.update_frame()
 
     def inactivate(self):
-        self._active = False
+        self.active = False
         self.update_frame()
 
     def tokenize_stat(self, stat):
@@ -528,7 +532,7 @@ class StatisticsTable(urwid.WidgetWrap):
         # set thead attr
         if interactive:
             thead_attr = 'thead.interactive'
-        elif not self._active:
+        elif not self.active:
             thead_attr = 'thead.inactive'
         else:
             thead_attr = 'thead'
@@ -545,8 +549,8 @@ class StatisticsTable(urwid.WidgetWrap):
         stats = self.get_focus()[1].get_value()
         if stats is None:
             return
-        src = self._src
-        src_time = self._src_time
+        src = self.src
+        src_time = self.src_time
         fraction_string = '({0}/{1})'.format(
             fmt.format_clock(stats.cpu_time),
             fmt.format_clock(stats.wall_time))
