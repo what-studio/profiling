@@ -26,7 +26,7 @@ To profile a single program, simply run `profile` command:
 
 Then an interactive viewer will be executed:
 
-    ![](screenshots/your-program.png)
+![](screenshots/your-program.png)
 
 If your program uses greenlets, choose `greenlet` timer:
 
