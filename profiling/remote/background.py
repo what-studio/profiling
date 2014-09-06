@@ -2,6 +2,10 @@
 """
     profiling.remote.background
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    A profiling server in a background thread starts profiling in the main
+    thread.
+
 """
 from __future__ import absolute_import
 import os
@@ -53,7 +57,8 @@ class BackgroundProfiler(Profiler):
 
 def start_profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
                            pickle_protocol=PICKLE_PROTOCOL):
-    """Runs a profiling server in a background thread.
+    """Runs :func:`profiling.remote.select.profiling_server` in a background
+    thread.
 
     This function is coupled with :class:`BackgroundProfiler` for starting main
     thread profiling at the background thread.  It registers two signal
