@@ -46,7 +46,8 @@ SIZE_STRUCT_FORMAT = '!I'
 def pack_stats(profiler, pickle_protocol=PICKLE_PROTOCOL):
     """Packs statistics from the profiler by Pickle with size as a header."""
     dump = io.BytesIO()
-    pickle.dump(profiler.frozen_stats(), dump, pickle_protocol)
+    stats = profiler.result()
+    pickle.dump(stats, dump, pickle_protocol)
     size = dump.tell()
     return struct.pack(SIZE_STRUCT_FORMAT, size) + dump.getvalue()
 

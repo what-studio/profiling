@@ -18,6 +18,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import signal
 import socket
 from stat import S_ISREG, S_ISSOCK
 import sys
@@ -27,7 +28,8 @@ from six import PY2, exec_
 import urwid
 
 from .profiler import Profiler
-from .remote import recv_stats
+from .remote import INTERVAL, PICKLE_PROTOCOL, recv_stats
+from .remote.background import BackgroundProfiler, start_profiling_server
 from .viewer import StatisticsViewer
 
 
@@ -65,49 +67,10 @@ def get_timer(ctx, param, value):
     return timer_class()
 
 
-@main.command()
-@click.argument('script', type=click.File('rb'))
-@click.option('-t', '--timer', callback=get_timer)
-@click.option('-d', '--dump', 'dump_filename', type=click.Path(writable=True))
-@click.option('--mono', is_flag=True)
-def profile(script, timer=None, dump_filename=None, mono=False):
-    """Profile a Python script."""
-    code = compile(script.read(), script.name, 'exec')
-    script.close()
-    sys.argv[:] = [script.name]
-    globals_ = {
-        '__file__': script.name,
-        '__name__': '__main__',
-        '__package__': None,
-    }
-    profiler = Profiler(timer)
-    frame = sys._getframe()
-    profiler.start(top_frame=frame, top_code=code)
-    try:
-        exec_(code, globals_)
-    finally:
-        profiler.stop()
-    if PY2:
-        # in Python 2, exec's cpu time is duplicated with actual cpu time.
-        stat = profiler.stats.get_child(frame.f_code)
-        stat.remove_child(exec_.func_code)
-    if dump_filename is None:
-        viewer = make_viewer()
-        viewer.set_stats(profiler.stats)
-        loop = viewer.loop()
-        if mono:
-            loop.screen.set_terminal_properties(1)
-        try:
-            loop.run()
-        except KeyboardInterrupt:
-            pass
-    else:
-        stats = profiler.frozen_stats()
-        with open(dump_filename, 'w') as f:
-            pickle.dump(stats, f)
-        click.echo('To view statistics:')
-        click.echo('  $ python -m profiling view ', nl=False)
-        click.secho(dump_filename, underline=True)
+def parse_addr(addr):
+    host, port = addr.split(':')
+    port = int(port)
+    return (host, port)
 
 
 def parse_src(src):
@@ -121,13 +84,11 @@ def parse_src(src):
         mode = os.stat(src).st_mode
     except OSError:
         try:
-            host, port = src.split(':')
+            src = parse_addr(src)
         except ValueError:
             pass
         else:
             src_type = 'tcp'
-            port = int(port)
-            src = (host, port)
     else:
         if S_ISSOCK(mode):
             src_type = 'sock'
@@ -136,6 +97,104 @@ def parse_src(src):
     if not src_type:
         raise ValueError('A dump file or a socket addr required.')
     return src_type, src
+
+
+def compile_script(script):
+    code = compile(script.read(), script.name, 'exec')
+    script.close()
+    globals_ = {'__file__': script.name,
+                '__name__': '__main__',
+                '__package__': None}
+    return code, globals_
+
+
+@main.command()
+@click.argument('script', type=click.File('rb'))
+@click.option('-t', '--timer', callback=get_timer)
+@click.option('-d', '--dump', 'dump_filename', type=click.Path(writable=True))
+@click.option('--mono', is_flag=True)
+def profile(script, timer, dump_filename, mono):
+    """Profile a Python script."""
+    sys.argv[:] = [script.name]
+    code, globals_ = compile_script(script)
+    # start profiling.
+    frame = sys._getframe()
+    profiler = Profiler(timer, top_frame=frame, top_code=code)
+    profiler.start()
+    # exec the script.
+    try:
+        exec_(code, globals_)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        profiler.stop()
+    if PY2:
+        # in Python 2, exec's cpu time is duplicated with actual cpu time.
+        stat = profiler.stats.get_child(frame.f_code)
+        stat.remove_child(exec_.func_code)
+    if dump_filename is None:
+        # show the result using a viewer.
+        viewer = make_viewer()
+        viewer.set_stats(profiler.stats)
+        loop = viewer.loop()
+        if mono:
+            loop.screen.set_terminal_properties(1)
+        try:
+            loop.run()
+        except KeyboardInterrupt:
+            pass
+    else:
+        # save the result.
+        stats = profiler.result()
+        with open(dump_filename, 'w') as f:
+            pickle.dump(stats, f)
+        click.echo('To view statistics:')
+        click.echo('  $ python -m profiling view ', nl=False)
+        click.secho(dump_filename, underline=True)
+
+
+signo_range = click.IntRange(0, 255)
+pickle_protocol_range = click.IntRange(0, pickle.HIGHEST_PROTOCOL)
+
+
+@main.command()
+@click.argument('script', type=click.File('rb'))
+@click.option('-b', '--bind', 'addr', default=':8912')
+@click.option('-t', '--timer', callback=get_timer)
+@click.option('-i', '--interval', type=float, default=INTERVAL)
+@click.option('--pickle-protocol', type=pickle_protocol_range,
+              default=PICKLE_PROTOCOL)
+@click.option('--start-signo', type=signo_range, default=signal.SIGUSR1)
+@click.option('--stop-signo', type=signo_range, default=signal.SIGUSR2)
+@click.option('--quiet', is_flag=True)
+@click.option('--mono', is_flag=True)
+def serve(script, addr, timer, interval, pickle_protocol,
+          start_signo, stop_signo, quiet, mono):
+    sys.argv[:] = [script.name]
+    code, globals_ = compile_script(script)
+    # create listener.
+    host, port = parse_addr(addr)
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind((host, port))
+    listener.listen(1)
+    # start profiling server.
+    frame = sys._getframe()
+    profiler = BackgroundProfiler(timer, frame, code, start_signo, stop_signo)
+    if quiet:
+        log = lambda x: x
+    else:
+        log = lambda x: click.secho('> ' + x)
+    start_profiling_server(listener, profiler, interval, log, pickle_protocol)
+    # echo info.
+    click.echo('To enable profiling and view statistics:')
+    click.secho('  $ python -m profiling view ', nl=False)
+    click.secho('{0}:{1}'.format(host or 'localhost', port), underline=True)
+    # exec the script.
+    try:
+        exec_(code, globals_)
+    except KeyboardInterrupt:
+        pass
 
 
 class start_client:
@@ -190,7 +249,7 @@ class start_client:
 @click.argument('src', metavar='SOURCE')
 @click.option('--timeout', type=float, default=10)
 @click.option('--mono', is_flag=True)
-def view(src, timeout=10, mono=False):
+def view(src, timeout, mono):
     """Inspect statistics by TUI view."""
     try:
         src_type, src = parse_src(src)

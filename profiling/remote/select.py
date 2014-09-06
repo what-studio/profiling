@@ -8,13 +8,11 @@
 
     .. warning::
 
-       Don't launch a server by multithreading.  A profiler cannot trace other
-       threads.  But if you are on a `gevent`_ monkey-patched system and if you
-       choose a :class:`profiling.timers.greenlet.GreenletTimer` as profiler's
-       timer, it will work well.
+       If you want to launch a profiling server on a background thread, use
+       :func:`profiling.remote.background.start_profiling_server` instead.  By
+       default, a profiler cannot trace another thread already running.
 
     .. _select: https://docs.python.org/library/select.html
-    .. _gevent: http://gevent.org/
 
 """
 from __future__ import absolute_import
@@ -64,7 +62,7 @@ def profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
         # broadcast the statistics.
         if timeout_at is not None and timeout_at < now:
             profiler.stop()
-            data = pack_stats(profiler)
+            data = pack_stats(profiler, pickle_protocol)
             profiler.clear()
             for sock in clients:
                 sock.sendall(data)

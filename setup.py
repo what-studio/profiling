@@ -34,7 +34,7 @@ setup(
         'Topic :: Software Development :: Debuggers',
     ],
     install_requires=[
-        'click>=3.2',
+        'click>=3.3',
         'six>=1.8.0',
         'urwid>=1.2.1',
     ],

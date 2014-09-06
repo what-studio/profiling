@@ -42,23 +42,23 @@ class Profiler(object):
 
     _running = False
 
-    def __init__(self, timer=None):
+    def __init__(self, timer=None, top_frame=None, top_code=None):
         super(Profiler, self).__init__()
         if timer is None:
             timer = Timer()
         self.timer = timer
+        self.top_frame = top_frame
+        self.top_code = top_code
         self.clear()
 
-    def frozen_stats(self):
+    def result(self):
         """Gets the frozen statistics to serialize by Pickle."""
         return FrozenStatistics(self.stats)
 
-    def start(self, top_frame=None, top_code=None):
+    def start(self):
         if sys.getprofile() is not None:
             raise RuntimeError('Another profiler already registered.')
         self._running = True
-        self.top_frame = top_frame
-        self.top_code = top_code
         sys.setprofile(self._profile)
         threading.setprofile(self._profile)
         self.timer.start()
@@ -69,8 +69,6 @@ class Profiler(object):
         self.timer.stop()
         threading.setprofile(None)
         sys.setprofile(None)
-        self.top_code = None
-        self.top_frame = None
         self._running = False
 
     def is_running(self):
