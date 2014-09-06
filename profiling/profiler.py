@@ -7,6 +7,7 @@ from __future__ import absolute_import
 from collections import deque
 import sys
 import threading
+import time
 
 from .stats import (
     RecordingStat, RecordingStatistics, VoidRecordingStat, FrozenStatistics)
@@ -43,10 +44,10 @@ class Profiler(object):
         sys.setprofile(self._profile)
         threading.setprofile(self._profile)
         self.timer.start()
-        self.stats.record_starting(self.timer.clock())
+        self.stats.record_starting(time.clock())
 
     def stop(self):
-        self.stats.record_stopping(self.timer.clock())
+        self.stats.record_stopping(time.clock())
         self.timer.stop()
         threading.setprofile(None)
         sys.setprofile(None)

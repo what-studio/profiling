@@ -12,6 +12,7 @@
 """
 from __future__ import absolute_import
 from datetime import datetime
+import importlib
 import os
 try:
     import cPickle as pickle
@@ -28,7 +29,6 @@ from urwid_geventloop import GeventLoop
 from .profiler import Profiler
 from .remote import recv_stats
 from .timers import Timer
-from .timers.greenlet import GreenletTimer
 from .viewer import StatisticsViewer
 
 
@@ -47,13 +47,23 @@ def make_viewer():
     return viewer
 
 
+timers = {
+    # timer name: (timer module name, timer class name)
+    'greenlet': ('.timers.greenlet', 'GreenletTimer'),
+    'yappi': ('.timers.yappi', 'YappiTimer'),
+}
+
+
 def get_timer(ctx, param, value):
     if not value:
         return Timer()
-    elif value == 'greenlet':
-        return GreenletTimer()
-    else:
+    try:
+        module_name, class_name = timers[value]
+    except KeyError:
         raise ValueError('No such timer: {0}'.format(value))
+    module = importlib.import_module(module_name, __package__)
+    timer_class = getattr(module, class_name)
+    return timer_class()
 
 
 @main.command()
