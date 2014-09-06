@@ -25,7 +25,7 @@ setup(
     maintainer='Heungsub Lee',
     maintainer_email='sub@nexon.co.kr',
     platforms='linux',
-    packages=['profiling', 'profiling.timers'],
+    packages=['profiling', 'profiling.remote', 'profiling.timers'],
     classifiers=[
         'Development Status :: 1 - Planning',
         'License :: OSI Approved :: BSD License',
