@@ -22,6 +22,8 @@ class Profiler(object):
     stats = None
     frame = None
 
+    _running = False
+
     def __init__(self, timer=None):
         super(Profiler, self).__init__()
         if timer is None:
@@ -36,6 +38,7 @@ class Profiler(object):
     def start(self):
         if sys.getprofile() is not None:
             raise RuntimeError('Another profiler already registered.')
+        self._running = True
         self.frame = sys._getframe().f_back
         sys.setprofile(self._profile)
         threading.setprofile(self._profile)
@@ -48,6 +51,11 @@ class Profiler(object):
         threading.setprofile(None)
         sys.setprofile(None)
         self.frame = None
+        self._running = False
+
+    def is_running(self):
+        """Whether the profiler is running."""
+        return self._running
 
     def clear(self):
         try:

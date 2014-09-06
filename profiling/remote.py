@@ -13,15 +13,19 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import select
 import struct
+import time
 
 import gevent
 from gevent import socket
 from gevent.lock import Semaphore
 from gevent.server import StreamServer
 
+from .profiler import Profiler
 
-__all__ = ['recv_stats', 'ProfilerServer']
+
+__all__ = ['recv_stats', 'start_server', 'ProfilerServer']
 
 
 SIZE_STRUCT_FORMAT = '<Q'  # unsigned long long
@@ -48,6 +52,82 @@ def recv_stats(sock):
     buf = recv_full_buffer(sock, size)
     stats = pickle.load(buf)
     return stats
+
+
+def start_server(listener, profiler=None, interval=5, log=LOGGER.debug):
+    """Starts the profiler server."""
+    if profiler is None:
+        profiler = Profiler()
+    timeout_at = None
+    conns = set()
+    dump = io.BytesIO()
+    while True:
+        timeout = None if timeout_at is None else timeout_at - time.time()
+        rlist, __, __ = select.select(conns.union([listener]), (), (), timeout)
+        for sock in rlist:
+            if sock is listener:
+                # a new connection
+                _connected(sock, conns, log, interval)
+            else:
+                # a connection closed
+                _disconnected(sock, conns, log, profiler)
+        if not conns:
+            timeout_at = None
+            continue
+        now = time.time()
+        # broadcast the profile result
+        if timeout_at is not None and timeout_at < now:
+            profiler.stop()
+            _clear(dump)
+            pickle.dump(profiler.frozen_stats(), dump)
+            data = _pack(dump)
+            for sock in conns:
+                sock.sendall(data)
+            timeout_at = None
+        # start the profiler
+        if timeout_at is None:
+            timeout_at = now + interval
+            profiler.clear()
+            profiler.start()
+
+
+def _connected(listener, conns, log, interval):
+    sock, addr = listener.accept()
+    conns.add(sock)
+    num_conns = len(conns)
+    if addr:
+        fmt = 'Connected {0[0]}:{0[1]} (total: {1})'
+    else:
+        fmt = 'A client connected (total: {1})'
+    log(fmt.format(addr, num_conns))
+    if num_conns == 1:
+        log('Profiling every {0} seconds...'.format(interval))
+
+
+def _disconnected(sock, conns, log, profiler):
+    addr = sock.getsockname()
+    conns.remove(sock)
+    sock.close()
+    if addr:
+        fmt = 'Disconnected from {0[0]}:{0[1]} (total: {1})'
+    else:
+        fmt = 'A client disconnected (total: {1})'
+    log(fmt.format(addr, len(conns)))
+    if not conns and profiler.is_running():
+        profiler.stop()
+        log('Profiling disabled')
+
+
+def _clear(dump):
+    dump.seek(0)
+    dump.truncate(0)
+
+
+def _pack(dump):
+    dump.seek(0, io.SEEK_END)
+    length = dump.tell()
+    dump.seek(0)
+    return struct.pack(SIZE_STRUCT_FORMAT, length) + dump.read()
 
 
 class ProfilerServer(StreamServer):

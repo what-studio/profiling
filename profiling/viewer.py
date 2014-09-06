@@ -374,6 +374,13 @@ class StatisticsTable(urwid.WidgetWrap):
         ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
     ]
 
+    #: The markup of the table footer.
+    tfoot_markup = [
+        ('key', '[]'), 'Sort ',
+        ('key', '>'), 'Hotspot ',
+        ('key', 'Q'), 'Quit ',
+    ]
+
     #: The initial order.
     order = sortkeys.by_total_time
 
@@ -393,8 +400,9 @@ class StatisticsTable(urwid.WidgetWrap):
         thead = urwid.AttrMap(cls.make_columns([
             urwid.Text(name, align) for name, align, __, __ in self.columns
         ]), None)
+        tfoot = urwid.AttrMap(urwid.Text(self.tfoot_markup), 'tfoot')
         header = urwid.Columns([])
-        widget = urwid.Frame(tbody, urwid.Pile([header, thead]))
+        widget = urwid.Frame(tbody, urwid.Pile([header, thead]), tfoot)
         super(StatisticsTable, self).__init__(widget)
         self.update_frame()
 
@@ -653,6 +661,7 @@ class StatisticsViewer(object):
         ('thead', 'dark cyan, standout', '', 'standout'),
         ('thead.interactive', 'dark red, standout', '', 'standout'),
         ('thead.inactive', 'brown, standout', '', 'standout'),
+        ('tfoot', 'dark cyan, standout', '', 'standout'),
         ('mark', 'dark cyan', ''),
         # risk
         ('danger', 'dark red', '', 'blink'),
