@@ -19,7 +19,7 @@ try:
 except ImportError:
     import pickle
 import socket
-import stat
+from stat import S_ISREG, S_ISSOCK
 import sys
 
 import click
@@ -28,7 +28,6 @@ import urwid
 
 from .profiler import Profiler
 from .remote import recv_stats
-from .timers import Timer
 from .viewer import StatisticsViewer
 
 
@@ -49,6 +48,7 @@ def make_viewer():
 
 timers = {
     # timer name: (timer module name, timer class name)
+    None: ('.timers', 'Timer'),
     'thread': ('.timers.thread', 'ThreadTimer'),
     'yappi': ('.timers.thread', 'YappiTimer'),
     'greenlet': ('.timers.greenlet', 'GreenletTimer'),
@@ -56,8 +56,6 @@ timers = {
 
 
 def get_timer(ctx, param, value):
-    if not value:
-        return Timer()
     try:
         module_name, class_name = timers[value]
     except KeyError:
@@ -83,7 +81,7 @@ def profile(script, timer=None, dump_filename=None, mono=False):
         '__package__': None,
     }
     profiler = Profiler(timer)
-    profiler.start()
+    profiler.start(top_frame=sys._getframe(), top_code=code)
     try:
         exec_(code, globals_)
     finally:
@@ -126,9 +124,9 @@ def parse_src(src):
             port = int(port)
             src = (host, port)
     else:
-        if stat.S_ISSOCK(mode):
+        if S_ISSOCK(mode):
             src_type = 'sock'
-        elif stat.S_ISREG(mode):
+        elif S_ISREG(mode):
             src_type = 'dump'
     if not src_type:
         raise ValueError('A dump file or a socket addr required.')

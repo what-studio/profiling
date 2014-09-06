@@ -87,6 +87,16 @@ class Formatter(object):
     markup_int = _markup(format_int, attr_int)
     make_int_text = _make_text(markup_int, **_numeric)
 
+    # int or n/a
+
+    def format_int_or_na(self, num):
+        if not num:
+            return 'n/a'
+        return self.format_int(num)
+
+    markup_int_or_na = _markup(format_int_or_na, attr_int)
+    make_int_or_na_text = _make_text(markup_int_or_na, **_numeric)
+
     # clock
 
     def format_clock(self, sec):
@@ -162,7 +172,7 @@ class StatWidget(urwid.TreeWidget):
             fmt.make_stat_text(stat),
             fmt.make_percent_text(stat.total_time / stats.cpu_time),
             fmt.make_percent_text(stat.own_time / stats.cpu_time),
-            fmt.make_int_text(stat.calls),
+            fmt.make_int_or_na_text(stat.calls),
             fmt.make_clock_text(stat.total_time),
             fmt.make_clock_text(stat.total_time_per_call),
             fmt.make_clock_text(stat.own_time),
@@ -394,7 +404,8 @@ class StatisticsTable(urwid.WidgetWrap):
         on(self.walker, 'focus_changed', self._walker_focus_changed)
         tbody = StatisticsListBox(self.walker)
         thead = urwid.AttrMap(cls.make_columns([
-            urwid.Text(name, align) for name, align, __, __ in self.columns
+            urwid.Text(name, align, 'clip')
+            for name, align, __, __ in self.columns
         ]), None)
         header = urwid.Columns([])
         widget = urwid.Frame(tbody, urwid.Pile([header, thead]))
@@ -550,6 +561,7 @@ class StatisticsTable(urwid.WidgetWrap):
         cpu_info = urwid.Text([
             'CPU ', fmt.markup_percent(stats.cpu_usage),
             ' ', ('weak', fraction_string)])
+        col_opts = ('weight', 1, False)
         if src or src_time:
             if isinstance(src, tuple):
                 # ip endpoint
@@ -566,10 +578,9 @@ class StatisticsTable(urwid.WidgetWrap):
             else:
                 markup = src_time_string
             src_info = urwid.Text(markup, align='right')
+            self.header.contents = [(cpu_info, col_opts), (src_info, col_opts)]
         else:
-            src_info = EmptyWidget()
-        opts = ('weight', 1, False)
-        self.header.contents = [(cpu_info, opts), (src_info, opts)]
+            self.header.contents = [(cpu_info, col_opts)]
 
     def focus_hotspot(self, size):
         widget, __ = self.tbody.get_focus()

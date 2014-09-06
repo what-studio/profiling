@@ -37,5 +37,8 @@ setup(
         'click>=3.2',
         'six>=1.8.0',
         'urwid>=1.2.1',
-    ]
+    ],
+    tests_require=[
+        'yappi>=0.92',
+    ],
 )

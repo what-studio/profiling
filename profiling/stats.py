@@ -139,9 +139,10 @@ class Statistics(Stat):
 
     def clear(self):
         self.children.clear()
-        self.calls = Stat.calls
-        self.cpu_time = Stat.cpu_time
-        self.wall_time = Stat.wall_time
+        cls = type(self)
+        self.calls = cls.calls
+        self.cpu_time = cls.cpu_time
+        self.wall_time = cls.wall_time
         try:
             del self._cpu_time_started
         except AttributeError:
@@ -193,20 +194,21 @@ class RecordingStat(Stat):
             return
         return module.__name__
 
-    def record_entering(self, time, frame=None):
-        self._times_entered[id(frame)] = time
+    def record_entering(self, time, frame_key=None):
+        self._times_entered[frame_key] = time
         self.calls += 1
 
-    def record_leaving(self, time, frame=None):
-        time_entered = self._times_entered.pop(id(frame))
+    def record_leaving(self, time, frame_key=None):
+        time_entered = self._times_entered.pop(frame_key)
         time_elapsed = time - time_entered
         self.total_time += max(0, time_elapsed)
 
     def clear(self):
         self.code = None
         self.children.clear()
-        self.calls = Stat.calls
-        self.total_time = Stat.total_time
+        cls = type(self)
+        self.calls = cls.calls
+        self.total_time = cls.total_time
         self._times_entered.clear()
 
     def get_child(self, code):
@@ -214,6 +216,17 @@ class RecordingStat(Stat):
 
     def add_child(self, code, stat):
         self.children[code] = stat
+
+    def remove_child(self, code):
+        del self.children[code]
+
+    def ensure_child(self, code):
+        try:
+            return self.get_child(code)
+        except KeyError:
+            stat = VoidRecordingStat(code)
+            self.add_child(code, stat)
+            return stat
 
     def __iter__(self):
         return itervalues(self.children)

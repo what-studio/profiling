@@ -5,23 +5,40 @@
 """
 from __future__ import absolute_import
 from collections import deque
+import functools
 import sys
 import threading
 import time
+import types
 
-from .stats import (
-    RecordingStat, RecordingStatistics, VoidRecordingStat, FrozenStatistics)
+from six import PY3
+
+from .stats import RecordingStat, RecordingStatistics, FrozenStatistics
 from .timers import Timer
 
 
 __all__ = ['Profiler']
 
 
+_py2_code_args = (0, 0, 0, 0, b'', (), (), (), '')
+if PY3:
+    _make_code = functools.partial(types.CodeType, 0, *_py2_code_args)
+else:
+    _make_code = functools.partial(types.CodeType, *_py2_code_args)
+del _py2_code_args
+
+
+def make_code(name):
+    """Makes a fake code object by name for built-in functions."""
+    return _make_code(name, 0, b'')
+
+
 class Profiler(object):
 
     timer = None
     stats = None
-    frame = None
+    top_frame = None
+    top_code = None
 
     _running = False
 
@@ -36,11 +53,12 @@ class Profiler(object):
         """Gets the frozen statistics to serialize by Pickle."""
         return FrozenStatistics(self.stats)
 
-    def start(self):
+    def start(self, top_frame=None, top_code=None):
         if sys.getprofile() is not None:
             raise RuntimeError('Another profiler already registered.')
         self._running = True
-        self.frame = sys._getframe().f_back
+        self.top_frame = top_frame
+        self.top_code = top_code
         sys.setprofile(self._profile)
         threading.setprofile(self._profile)
         self.timer.start()
@@ -51,7 +69,8 @@ class Profiler(object):
         self.timer.stop()
         threading.setprofile(None)
         sys.setprofile(None)
-        self.frame = None
+        self.top_code = None
+        self.top_frame = None
         self._running = False
 
     def is_running(self):
@@ -64,49 +83,54 @@ class Profiler(object):
         except AttributeError:
             self.stats = RecordingStatistics()
 
+    def _frame_stack(self, frame):
+        """Returns a deque of frame stack."""
+        frame_stack = deque()
+        top_frame = self.top_frame
+        top_code = self.top_code
+        while frame is not None:
+            frame_stack.appendleft(frame)
+            if frame is top_frame or frame.f_code is top_code:
+                break
+            frame = frame.f_back
+        return frame_stack
+
     def _profile(self, frame, event, arg):
         """The callback function to register by :func:`sys.setprofile`."""
         time = self.timer()
         if event.startswith('c_'):
-            # c_call, c_return, c_exception
-            event = event[2:]
-        # find the parent stat
+            return
+        frame_stack = self._frame_stack(frame)
+        frame_stack.pop()
+        if not frame_stack:
+            return
         parent_stat = self.stats
-        for f in self._frame_stack(frame.f_back):
-            code = f.f_code
-            try:
-                parent_stat = parent_stat.get_child(code)
-            except KeyError:
-                new_parent_stat = VoidRecordingStat(code)
-                parent_stat.add_child(code, new_parent_stat)
-                parent_stat = new_parent_stat
-        # record
-        if event == 'call':
-            time = self.timer()
-            self._entered(time, frame, parent_stat)
-        elif event in ('return', 'exception'):
-            self._leaved(time, frame, parent_stat)
-
-    def _entered(self, time, frame, parent_stat):
+        for f in frame_stack:
+            parent_stat = parent_stat.ensure_child(f.f_code)
         code = frame.f_code
+        frame_key = id(frame)
+        # if c:
+        #     event = event[2:]
+        #     code = make_code(arg.__name__)
+        #     frame_key = id(arg)
+        # record
+        if event in ('call',):
+            time = self.timer()
+            self._entered(time, code, frame_key, parent_stat)
+        elif event in ('return', 'exception'):
+            self._leaved(time, code, frame_key, parent_stat)
+
+    def _entered(self, time, code, frame_key, parent_stat):
         try:
             stat = parent_stat.get_child(code)
         except KeyError:
             stat = RecordingStat(code)
             parent_stat.add_child(code, stat)
-        stat.record_entering(time, frame)
+        stat.record_entering(time, frame_key)
 
-    def _leaved(self, time, frame, parent_stat):
+    def _leaved(self, time, code, frame_key, parent_stat):
         try:
-            stat = parent_stat[frame.f_code]
-            stat.record_leaving(time, frame)
+            stat = parent_stat[code]
+            stat.record_leaving(time, frame_key)
         except KeyError:
             pass
-        # stat.record(time)
-
-    def _frame_stack(self, frame):
-        frame_stack = deque()
-        while frame is not None and frame is not self.frame:
-            frame_stack.appendleft(frame)
-            frame = frame.f_back
-        return frame_stack
