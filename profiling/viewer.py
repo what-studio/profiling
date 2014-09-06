@@ -33,25 +33,29 @@ __all__ = ['StatisticsTable', 'StatisticsViewer']
 class Formatter(object):
 
     def _markup(get_string, get_attr=None):
-        def markup(self, value):
-            string = get_string(self, value)
+        def markup(self, *args, **kwargs):
+            string = get_string(self, *args, **kwargs)
             if get_attr is None:
                 return string
-            attr = get_attr(self, value)
+            attr = get_attr(self, *args, **kwargs)
             return (attr, string)
         return markup
 
     _numeric = {'align': 'right', 'wrap': 'clip'}
 
-    def _make_text(get_markup, **kwargs):
-        def make_text(self, value):
-            markup = get_markup(self, value)
-            return urwid.Text(markup, **kwargs)
+    def _make_text(get_markup, **text_kwargs):
+        def make_text(self, *args, **kwargs):
+            markup = get_markup(self, *args, **kwargs)
+            return urwid.Text(markup, **text_kwargs)
         return make_text
 
     # percent
 
-    def format_percent(self, ratio):
+    def format_percent(self, ratio, denom=1):
+        try:
+            ratio /= denom
+        except ZeroDivisionError:
+            ratio = 0
         ratio = round(ratio, 4)
         if ratio >= 1:
             precision = 0
@@ -61,7 +65,11 @@ class Formatter(object):
             precision = 2
         return ('{:.' + str(precision) + '%}').format(ratio)
 
-    def attr_ratio(self, ratio):
+    def attr_ratio(self, ratio, denom=1):
+        try:
+            ratio /= denom
+        except ZeroDivisionError:
+            ratio = 0
         if ratio > 0.9:
             return 'danger'
         elif ratio > 0.7:
@@ -170,8 +178,8 @@ class StatWidget(urwid.TreeWidget):
         stats = node.get_root().get_value()
         return StatisticsTable.make_columns([
             fmt.make_stat_text(stat),
-            fmt.make_percent_text(stat.total_time / stats.cpu_time),
-            fmt.make_percent_text(stat.own_time / stats.cpu_time),
+            fmt.make_percent_text(stat.total_time, stats.cpu_time),
+            fmt.make_percent_text(stat.own_time, stats.cpu_time),
             fmt.make_int_or_na_text(stat.calls),
             fmt.make_clock_text(stat.total_time),
             fmt.make_clock_text(stat.total_time_per_call),
