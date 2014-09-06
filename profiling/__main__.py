@@ -110,7 +110,7 @@ def compile_script(script):
 
 @main.command()
 @click.argument('script', type=click.File('rb'))
-@click.option('-t', '--timer', callback=get_timer)
+@click.option('-t', '--timer', metavar='TIMER', callback=get_timer)
 @click.option('-d', '--dump', 'dump_filename', type=click.Path(writable=True))
 @click.option('--mono', is_flag=True)
 def profile(script, timer, dump_filename, mono):
@@ -159,8 +159,8 @@ pickle_protocol_range = click.IntRange(0, pickle.HIGHEST_PROTOCOL)
 
 @main.command()
 @click.argument('script', type=click.File('rb'))
-@click.option('-b', '--bind', 'addr', default=':8912')
-@click.option('-t', '--timer', callback=get_timer)
+@click.option('-b', '--bind', 'addr', metavar='ADDRESS', default=':8912')
+@click.option('-t', '--timer', metavar='TIMER', callback=get_timer)
 @click.option('-i', '--interval', type=float, default=INTERVAL)
 @click.option('--pickle-protocol', type=pickle_protocol_range,
               default=PICKLE_PROTOCOL)
@@ -185,12 +185,11 @@ def serve(script, addr, timer, interval, pickle_protocol,
     if quiet:
         log = lambda x: x
     else:
+        click.echo('To enable profiling and view statistics:')
+        click.secho('  $ python -m profiling view ', nl=False)
+        click.secho('{}:{}'.format(host or 'localhost', port), underline=True)
         log = lambda x: click.secho('> ' + x)
     start_profiling_server(listener, profiler, interval, log, pickle_protocol)
-    # echo info.
-    click.echo('To enable profiling and view statistics:')
-    click.secho('  $ python -m profiling view ', nl=False)
-    click.secho('{0}:{1}'.format(host or 'localhost', port), underline=True)
     # exec the script.
     try:
         exec_(code, globals_)
