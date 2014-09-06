@@ -19,7 +19,7 @@ try:
 except ImportError:
     import pickle
 import socket
-from stat import S_ISREG, S_ISSOCK
+import stat
 import sys
 
 import click
@@ -108,6 +108,11 @@ def profile(script, timer=None, dump_filename=None, mono=False):
 
 
 def parse_src(src):
+    """Parses a source string to source type and source name.
+
+    :returns: a tuple containing source type and source name.
+
+    """
     src_type = False
     try:
         mode = os.stat(src).st_mode
@@ -121,9 +126,9 @@ def parse_src(src):
             port = int(port)
             src = (host, port)
     else:
-        if S_ISSOCK(mode):
+        if stat.S_ISSOCK(mode):
             src_type = 'sock'
-        elif S_ISREG(mode):
+        elif stat.S_ISREG(mode):
             src_type = 'dump'
     if not src_type:
         raise ValueError('A dump file or a socket addr required.')
@@ -131,13 +136,20 @@ def parse_src(src):
 
 
 class start_client:
+    """Starts a client of profiler server which is running by :func:`profiling.
+    remote.run_server` behind the `Urwid`_ event loop. Just call this like a
+    function.
+
+    .. _Urwid: http://urwid.org/
+
+    """
 
     def __init__(self, viewer, event_loop, addr, sock_family=socket.AF_INET,
-                 sock_type=socket.SOCK_STREAM, sock_proto=0, timeout=10):
+                 sock_type=socket.SOCK_STREAM, timeout=10):
         self.viewer = viewer
         self.event_loop = event_loop
         self.addr = addr
-        self.sockopts = (sock_family, sock_type, sock_proto)
+        self.sockopts = (sock_family, sock_type)
         self.timeout = timeout
         self.create_connection()
 
@@ -173,8 +185,9 @@ class start_client:
 
 @main.command()
 @click.argument('src', metavar='SOURCE')
+@click.option('--timeout', type=float, default=10)
 @click.option('--mono', is_flag=True)
-def view(src, mono=False):
+def view(src, timeout=10, mono=False):
     """Inspect statistics by TUI view."""
     try:
         src_type, src = parse_src(src)
@@ -189,7 +202,7 @@ def view(src, mono=False):
         viewer.set_stats(stats, src, src_time)
     elif src_type in ('tcp', 'sock'):
         family = {'tcp': socket.AF_INET, 'sock': socket.AF_UNIX}[src_type]
-        start_client(viewer, event_loop, src, family)
+        start_client(viewer, event_loop, src, family, timeout=timeout)
     loop = viewer.loop(event_loop=event_loop)
     if mono:
         loop.screen.set_terminal_properties(1)

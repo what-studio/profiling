@@ -643,7 +643,7 @@ class StatisticsViewer(object):
         ('focus', 'standout', '', 'standout'),
         # ui
         ('thead', 'dark cyan, standout', '', 'standout'),
-        ('thead.interactive', 'dark red, standout', '', 'standout'),
+        ('thead.paused', 'dark red, standout', '', 'standout'),
         ('thead.inactive', 'brown, standout', '', 'standout'),
         ('mark', 'dark cyan', ''),
         # risk
