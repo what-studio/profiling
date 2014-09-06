@@ -23,7 +23,7 @@ from stat import S_ISREG, S_ISSOCK
 import sys
 
 import click
-from six import exec_
+from six import PY2, exec_
 import urwid
 
 from .profiler import Profiler
@@ -81,11 +81,16 @@ def profile(script, timer=None, dump_filename=None, mono=False):
         '__package__': None,
     }
     profiler = Profiler(timer)
-    profiler.start(top_frame=sys._getframe(), top_code=code)
+    frame = sys._getframe()
+    profiler.start(top_frame=frame, top_code=code)
     try:
         exec_(code, globals_)
     finally:
         profiler.stop()
+    if PY2:
+        # on Python 2, exec's cpu time is duplicated with actual cpu time.
+        stat = profiler.stats.get_child(frame.f_code)
+        stat.remove_child(exec_.func_code)
     if dump_filename is None:
         viewer = make_viewer()
         viewer.set_stats(profiler.stats)
