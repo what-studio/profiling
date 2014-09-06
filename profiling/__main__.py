@@ -88,7 +88,7 @@ def profile(script, timer=None, dump_filename=None, mono=False):
     finally:
         profiler.stop()
     if PY2:
-        # on Python 2, exec's cpu time is duplicated with actual cpu time.
+        # in Python 2, exec's cpu time is duplicated with actual cpu time.
         stat = profiler.stats.get_child(frame.f_code)
         stat.remove_child(exec_.func_code)
     if dump_filename is None:
