@@ -170,6 +170,7 @@ pickle_protocol_range = click.IntRange(0, pickle.HIGHEST_PROTOCOL)
 @click.option('--mono', is_flag=True)
 def serve(script, addr, timer, interval, pickle_protocol,
           start_signo, stop_signo, quiet, mono):
+    """Launch a server to profile continuously."""
     sys.argv[:] = [script.name]
     code, globals_ = compile_script(script)
     # create listener.

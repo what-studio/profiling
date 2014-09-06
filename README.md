@@ -16,7 +16,7 @@ This project is under development yet.  So you should install it via GitHub
 instead of PyPI:
 
 ```sh
-$ pip install https://github.com/what-studio/profiling
+$ pip install git+ssh://git@github.com/what-studio/profiling.git
 ```
 
 Usage
