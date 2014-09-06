@@ -26,18 +26,18 @@ from . import (INTERVAL, LOG, PICKLE_PROTOCOL, fmt_connected, fmt_disconnected,
 from ..profiler import Profiler
 
 
-__all__ = ['run_profiling_server']
+__all__ = ['profiling_server']
 
 
-def run_profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
-                         pickle_protocol=PICKLE_PROTOCOL):
+def profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
+                     pickle_protocol=PICKLE_PROTOCOL):
     """Runs a profiling server synchronously.  Make a accept socket and call
     it::
 
        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
        sock.bind(('', 0))
        sock.listen(1)
-       run_profiling_server(sock, interval=10)
+       profiling_server(sock, interval=10)
 
     This function blocks the thread.
     """
