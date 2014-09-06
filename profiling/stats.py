@@ -80,7 +80,7 @@ class Stat(object):
             return 0.0
 
     def sorted(self, order=by_total_time):
-        return sorted(self, key=order, reverse=True)
+        return sorted(self, key=order)
 
     def __iter__(self):
         """Override it to walk child stats."""

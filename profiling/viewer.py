@@ -270,8 +270,8 @@ class StatNodeBase(urwid.TreeNode):
     def setup_widget(self, widget):
         if self.table is None:
             return
-        stat_token = self.table.tokenize_stat(self.get_value())
-        if stat_token in self.table._expanded_stat_tokens:
+        stat = self.get_value()
+        if hash(stat) in self.table._expanded_stat_hashes:
             widget.expand()
 
 
@@ -364,7 +364,7 @@ class StatisticsTable(urwid.WidgetWrap):
     #: The column declarations.
     columns = [
         # name, align, width, order
-        ('FUNCTION', 'left', ('weight', 1), sortkeys.by_name),
+        ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
         ('TOTAL%', 'right', (6,), None),
         ('OWN%', 'right', (6,), None),
         ('CALLS', 'right', (6,), sortkeys.by_calls),
@@ -374,18 +374,14 @@ class StatisticsTable(urwid.WidgetWrap):
         ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
     ]
 
-    #: The markup of the table footer.
-    tfoot_markup = [
-        ('key', '[]'), 'Sort ',
-        ('key', '>'), 'Hotspot ',
-        ('key', 'Q'), 'Quit ',
-    ]
-
     #: The initial order.
     order = sortkeys.by_total_time
 
     #: Whether the viewer is active.
     active = False
+
+    #: Whether the viewer is paused.
+    paused = False
 
     stats = None
     src = None
@@ -393,16 +389,15 @@ class StatisticsTable(urwid.WidgetWrap):
 
     def __init__(self):
         cls = type(self)
-        self._expanded_stat_tokens = set()
+        self._expanded_stat_hashes = set()
         self.walker = StatisticsWalker(NullStatNode())
         on(self.walker, 'focus_changed', self._walker_focus_changed)
         tbody = StatisticsListBox(self.walker)
         thead = urwid.AttrMap(cls.make_columns([
             urwid.Text(name, align) for name, align, __, __ in self.columns
         ]), None)
-        tfoot = urwid.AttrMap(urwid.Text(self.tfoot_markup), 'tfoot')
         header = urwid.Columns([])
-        widget = urwid.Frame(tbody, urwid.Pile([header, thead]), tfoot)
+        widget = urwid.Frame(tbody, urwid.Pile([header, thead]))
         super(StatisticsTable, self).__init__(widget)
         self.update_frame()
 
@@ -452,35 +447,6 @@ class StatisticsTable(urwid.WidgetWrap):
     def set_focus(self, focus):
         self.tbody.set_focus(focus)
 
-    def get_stats(self):
-        return self.stats
-
-    def set_stats(self, stats, src=None, src_time=None):
-        self.stats = stats
-        self.src = src
-        self.src_time = src_time
-        if not self.is_interactive():
-            self.activate()
-            self.refresh()
-
-    def sort_stats(self, order=sortkeys.by_total_time):
-        assert callable(order)
-        self.order = order
-        self.refresh()
-
-    def shift_order(self, delta):
-        orders = [order for __, __, __, order in self.columns if order]
-        x = orders.index(self.order)
-        order = orders[(x + delta) % len(orders)]
-        self.sort_stats(order)
-
-    def refresh(self):
-        stats = self.get_stats()
-        node = StatNode(stats, table=self)
-        path = self.get_path()
-        node = self.find_node(node, path)
-        self.set_focus(node)
-
     def get_path(self):
         """Gets the path to the focused statistic. Each step is a hash of
         statistic object.
@@ -504,6 +470,42 @@ class StatisticsTable(urwid.WidgetWrap):
                 break
         return node
 
+    def get_stats(self):
+        return self.stats
+
+    def set_stats(self, stats, src=None, src_time=None):
+        self.stats = stats
+        self.src = src
+        self.src_time = src_time
+        if not self.paused:
+            self.activate()
+            self.refresh()
+
+    def sort_stats(self, order=sortkeys.by_total_time):
+        assert callable(order)
+        self.order = order
+        self.refresh()
+
+    def shift_order(self, delta):
+        orders = [order for __, __, __, order in self.columns if order]
+        x = orders.index(self.order)
+        order = orders[(x + delta) % len(orders)]
+        self.sort_stats(order)
+
+    def pause(self):
+        self.paused = True
+        self.update_frame()
+
+    def resume(self):
+        self.paused = False
+        try:
+            stats, src, src_time = self._pending
+        except AttributeError:
+            pass
+        else:
+            del self._pending
+            self.set_stats(stats, src, src_time)
+
     def activate(self):
         self.active = True
         self.update_frame()
@@ -512,42 +514,17 @@ class StatisticsTable(urwid.WidgetWrap):
         self.active = False
         self.update_frame()
 
-    def tokenize_stat(self, stat):
-        if stat is None:
-            return
-        if stat.filename and stat.lineno:
-            segments = [stat.filename, str(stat.lineno)]
-        elif stat.filename:
-            segments = [stat.filename]
-        elif stat.lineno:
-            segments = ['', str(stat.lineno)]
-        else:
-            segments = []
-        segments.insert(0, stat.name or '')
-        return ':'.join(segments)
-
-    def is_interactive(self, focus=None):
-        """Is the user interact with the stats tree?"""
-        if focus is None:
-            focus = self.get_focus()[1]
-        return not focus.is_root()
-
-    def end_interactive(self):
-        """Finalizes interactive mode."""
-        try:
-            stats, src, src_time = self._pending
-        except AttributeError:
-            node = self.get_focus()[1].get_root()
-            self.set_focus(node)
-        else:
-            del self._pending
-            self.set_stats(stats, src, src_time)
+    def refresh(self):
+        stats = self.get_stats()
+        node = StatNode(stats, table=self)
+        path = self.get_path()
+        node = self.find_node(node, path)
+        self.set_focus(node)
 
     def update_frame(self, focus=None):
-        interactive = self.is_interactive(focus)
         # set thead attr
-        if interactive:
-            thead_attr = 'thead.interactive'
+        if self.paused:
+            thead_attr = 'thead.paused'
         elif not self.active:
             thead_attr = 'thead.inactive'
         else:
@@ -559,10 +536,10 @@ class StatisticsTable(urwid.WidgetWrap):
             widget = self.thead.base_widget.contents[x][0]
             text, __ = widget.get_text()
             widget.set_text((attr, text))
-        if interactive:
+        if self.paused:
             return
         # update header
-        stats = self.get_focus()[1].get_value()
+        stats = self.get_stats()
         if stats is None:
             return
         src = self.src
@@ -602,6 +579,10 @@ class StatisticsTable(urwid.WidgetWrap):
             widget = widget.first_child()
         self.tbody.change_focus(size, node)
 
+    def defocus(self):
+        __, node = self.get_focus()
+        self.set_focus(node.get_root())
+
     def keypress(self, size, key):
         base = super(StatisticsTable, self)
         command = self._command_map[key]
@@ -615,7 +596,7 @@ class StatisticsTable(urwid.WidgetWrap):
             self.focus_hotspot(size)
             return True
         elif command == self._command_map['esc']:
-            self.end_interactive()
+            self.defocus()
             return True
         elif command == self._command_map['right']:
             widget, node = self.tbody.get_focus()
@@ -633,8 +614,11 @@ class StatisticsTable(urwid.WidgetWrap):
                     self.tbody.change_focus(size, parent_node)
                 return True
         elif command == self._command_map[' ']:
-            if not self.is_interactive():
-                key = 'down'
+            if self.paused:
+                self.resume()
+            else:
+                self.pause()
+            return True
         return base.keypress(size, key)
 
     # signal handlers
@@ -643,12 +627,12 @@ class StatisticsTable(urwid.WidgetWrap):
         self.update_frame(focus)
 
     def _widget_expanded(self, widget):
-        stat_token = self.tokenize_stat(widget.get_node().get_value())
-        self._expanded_stat_tokens.add(stat_token)
+        stat = widget.get_node().get_value()
+        self._expanded_stat_hashes.add(hash(stat))
 
     def _widget_collapsed(self, widget):
-        stat_token = self.tokenize_stat(widget.get_node().get_value())
-        self._expanded_stat_tokens.discard(stat_token)
+        stat = widget.get_node().get_value()
+        self._expanded_stat_hashes.discard(hash(stat))
 
 
 class StatisticsViewer(object):
@@ -661,7 +645,6 @@ class StatisticsViewer(object):
         ('thead', 'dark cyan, standout', '', 'standout'),
         ('thead.interactive', 'dark red, standout', '', 'standout'),
         ('thead.inactive', 'brown, standout', '', 'standout'),
-        ('tfoot', 'dark cyan, standout', '', 'standout'),
         ('mark', 'dark cyan', ''),
         # risk
         ('danger', 'dark red', '', 'blink'),

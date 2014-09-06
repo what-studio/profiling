@@ -25,10 +25,10 @@ from gevent.server import StreamServer
 from .profiler import Profiler
 
 
-__all__ = ['recv_stats', 'start_server', 'ProfilerServer']
+__all__ = ['recv_stats', 'run_server', 'ProfilerServer']
 
 
-SIZE_STRUCT_FORMAT = '<Q'  # unsigned long long
+SIZE_STRUCT_FORMAT = '!Q'  # unsigned long long
 LOGGER = get_logger('Profiling')
 
 
@@ -54,8 +54,8 @@ def recv_stats(sock):
     return stats
 
 
-def start_server(listener, profiler=None, interval=5, log=LOGGER.debug):
-    """Starts the profiler server."""
+def run_server(listener, profiler=None, interval=5, log=LOGGER.debug):
+    """Runs the profiler server."""
     if profiler is None:
         profiler = Profiler()
     timeout_at = None
