@@ -10,7 +10,7 @@
        $ python -m profiling --help
 
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 from datetime import datetime
 import importlib
 import os
@@ -18,13 +18,13 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import socket
 from stat import S_ISREG, S_ISSOCK
 import sys
 
 import click
-import gevent
-from gevent import socket
-from urwid_geventloop import GeventLoop
+from six import exec_
+import urwid
 
 from .profiler import Profiler
 from .remote import recv_stats
@@ -49,8 +49,9 @@ def make_viewer():
 
 timers = {
     # timer name: (timer module name, timer class name)
+    'thread': ('.timers.thread', 'ThreadTimer'),
+    'yappi': ('.timers.thread', 'YappiTimer'),
     'greenlet': ('.timers.greenlet', 'GreenletTimer'),
-    'yappi': ('.timers.yappi', 'YappiTimer'),
 }
 
 
@@ -84,7 +85,7 @@ def profile(script, timer=None, dump_filename=None, mono=False):
     profiler = Profiler(timer)
     profiler.start()
     try:
-        exec code in globals_
+        exec_(code, globals_)
     finally:
         profiler.stop()
     if dump_filename is None:
@@ -125,30 +126,49 @@ def parse_src(src):
         elif S_ISREG(mode):
             src_type = 'dump'
     if not src_type:
-        raise ValueError('A dump file or a socket address required.')
+        raise ValueError('A dump file or a socket addr required.')
     return src_type, src
 
 
-def run_client(viewer, address, *socket_options):
-    while True:
-        sock = socket.socket(*socket_options)
+class start_client:
+
+    def __init__(self, viewer, event_loop, addr, sock_family=socket.AF_INET,
+                 sock_type=socket.SOCK_STREAM, sock_proto=0, timeout=10):
+        self.viewer = viewer
+        self.event_loop = event_loop
+        self.addr = addr
+        self.sockopts = (sock_family, sock_type, sock_proto)
+        self.timeout = timeout
+        self.create_connection()
+
+    def create_connection(self, delay=0):
+        self.sock = socket.socket(*self.sockopts)
+        self.sock.setblocking(0)
+        self.event_loop.alarm(delay, self.connect)
+
+    def connect(self):
+        errno = self.sock.connect_ex(self.addr)
+        assert errno == 115
+        self.event_loop.watch_file(self.sock.fileno(), self.received)
+
+    def disconnect(self):
+        self.event_loop.remove_watch_file(self.sock.fileno())
+        self.sock.close()
+
+    def received(self):
+        self.event_loop.remove_alarm(getattr(self, '_t', None))
+        self.viewer.activate()
         try:
-            sock.connect(address)
-        except socket.error:
-            viewer.inactivate()
-            gevent.sleep(1)
-            # try to reconnect
-            continue
-        while not sock.closed:
-            try:
-                with gevent.Timeout(60):
-                    stats = recv_stats(sock)
-            except (gevent.Timeout, socket.error):
-                sock.close()
-                # try to reconnect quickly
-                break
-            src_time = datetime.now()
-            viewer.set_stats(stats, address, src_time)
+            stats = recv_stats(self.sock)
+        except socket.error as exc:
+            # try to reconnect.
+            self.viewer.inactivate()
+            self.disconnect()
+            self.create_connection(1 if exc.errno == 111 else 0)
+            return
+        src_time = datetime.now()
+        self.viewer.set_stats(stats, self.addr, src_time)
+        self._t = self.event_loop.alarm(self.timeout, self.viewer.inactivate)
 
 
 @main.command()
@@ -161,18 +181,15 @@ def view(src, mono=False):
     except ValueError as exc:
         raise click.BadParameter(str(exc), param_hint='src')
     viewer = make_viewer()
-    if src_type == 'tcp':
-        gevent.spawn(run_client, viewer, src)
-        event_loop = GeventLoop()
-    elif src_type == 'sock':
-        gevent.spawn(run_client, viewer, src, socket.AF_UNIX)
-        event_loop = GeventLoop()
-    elif src_type == 'dump':
+    event_loop = urwid.SelectEventLoop()
+    if src_type == 'dump':
         with open(src) as f:
             stats = pickle.load(f)
         src_time = datetime.fromtimestamp(os.path.getmtime(src))
         viewer.set_stats(stats, src, src_time)
-        event_loop = None
+    elif src_type in ('tcp', 'sock'):
+        family = {'tcp': socket.AF_INET, 'sock': socket.AF_UNIX}[src_type]
+        start_client(viewer, event_loop, src, family)
     loop = viewer.loop(event_loop=event_loop)
     if mono:
         loop.screen.set_terminal_properties(1)

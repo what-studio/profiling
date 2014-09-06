@@ -11,6 +11,9 @@ from collections import defaultdict
 import inspect
 import time
 
+from six import itervalues
+from six.moves import map
+
 from .sortkeys import by_total_time
 
 
@@ -213,7 +216,7 @@ class RecordingStat(Stat):
         self.children[code] = stat
 
     def __iter__(self):
-        return self.children.itervalues()
+        return itervalues(self.children)
 
     def __len__(self):
         return len(self.children)
@@ -281,7 +284,7 @@ class FrozenStat(Stat):
         super(FrozenStat, self).__init__(stat)
         self.calls = stat.calls
         self.total_time = stat.total_time
-        self.children = map(type(self), stat)
+        self.children = list(map(type(self), stat))
 
     def __iter__(self):
         return iter(self.children)
@@ -299,7 +302,7 @@ class FrozenStatistics(FrozenStat, Statistics):
         Stat.__init__(self)
         self.cpu_time = stats.cpu_time
         self.wall_time = stats.wall_time
-        self.children = map(FrozenStat, stats)
+        self.children = list(map(FrozenStat, stats))
 
 
 class FlatStat(Stat):

@@ -11,6 +11,7 @@ __all__ = ['Timer', 'ContextualTimer']
 
 
 class Timer(object):
+    """The basic timer."""
 
     #: The raw function to get the CPU time.
     clock = time.clock
@@ -48,4 +49,4 @@ class ContextualTimer(Timer):
         self.contextual_times[context] = (paused_at, self.clock())
 
     def detect_context(self, context=None):
-        raise NotImplementedError('detect_context() should be implemented')
+        raise NotImplementedError('detect_context() should be implemented.')

@@ -35,8 +35,7 @@ setup(
     ],
     install_requires=[
         'click>=3.2',
-        'gevent',
+        'six>=1.8.0',
         'urwid>=1.2.1',
-        'urwid-geventloop==0.0.0.dev',
     ]
 )
