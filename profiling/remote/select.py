@@ -6,10 +6,12 @@
     Implements a profiling server based on `select`_.  It recommends you how
     a profiling server works.
 
-    Don't launch a server by multithreading.  A profiler cannot trace other
-    threads.  But if you are on a `gevent`_ monkey-patched system and if you
-    choose a :class:`profiling.timers.greenlet.GreenletTimer` as profiler's
-    timer, it will work well.
+    .. warning::
+
+       Don't launch a server by multithreading.  A profiler cannot trace other
+       threads.  But if you are on a `gevent`_ monkey-patched system and if you
+       choose a :class:`profiling.timers.greenlet.GreenletTimer` as profiler's
+       timer, it will work well.
 
     .. _select: https://docs.python.org/library/select.html
     .. _gevent: http://gevent.org/
@@ -42,6 +44,7 @@ def run_profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
     if profiler is None:
         profiler = Profiler()
     timeout_at = None
+    data = None
     clients = set()
     while True:
         timeout = None if timeout_at is None else timeout_at - time.time()
@@ -49,7 +52,9 @@ def run_profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
         ready, __, __ = select.select(socks, (), (), timeout)
         for sock in ready:
             if sock is listener:
-                _connected(sock, clients, log, interval)
+                sock, addr = _connected(sock, clients, log, interval)
+                if data is not None:
+                    sock.sendall(data)
             else:
                 _disconnected(sock, clients, log, profiler)
         if not clients:
@@ -77,6 +82,7 @@ def _connected(listener, clients, log, interval):
     log(fmt_connected(addr, num_clients))
     if num_clients == 1:
         log(fmt_profiler_started(interval))
+    return sock, addr
 
 
 def _disconnected(sock, clients, log, profiler):

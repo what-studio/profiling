@@ -21,10 +21,10 @@ import struct
 from ..profiler import Profiler
 
 
-__all__ = ['INTERVAL', 'LOG', 'LOGGER', 'PICKLE_PROTOCOL',
-           'SIZE_STRUCT_FORMAT', 'BaseProfilingServer', 'fmt_connected',
-           'fmt_disconnected', 'fmt_profiler_started', 'fmt_profiler_stopped',
-           'pack_stats', 'recv_exactly', 'recv_stats', 'send_stats']
+__all__ = ['INTERVAL', 'LOGGER', 'LOG', 'PICKLE_PROTOCOL',
+           'SIZE_STRUCT_FORMAT', 'pack_stats', 'recv_exactly', 'recv_stats',
+           'fmt_connected', 'fmt_disconnected', 'fmt_profiler_started',
+           'fmt_profiler_stopped', 'BaseProfilingServer']
 
 
 #: The default profiling interval.
@@ -49,13 +49,6 @@ def pack_stats(profiler, pickle_protocol=PICKLE_PROTOCOL):
     pickle.dump(profiler.frozen_stats(), dump, pickle_protocol)
     size = dump.tell()
     return struct.pack(SIZE_STRUCT_FORMAT, size) + dump.getvalue()
-
-
-def send_stats(sock, profiler, pickle_protocol=PICKLE_PROTOCOL):
-    """Sends statistics from the profiler to the socket.  This function blocks
-    the thread.
-    """
-    return sock.sendall(pack_stats(profiler, pickle_protocol))
 
 
 def recv_exactly(sock, size):
