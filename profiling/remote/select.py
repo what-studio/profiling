@@ -8,7 +8,7 @@
 
     Don't launch a server by multithreading.  A profiler cannot trace other
     threads.  But if you are on a `gevent`_ monkey-patched system and if you
-    set a profiler using :class:`profiling.timers.greenlet.GreenletTimer` as
+    choose a :class:`profiling.timers.greenlet.GreenletTimer` as profiler's
     timer, it will work well.
 
     .. _select: https://docs.python.org/library/select.html
