@@ -481,6 +481,8 @@ class StatisticsTable(urwid.WidgetWrap):
     def find_node(self, node, path):
         """Finds a node by the given path from the given node."""
         for hash_value in path:
+            if isinstance(node, LeafStatNode):
+                break
             for stat in node.get_child_keys():
                 if hash(stat) == hash_value:
                     node = node.get_child_node(stat)
