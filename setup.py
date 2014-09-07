@@ -39,6 +39,7 @@ setup(
         'urwid>=1.2.1',
     ],
     tests_require=[
+        'pytest>=2.6.1',
         'yappi>=0.92',
     ],
 )

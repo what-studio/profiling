@@ -6,7 +6,7 @@
     Stat classes.
 
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 from collections import defaultdict
 import inspect
 import time
@@ -20,6 +20,15 @@ from .sortkeys import by_total_time
 __all__ = ['Stat', 'Statistics', 'RecordingStat', 'RecordingStatistics',
            'VoidRecordingStat', 'FrozenStat', 'FrozenStatistics', 'FlatStat',
            'FlatStatistics']
+
+
+def failure(funcname, message='{class} not allow {func}.', exctype=TypeError):
+    """Generates a method which raises an exception."""
+    def func(self, *args, **kwargs):
+        fmtopts = {'func': funcname, 'obj': self, 'class': type(self).__name__}
+        raise exctype(message.format(**fmtopts))
+    func.__name__ = funcname
+    return func
 
 
 class Stat(object):
@@ -234,9 +243,6 @@ class RecordingStat(Stat):
     def __len__(self):
         return len(self.children)
 
-    def __getitem__(self, code):
-        return self.get_child(code)
-
     def __contains__(self, code):
         return code in self.children
 
@@ -250,6 +256,9 @@ class RecordingStatistics(RecordingStat, Statistics):
     _state_slots = None
 
     wall = time.time
+
+    record_entering = failure('record_entering')
+    record_leaving = failure('record_leaving')
 
     def record_starting(self, time):
         self._cpu_time_started = time
@@ -265,14 +274,13 @@ class RecordingStatistics(RecordingStat, Statistics):
         del self._cpu_time_started
         del self._wall_time_started
 
-    record_entering = NotImplemented
-    record_leaving = NotImplemented
-
 
 class VoidRecordingStat(RecordingStat):
     """Stat for an absent frame."""
 
     _state_slots = None
+
+    clear = failure('clear')
 
     @property
     def total_time(self):
@@ -283,8 +291,6 @@ class VoidRecordingStat(RecordingStat):
 
     def record_leaving(self, time, frame=None):
         pass
-
-    clear = NotImplemented
 
 
 class FrozenStat(Stat):

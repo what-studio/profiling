@@ -128,7 +128,7 @@ class Profiler(object):
 
     def _leaved(self, time, code, frame_key, parent_stat):
         try:
-            stat = parent_stat[code]
+            stat = parent_stat.get_child(code)
             stat.record_leaving(time, frame_key)
         except KeyError:
             pass
