@@ -9,6 +9,8 @@ An interactive profilier.
 from __future__ import with_statement
 import ast
 from setuptools import setup
+from setuptools.command.test import test
+import subprocess
 
 
 def get_version(filename):
@@ -27,6 +29,12 @@ def requirements(filename):
     """Reads requirements from a file."""
     with open(filename) as f:
         return [x.strip() for x in f.readlines() if x.strip()]
+
+
+# use pytest instead.
+def run_tests(self):
+    raise SystemExit(subprocess.call(['py.test', '-v']))
+test.run_tests = run_tests
 
 
 setup(
@@ -49,4 +57,5 @@ setup(
     ],
     install_requires=requirements('requirements.txt'),
     tests_require=requirements('test/requirements.txt'),
+    test_suite='',
 )

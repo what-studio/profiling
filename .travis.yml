@@ -8,8 +8,16 @@ python:
 - pypy
 - pypy3
 install:
-- pip install flake8 pytest
 - pip install -e .
+- pip install -r test/requirements.txt
+- | # install gevent if available.
+  if python -c 'import __pypy__' 2>/dev/null
+  then
+    true
+  elif python -c 'import sys; sys.version_info < (3,) or sys.exit(1)'
+  then
+    pip install gevent
+  fi
 script:
 - | # flake8
   if python -c 'import sys; sys.version_info < (3, 3) or sys.exit(1)'
