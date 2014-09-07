@@ -106,24 +106,22 @@ def test_greenlet_timer():
         factorial(10)
     def heavy():
         factorial(10000)
+    def profile(profiler):
+        with profiling(profiler):
+            gevent.spawn(light).join(0)
+            gevent.spawn(heavy)
+            gevent.wait()
+        stat1 = find_stat(profiler.stats, 'light')
+        stat2 = find_stat(profiler.stats, 'heavy')
+        return (stat1, stat2)
     # using default timer.
-    normal_profiler = Profiler(top_frame=sys._getframe())
-    with profiling(normal_profiler):
-        gevent.spawn(light).join(0)
-        gevent.spawn(heavy)
-        gevent.wait()
-    stat1 = find_stat(normal_profiler.stats, 'light')
-    stat2 = find_stat(normal_profiler.stats, 'heavy')
     # light() ends later than heavy().  its total time includes heavy's also.
+    normal_profiler = Profiler(top_frame=sys._getframe())
+    stat1, stat2 = profile(normal_profiler)
     assert stat1.total_time >= stat2.total_time
     # using greenlet timer.
-    greenlet_profiler = Profiler(GreenletTimer(), top_frame=sys._getframe())
-    with profiling(greenlet_profiler):
-        gevent.spawn(light).join(0)
-        gevent.spawn(heavy)
-        gevent.wait()
-    stat1 = find_stat(greenlet_profiler.stats, 'light')
-    stat2 = find_stat(greenlet_profiler.stats, 'heavy')
     # light() ends later than heavy() like the above case.  but the total time
     # doesn't include heavy's.  each greenlets have isolated cpu time.
+    greenlet_profiler = Profiler(GreenletTimer(), top_frame=sys._getframe())
+    stat1, stat2 = profile(greenlet_profiler)
     assert stat1.total_time < stat2.total_time
