@@ -49,7 +49,7 @@ def test_profiler():
     assert isinstance(profiler.result(), FrozenStatistics)
     assert len(profiler.stats) == 0
     with profiling(profiler):
-        factorial(100)
+        factorial(10000)
     stat1 = find_stat(profiler.stats, 'factorial')
     stat2 = find_stat(profiler.stats, '__enter__')
     stat3 = find_stat(profiler.stats, '__exit__')
