@@ -63,6 +63,12 @@ def profile_and_broadcast(clients, profiler=None, interval=INTERVAL,
     """A generator which starts profiling periodically then broadcasts the
     result to all clients.  Each iteration yields a tuple of the latest data
     and the time to time out.
+
+    :param clients: a sequence of client sockets.
+    :param profiler: the profiler.  (default: a new :class:`Profiler` object.)
+    :param interval: how often does it broadcasts the profiling result.
+    :param pickle_protocol: the Pickle protocol version to dump the profiling
+                            result.
     """
     if profiler is None:
         profiler = Profiler()
@@ -71,19 +77,21 @@ def profile_and_broadcast(clients, profiler=None, interval=INTERVAL,
     while True:
         if clients:
             now = time.time()
-            # broadcast the statistics.
+            # stop profiling and broadcast the result.
             if timeout_at is not None and timeout_at < now:
                 profiler.stop()
                 data = pack_stats(profiler, pickle_protocol)
                 profiler.clear()
+                timeout_at = None
                 for sock in clients:
                     sock.sendall(data)
-                timeout_at = None
-            # start the profiler.
+            # start profiling.
             if timeout_at is None:
                 timeout_at = now + interval
                 profiler.start()
-        else:
+        elif timeout_at is not None:
+            # no clients and the profiler is running.
+            profiler.stop()
             timeout_at = None
         yield data, timeout_at
 
@@ -104,5 +112,4 @@ def _disconnected(sock, clients, log, profiler):
     sock.close()
     log(fmt_disconnected(addr, len(clients)))
     if not clients and profiler.is_running():
-        profiler.stop()
         log(fmt_profiler_stopped())

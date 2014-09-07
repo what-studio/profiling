@@ -37,14 +37,14 @@ class BackgroundProfiler(Profiler):
         signal.signal(self.stop_signo, self._stop_signal_handler)
 
     def start(self):
+        self.event.clear()
         os.kill(os.getpid(), self.start_signo)
         self.event.wait()
-        self.event.clear()
 
     def stop(self):
+        self.event.clear()
         os.kill(os.getpid(), self.stop_signo)
         self.event.wait()
-        self.event.clear()
 
     def _start_signal_handler(self, signo, frame):
         super(BackgroundProfiler, self).start()
