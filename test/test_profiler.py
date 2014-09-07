@@ -77,7 +77,7 @@ def test_greenlet_timer():
     stat1 = find_stat(normal_profiler.stats, 'light')
     stat2 = find_stat(normal_profiler.stats, 'heavy')
     # light() ends later than heavy().  its total time includes heavy's also.
-    assert stat1.total_time > stat2.total_time
+    assert stat1.total_time >= stat2.total_time
     # using greenlet timer.
     greenlet_profiler = Profiler(GreenletTimer(), top_frame=sys._getframe())
     with profiling(greenlet_profiler):
