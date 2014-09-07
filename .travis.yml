@@ -12,7 +12,7 @@ install:
 - pip install -e .
 script:
 - | # flake8
-  if python -c 'import sys; sys.version_info < (3,) or sys.exit(1)'
+  if python -c 'import sys; sys.version_info < (3, 3) or sys.exit(1)'
   then
     EXCLUDE=profiling/remote/asyncio.py
   fi
