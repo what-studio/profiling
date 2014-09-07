@@ -24,7 +24,7 @@ from . import (INTERVAL, LOG, PICKLE_PROTOCOL, fmt_connected, fmt_disconnected,
 from ..profiler import Profiler
 
 
-__all__ = ['profiling_server']
+__all__ = ['profiling_server', 'profile_and_broadcast']
 
 
 def profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
@@ -41,10 +41,11 @@ def profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
     """
     if profiler is None:
         profiler = Profiler()
-    timeout_at = None
-    data = None
     clients = set()
+    profiling = profile_and_broadcast(
+        clients, profiler, interval, pickle_protocol)
     while True:
+        data, timeout_at = next(profiling)
         timeout = None if timeout_at is None else timeout_at - time.time()
         socks = clients.union([listener])
         ready, __, __ = select.select(socks, (), (), timeout)
@@ -55,22 +56,36 @@ def profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
                     sock.sendall(data)
             else:
                 _disconnected(sock, clients, log, profiler)
-        if not clients:
+
+
+def profile_and_broadcast(clients, profiler=None, interval=INTERVAL,
+                          pickle_protocol=PICKLE_PROTOCOL):
+    """A generator which starts profiling periodically then broadcasts the
+    result to all clients.  Each iteration yields a tuple of the latest data
+    and the time to time out.
+    """
+    if profiler is None:
+        profiler = Profiler()
+    data = None
+    timeout_at = None
+    while True:
+        if clients:
+            now = time.time()
+            # broadcast the statistics.
+            if timeout_at is not None and timeout_at < now:
+                profiler.stop()
+                data = pack_stats(profiler, pickle_protocol)
+                profiler.clear()
+                for sock in clients:
+                    sock.sendall(data)
+                timeout_at = None
+            # start the profiler.
+            if timeout_at is None:
+                timeout_at = now + interval
+                profiler.start()
+        else:
             timeout_at = None
-            continue
-        now = time.time()
-        # broadcast the statistics.
-        if timeout_at is not None and timeout_at < now:
-            profiler.stop()
-            data = pack_stats(profiler, pickle_protocol)
-            profiler.clear()
-            for sock in clients:
-                sock.sendall(data)
-            timeout_at = None
-        # start the profiler.
-        if timeout_at is None:
-            timeout_at = now + interval
-            profiler.start()
+        yield data, timeout_at
 
 
 def _connected(listener, clients, log, interval):

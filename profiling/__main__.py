@@ -22,6 +22,7 @@ import signal
 import socket
 from stat import S_ISREG, S_ISSOCK
 import sys
+import traceback
 
 import click
 from six import PY2, exec_
@@ -124,9 +125,11 @@ def profile(script, timer, dump_filename, mono):
     # exec the script.
     try:
         exec_(code, globals_)
-    except KeyboardInterrupt:
-        pass
-    finally:
+    except:
+        # don't profile print_exc().
+        profiler.stop()
+        traceback.print_exc()
+    else:
         profiler.stop()
     if PY2:
         # in Python 2, exec's cpu time is duplicated with actual cpu time.
