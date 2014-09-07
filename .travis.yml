@@ -8,7 +8,14 @@ python:
 - pypy
 - pypy3
 install:
+- pip install flake8 pytest
 - pip install -e .
-- pip install pytest
 script:
-- py.test -v
+- | # flake8
+  if [[ $(python --version 2>&1) == "Python 2."* ]]
+  then
+    EXCLUDE=profiling/remote/asyncio.py
+  fi
+  flake8 profilng test setup.py --show-source --ignore=E301 --exclude=$EXCLUDE
+- | # pytest
+  py.test -v
