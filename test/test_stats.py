@@ -4,6 +4,7 @@ import pickle
 import pytest
 
 from profiling.profiler import make_code
+from profiling.sortkeys import by_calls, by_name, by_total_time_per_call
 from profiling.stats import (
     FrozenStat, RecordingStat, RecordingStatistics, Stat, VoidRecordingStat)
 
@@ -86,3 +87,24 @@ def test_frozen():
     restored_frozen_stat = pickle.loads(pickle.dumps(frozen_stat))
     assert restored_frozen_stat.name == 'foo'
     assert restored_frozen_stat.total_time == 10
+
+
+def test_sorting():
+    stat = RecordingStat(make_code('foo'))
+    stat1 = RecordingStat(make_code('bar'))
+    stat2 = RecordingStat(make_code('baz'))
+    stat3 = RecordingStat(make_code('qux'))
+    stat.add_child(stat1.code, stat1)
+    stat.add_child(stat2.code, stat2)
+    stat.add_child(stat3.code, stat3)
+    stat.total_time = 100
+    stat1.total_time = 20
+    stat1.calls = 3
+    stat2.total_time = 30
+    stat2.calls = 2
+    stat3.total_time = 40
+    stat3.calls = 4
+    assert stat.sorted() == [stat3, stat2, stat1]
+    assert stat.sorted(by_calls) == [stat3, stat1, stat2]
+    assert stat.sorted(by_total_time_per_call) == [stat2, stat3, stat1]
+    assert stat.sorted(by_name) == [stat1, stat2, stat3]

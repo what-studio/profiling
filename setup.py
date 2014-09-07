@@ -3,7 +3,7 @@
 profiling
 ~~~~~~~~~
 
-A profilier.
+An interactive profilier.
 
 """
 from __future__ import with_statement
