@@ -11,7 +11,7 @@ import re
 from setuptools import setup
 
 
-# detect the current version
+# detect the current version.
 with open('profiling/__init__.py') as f:
     version = re.search(r'__version__\s*=\s*\'(.+?)\'', f.read()).group(1)
 assert version

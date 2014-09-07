@@ -44,7 +44,16 @@ def main():
     pass
 
 
+def get_title(src_name, src_type=None):
+    """Normalizes a source name as a string to be used for viewer's title."""
+    if src_type == 'tcp':
+        return '{0}:{1}'.format(*src_name)
+    return os.path.basename(src_name)
+
+
 def make_viewer(mono=False):
+    """Makes a :class:`profiling.viewer.StatisticsViewer` with common options.
+    """
     viewer = StatisticsViewer()
     viewer.use_vim_command_map()
     viewer.use_game_command_map()
@@ -55,12 +64,16 @@ def make_viewer(mono=False):
 
 
 def spawn_thread(func, *args, **kwargs):
+    """Spawns a daemon thread.  The thread executes the given function by the
+    given arguments.
+    """
     thread = threading.Thread(target=func, args=args, kwargs=kwargs)
     thread.daemon = True
     thread.start()
     return thread
 
 
+#: Just returns the first argument.
 noop = lambda x: x
 
 
@@ -68,6 +81,7 @@ noop = lambda x: x
 
 
 class Script(click.File):
+    """A parameter type for Python script."""
 
     def __init__(self):
         super(Script, self).__init__('rb')
@@ -86,6 +100,7 @@ class Script(click.File):
 
 
 class Timer(click.ParamType):
+    """A parameter type to choose profiling timer."""
 
     timers = OrderedDict([
         # timer name: (timer module name, timer class name)
@@ -115,6 +130,7 @@ class Timer(click.ParamType):
 
 
 class Address(click.ParamType):
+    """A parameter type for IP address."""
 
     def convert(self, value, param, ctx):
         host, port = value.split(':')
@@ -125,7 +141,9 @@ class Address(click.ParamType):
         return 'HOST:PORT'
 
 
-class ViewSource(click.ParamType):
+class ViewerSource(click.ParamType):
+    """A parameter type for :class:`profiling.viewer.StatisticsViewer` source.
+    """
 
     def convert(self, value, param, ctx):
         src_type = False
@@ -153,6 +171,7 @@ class ViewSource(click.ParamType):
 
 
 class SignalNumber(click.IntRange):
+    """A parameter type for signal number."""
 
     def __init__(self):
         super(SignalNumber, self).__init__(0, 255)
@@ -183,7 +202,8 @@ profiler_params = Params([
     click.argument('script', type=Script()),
     click.option('-t', '--timer', type=Timer(),
                  help='Choose CPU time measurer.'),
-    click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL),
+    click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
+                 help='Pickle protocol to dump profiling result.'),
 ])
 live_profiler_params = profiler_params.extend([
     click.option('-i', '--interval', type=float, default=INTERVAL,
@@ -199,7 +219,9 @@ viewer_params = Params([
 
 @main.command()
 @profiler_params
-@click.option('-d', '--dump', 'dump_filename', type=click.Path(writable=True))
+@click.option('-d', '--dump', 'dump_filename',
+              type=click.Path(writable=True),
+              help='Profiling result dump filename.')
 @viewer_params
 def profile(script, timer, pickle_protocol, dump_filename, mono):
     """Profile a Python script."""
@@ -225,7 +247,7 @@ def profile(script, timer, pickle_protocol, dump_filename, mono):
     if dump_filename is None:
         # show the result using a viewer.
         viewer, loop = make_viewer(mono)
-        viewer.set_stats(profiler.stats)
+        viewer.set_stats(profiler.stats, get_title(filename))
         try:
             loop.run()
         except KeyboardInterrupt:
@@ -244,10 +266,12 @@ def profile(script, timer, pickle_protocol, dump_filename, mono):
 @live_profiler_params
 @viewer_params
 def live_profile(script, timer, interval, pickle_protocol, mono):
+    """Profile a Python script continuously."""
     filename, code, globals_ = script
     sys.argv[:] = [filename]
     parent_sock, child_sock = socket.socketpair()
     pid = os.fork()
+    sys.stderr.write('hello')
     if pid == 0:
         # child
         devnull = os.open(os.devnull, os.O_RDWR)
@@ -267,7 +291,8 @@ def live_profile(script, timer, interval, pickle_protocol, mono):
     else:
         # parent
         viewer, loop = make_viewer(mono)
-        client = ProfilingClient(viewer, loop.event_loop, parent_sock)
+        title = get_title(filename)
+        client = ProfilingClient(viewer, loop.event_loop, parent_sock, title)
         client.start()
         try:
             loop.run()
@@ -280,7 +305,7 @@ def live_profile(script, timer, interval, pickle_protocol, mono):
 
 @main.command('remote-profile')
 @live_profiler_params
-@click.option('-b', '--bind', 'addr', type=Address(), default=':8912',
+@click.option('-b', '--bind', 'addr', type=Address(), default='127.0.0.1:8912',
               help='IP address to serve profiling results.')
 @click.option('--start-signo', type=SignalNumber(), default=signal.SIGUSR1)
 @click.option('--stop-signo', type=SignalNumber(), default=signal.SIGUSR2)
@@ -288,7 +313,9 @@ def live_profile(script, timer, interval, pickle_protocol, mono):
               help='Print profiling server logs.')
 def remote_profile(script, timer, interval, pickle_protocol,
                    addr, start_signo, stop_signo, verbose):
-    """Launch a server to profile continuously."""
+    """Launch a server to profile continuously.  The default address is
+    127.0.0.1:8912.
+    """
     filename, code, globals_ = script
     sys.argv[:] = [filename]
     # create listener.
@@ -318,22 +345,22 @@ def remote_profile(script, timer, interval, pickle_protocol,
 
 
 @main.command()
-@click.argument('src', type=ViewSource())
-@click.option('--timeout', type=float, default=10)
+@click.argument('src', type=ViewerSource())
 @viewer_params
-def view(src, timeout, mono):
+def view(src, mono):
     """Inspect statistics by TUI view."""
     src_type, src_name = src
+    title = get_title(src_name, src_type)
     viewer, loop = make_viewer(mono)
     if src_type == 'dump':
         with open(src_name) as f:
             stats = pickle.load(f)
-        src_time = datetime.fromtimestamp(os.path.getmtime(src_name))
-        viewer.set_stats(stats, src_name, src_time)
+        time = datetime.fromtimestamp(os.path.getmtime(src_name))
+        viewer.set_stats(stats, title, time)
     elif src_type in ('tcp', 'sock'):
         family = {'tcp': socket.AF_INET, 'sock': socket.AF_UNIX}[src_type]
-        client = FailoverProfilingClient(viewer, loop.event_loop,
-                                         src_name, family, timeout=timeout)
+        client = FailoverProfilingClient(
+            viewer, loop.event_loop, src_name, family, title=title)
         client.start()
     try:
         loop.run()
@@ -352,10 +379,11 @@ class ProfilingClient(object):
 
     """
 
-    def __init__(self, viewer, event_loop, sock):
+    def __init__(self, viewer, event_loop, sock, title=None):
         self.viewer = viewer
         self.event_loop = event_loop
         self.sock = sock
+        self.title = title
 
     def start(self):
         self.viewer.activate()
@@ -374,19 +402,20 @@ class ProfilingClient(object):
         self.viewer.inactivate()
 
     def set_stats(self, stats):
-        src_time = datetime.now()
-        self.viewer.set_stats(stats, src_time=src_time)
+        self.viewer.set_stats(stats, self.title, datetime.now())
 
 
 class FailoverProfilingClient(ProfilingClient):
+    """A profiling client but it tries to reconnect constantly."""
 
-    def __init__(self, viewer, event_loop, addr=None,
-                 sock_family=socket.AF_INET, sock_type=socket.SOCK_STREAM,
-                 timeout=None):
+    failover_interval = 1
+
+    def __init__(self, viewer, event_loop, addr=None, family=socket.AF_INET,
+                 title=None):
         self.addr = addr
-        self.sockopts = (sock_family, sock_type)
-        self.timeout = timeout
-        super(FailoverProfilingClient, self).__init__(viewer, event_loop, None)
+        self.family = family
+        base = super(FailoverProfilingClient, self)
+        base.__init__(viewer, event_loop, None, title)
 
     def connect(self):
         errno = self.sock.connect_ex(self.addr)
@@ -398,7 +427,7 @@ class FailoverProfilingClient(ProfilingClient):
             pass
         elif errno == 2:
             # no such socket file.
-            self.event_loop.alarm(1, self.create_connection)
+            self.create_connection(self.failover_interval)
             return
         else:
             raise ValueError('Unexpected socket errno: {0}'.format(errno))
@@ -408,28 +437,19 @@ class FailoverProfilingClient(ProfilingClient):
         self.event_loop.remove_watch_file(self.sock.fileno())
         self.sock.close()
         # try to reconnect.
-        self.create_connection(1 if errno == 111 else 0)
+        self.create_connection(self.failover_interval if errno == 111 else 0)
 
     def create_connection(self, delay=0):
-        self.sock = socket.socket(*self.sockopts)
+        self.sock = socket.socket(self.family)
         self.sock.setblocking(0)
         self.event_loop.alarm(delay, self.connect)
 
     def start(self):
         self.create_connection()
 
-    def handle(self):
-        self.event_loop.remove_alarm(getattr(self, '_t', None))
-        super(FailoverProfilingClient, self).handle()
-        self._t = self.event_loop.alarm(self.timeout, self.viewer.inactivate)
-
     def erred(self, errno):
         super(FailoverProfilingClient, self).erred(errno)
         self.disconnect(errno)
-
-    def set_stats(self, stats):
-        src_time = datetime.now()
-        self.viewer.set_stats(stats, self.addr, src_time)
 
 
 if __name__ == '__main__':

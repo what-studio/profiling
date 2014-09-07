@@ -19,7 +19,6 @@
 """
 from __future__ import absolute_import
 from collections import deque
-import os
 
 import urwid
 from urwid import connect_signal as on
@@ -401,9 +400,9 @@ class StatisticsTable(urwid.WidgetWrap):
     #: Whether the viewer is paused.
     paused = False
 
+    title = None
     stats = None
-    src = None
-    src_time = None
+    time = None
 
     def __init__(self):
         cls = type(self)
@@ -494,10 +493,10 @@ class StatisticsTable(urwid.WidgetWrap):
     def get_stats(self):
         return self.stats
 
-    def set_stats(self, stats, src=None, src_time=None):
+    def set_stats(self, stats, title=None, time=None):
         self.stats = stats
-        self.src = src
-        self.src_time = src_time
+        self.title = title
+        self.time = time
         if not self.paused:
             self.activate()
             self.refresh()
@@ -520,12 +519,12 @@ class StatisticsTable(urwid.WidgetWrap):
     def resume(self):
         self.paused = False
         try:
-            stats, src, src_time = self._pending
+            stats, title, time = self._pending
         except AttributeError:
             pass
         else:
             del self._pending
-            self.set_stats(stats, src, src_time)
+            self.set_stats(stats, title, time)
 
     def activate(self):
         self.active = True
@@ -563,34 +562,30 @@ class StatisticsTable(urwid.WidgetWrap):
         stats = self.get_stats()
         if stats is None:
             return
-        src = self.src
-        src_time = self.src_time
+        title = self.title
+        time = self.time
+        if title or time:
+            if time is not None:
+                time_string = '{:%H:%M:%S}'.format(time)
+            if title and time:
+                markup = [('weak', title), ' ', time_string]
+            elif title:
+                markup = title
+            else:
+                markup = time_string
+            meta_info = urwid.Text(markup, align='right')
+        else:
+            meta_info = None
         fraction_string = '({0}/{1})'.format(
             fmt.format_clock(stats.cpu_time),
             fmt.format_clock(stats.wall_time))
         cpu_info = urwid.Text([
             'CPU ', fmt.markup_percent(stats.cpu_usage),
             ' ', ('weak', fraction_string)])
+        # set header columns
         col_opts = ('weight', 1, False)
-        if src or src_time:
-            if isinstance(src, tuple):
-                # ip endpoint
-                src_string = '{0}:{1}'.format(*src)
-            elif isinstance(src, basestring):
-                # file path
-                src_string = os.path.basename(src)
-            if src_time is not None:
-                src_time_string = '{:%H:%M:%S}'.format(src_time)
-            if src and src_time:
-                markup = [('weak', src_string), ' ', src_time_string]
-            elif src:
-                markup = src_string
-            else:
-                markup = src_time_string
-            src_info = urwid.Text(markup, align='right')
-            self.header.contents = [(cpu_info, col_opts), (src_info, col_opts)]
-        else:
-            self.header.contents = [(cpu_info, col_opts)]
+        self.header.contents = \
+            [(w, col_opts) for w in [cpu_info, meta_info] if w]
 
     def focus_hotspot(self, size):
         widget, __ = self.tbody.get_focus()
@@ -697,7 +692,6 @@ class StatisticsViewer(object):
             raise urwid.ExitMainLoop()
 
     def __init__(self):
-        super(StatisticsViewer, self).__init__()
         self.table = StatisticsTable()
         self.widget = urwid.Padding(self.table, right=1)
 
@@ -706,8 +700,8 @@ class StatisticsViewer(object):
         loop = urwid.MainLoop(self.widget, self.palette, *args, **kwargs)
         return loop
 
-    def set_stats(self, stats, src=None, src_time=None):
-        self.table.set_stats(stats, src, src_time)
+    def set_stats(self, stats, title=None, time=None):
+        self.table.set_stats(stats, title, time)
 
     def activate(self):
         return self.table.activate()
