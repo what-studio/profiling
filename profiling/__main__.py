@@ -270,7 +270,6 @@ def live_profile(script, timer, interval, pickle_protocol, mono):
     sys.argv[:] = [filename]
     parent_sock, child_sock = socket.socketpair()
     pid = os.fork()
-    sys.stderr.write('hello')
     if pid == 0:
         # child
         devnull = os.open(os.devnull, os.O_RDWR)
