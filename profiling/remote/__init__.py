@@ -128,6 +128,10 @@ class BaseProfilingServer(object):
         self.pickle_protocol = pickle_protocol
         self.clients = set()
 
+    @abstract('Implement serve_forever() to run a server synchronously.')
+    def serve_forever(self):
+        pass
+
     @abstract('Implement _send() to send data to the client.')
     def _send(self, client, data):
         pass

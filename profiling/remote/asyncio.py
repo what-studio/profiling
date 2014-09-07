@@ -36,6 +36,13 @@ class AsyncIOProfilingServer(BaseProfilingServer):
         super(AsyncIOProfilingServer, self).__init__(*args, **kwargs)
         self.clients = set()
 
+    def serve_forever(self, addr):
+        host, port = addr
+        loop = asyncio.get_event_loop()
+        ready_to_serve = asyncio.start_server(self, host, port)
+        loop.run_until_complete(ready_to_serve)
+        loop.run_forever()
+
     def _send(self, client, data):
         reader, writer = client
         writer.write(data)

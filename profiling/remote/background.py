@@ -12,12 +12,10 @@ import os
 import signal
 import threading
 
-from . import INTERVAL, LOG, PICKLE_PROTOCOL
-from .select import profiling_server
 from ..profiler import Profiler
 
 
-__all__ = ['BackgroundProfiler', 'start_profiling_server']
+__all__ = ['BackgroundProfiler']
 
 
 class BackgroundProfiler(Profiler):
@@ -36,15 +34,6 @@ class BackgroundProfiler(Profiler):
         signal.signal(self.start_signo, self._start_signal_handler)
         signal.signal(self.stop_signo, self._stop_signal_handler)
 
-    def spawn_server(self, listener, log=LOG, interval=INTERVAL,
-                     pickle_protocol=PICKLE_PROTOCOL):
-        args = (listener, self, log, interval, pickle_protocol)
-        thread = threading.Thread(target=profiling_server, args=args)
-        thread.daemon = True
-        self.prepare()
-        thread.start()
-        return thread
-
     def start(self):
         self.event.clear()
         os.kill(os.getpid(), self.start_signo)
@@ -62,25 +51,3 @@ class BackgroundProfiler(Profiler):
     def _stop_signal_handler(self, signo, frame):
         super(BackgroundProfiler, self).stop()
         self.event.set()
-
-
-def start_profiling_server(listener, profiler=None, log=LOG, interval=INTERVAL,
-                           pickle_protocol=PICKLE_PROTOCOL):
-    """Runs :func:`profiling.remote.select.profiling_server` in a background
-    thread.
-
-    This function is coupled with :class:`BackgroundProfiler` for starting main
-    thread profiling at the background thread.  It registers two signal
-    handlers by :meth:`BackgroundProfiler.prepare`.
-    """
-    if profiler is None:
-        profiler = BackgroundProfiler()
-    elif not isinstance(profiler, BackgroundProfiler):
-        errmsg = 'start_profiling_server() accepts only BackgroundProfiler.'
-        raise TypeError(errmsg)
-    profiler.prepare()
-    args = (listener, profiler, log, interval, pickle_protocol)
-    thread = threading.Thread(target=profiling_server, args=args)
-    thread.daemon = True
-    thread.start()
-    return thread
