@@ -43,6 +43,27 @@ def factorial(n):
     return f
 
 
+def test_frame_stack():
+    profiler = Profiler()
+    frame = sys._getframe()
+    frame_stack = profiler._frame_stack(frame)
+    assert frame_stack[-1] is frame
+    assert frame_stack[-2] is frame.f_back
+    assert frame_stack[-3] is frame.f_back.f_back
+    # top frame
+    profiler = Profiler(top_frame=frame.f_back)
+    frame_stack = profiler._frame_stack(frame)
+    assert list(frame_stack) == [frame.f_back, frame]
+    # top code
+    profiler = Profiler(top_code=frame.f_back.f_code)
+    frame_stack = profiler._frame_stack(frame)
+    assert list(frame_stack) == [frame.f_back, frame]
+    # both of top frame and top code
+    profiler = Profiler(top_frame=frame.f_back, top_code=frame.f_back.f_code)
+    frame_stack = profiler._frame_stack(frame)
+    assert list(frame_stack) == [frame.f_back, frame]
+
+
 def test_profiler():
     profiler = Profiler(top_frame=sys._getframe())
     assert isinstance(profiler.stats, RecordingStatistics)
