@@ -55,7 +55,7 @@ class BackgroundProfiler(Profiler):
         self.event.set()
 
 
-def start_profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
+def start_profiling_server(listener, profiler=None, log=LOG, interval=INTERVAL,
                            pickle_protocol=PICKLE_PROTOCOL):
     """Runs :func:`profiling.remote.select.profiling_server` in a background
     thread.
@@ -70,7 +70,7 @@ def start_profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
         errmsg = 'start_profiling_server() accepts only BackgroundProfiler.'
         raise TypeError(errmsg)
     profiler.prepare()
-    args = (listener, profiler, interval, log, pickle_protocol)
+    args = (listener, profiler, log, interval, pickle_protocol)
     thread = threading.Thread(target=profiling_server, args=args)
     thread.daemon = True
     thread.start()

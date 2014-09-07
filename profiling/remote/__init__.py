@@ -21,20 +21,20 @@ import struct
 from ..profiler import Profiler
 
 
-__all__ = ['INTERVAL', 'LOGGER', 'LOG', 'PICKLE_PROTOCOL',
+__all__ = ['LOGGER', 'LOG', 'INTERVAL', 'PICKLE_PROTOCOL',
            'SIZE_STRUCT_FORMAT', 'pack_stats', 'recv_exactly', 'recv_stats',
            'fmt_connected', 'fmt_disconnected', 'fmt_profiler_started',
            'fmt_profiler_stopped', 'BaseProfilingServer']
 
-
-#: The default profiling interval.
-INTERVAL = 5
 
 #: The standard logger.
 LOGGER = get_logger('Profiling')
 
 #: The standard log function.
 LOG = LOGGER.debug
+
+#: The default profiling interval.
+INTERVAL = 5
 
 #: The default Pickle protocol.
 PICKLE_PROTOCOL = getattr(pickle, 'DEFAULT_PROTOCOL', pickle.HIGHEST_PROTOCOL)
@@ -117,14 +117,14 @@ class BaseProfilingServer(object):
 
     _latest_data = None
 
-    def __init__(self, profiler=None, interval=INTERVAL, log=LOG,
-                 pickle_protocol=PICKLE_PROTOCOL):
+    def __init__(self, profiler=None, log=LOG,
+                 interval=INTERVAL, pickle_protocol=PICKLE_PROTOCOL):
         super(BaseProfilingServer, self).__init__()
         if profiler is None:
             profiler = Profiler()
         self.profiler = profiler
-        self.interval = interval
         self.log = log
+        self.interval = interval
         self.pickle_protocol = pickle_protocol
         self.clients = set()
 

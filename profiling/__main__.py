@@ -192,7 +192,7 @@ def serve(script, addr, timer, interval, pickle_protocol,
         click.secho('  $ python -m profiling view ', nl=False)
         click.secho('{}:{}'.format(host or 'localhost', port), underline=True)
         log = lambda x: click.secho('> ' + x)
-    start_profiling_server(listener, profiler, interval, log, pickle_protocol)
+    start_profiling_server(listener, profiler, log, interval, pickle_protocol)
     # exec the script.
     try:
         exec_(code, globals_)

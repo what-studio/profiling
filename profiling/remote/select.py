@@ -27,7 +27,7 @@ from ..profiler import Profiler
 __all__ = ['profiling_server', 'profile_and_broadcast']
 
 
-def profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
+def profiling_server(listener, profiler=None, log=LOG, interval=INTERVAL,
                      pickle_protocol=PICKLE_PROTOCOL):
     """Runs a profiling server synchronously.  Make a accept socket and call
     it::
@@ -38,6 +38,13 @@ def profiling_server(listener, profiler=None, interval=INTERVAL, log=LOG,
        profiling_server(sock, interval=10)
 
     This function blocks the thread.
+
+    :param listener: a listener socket.
+    :param profiler: a profiler.  (default: a new :class:`Profiler` object.)
+    :param log: a function to write log messages.  (default: debugging logger)
+    :param interval: how often does it broadcasts the profiling result.
+    :param pickle_protocol: the Pickle protocol version to dump the profiling
+                            result.
     """
     if profiler is None:
         profiler = Profiler()
@@ -65,7 +72,7 @@ def profile_and_broadcast(clients, profiler=None, interval=INTERVAL,
     and the time to time out.
 
     :param clients: a sequence of client sockets.
-    :param profiler: the profiler.  (default: a new :class:`Profiler` object.)
+    :param profiler: a profiler.  (default: a new :class:`Profiler` object.)
     :param interval: how often does it broadcasts the profiling result.
     :param pickle_protocol: the Pickle protocol version to dump the profiling
                             result.
