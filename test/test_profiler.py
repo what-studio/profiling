@@ -49,6 +49,7 @@ def test_profiler():
     assert isinstance(profiler.result(), FrozenStatistics)
     assert len(profiler.stats) == 0
     with profiling(profiler):
+        factorial(1000)
         factorial(10000)
     stat1 = find_stat(profiler.stats, 'factorial')
     stat2 = find_stat(profiler.stats, '__enter__')
@@ -57,6 +58,9 @@ def test_profiler():
     assert stat1.total_time == stat1.own_time
     assert stat1.own_time > stat2.own_time
     assert stat1.own_time > stat3.own_time
+    assert stat1.calls == 2
+    assert stat2.calls == 0  # entering to __enter__() wasn't profiled.
+    assert stat3.calls == 1
 
 
 def test_greenlet_timer():
