@@ -6,8 +6,8 @@ features:
 
 1. An interactive TUI profiling statistics viewer.
 1. Utilities for remote profiling.
-1. Greenlet-aware CPU timer.
-1. Supports both of Python 2.7 and Python 3.4.
+1. Thread or greenlet aware CPU timer.
+1. Supports both of Python 2 and Python 3.
 
 [![Build Status](https://travis-ci.org/what-studio/profiling.svg?branch=master)](https://travis-ci.org/what-studio/profiling)
 
