@@ -684,7 +684,7 @@ class StatisticsViewer(object):
         palette.append((attr + '.sorted', entry[1] + ', underline',
                         entry[2], entry[3] + ', underline'))
 
-    focus_map = {x[0]: 'focus' for x in palette}
+    focus_map = dict((x[0], 'focus') for x in palette)
     focus_map[None] = 'focus'
 
     def unhandled_input(self, key):
