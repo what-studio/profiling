@@ -12,10 +12,11 @@ install:
 - pip install -e .
 script:
 - | # flake8
-  if [[ $(python --version 2>&1) == "Python 2."* ]]
+  if python -c 'import sys; sys.version_info < (3,) or sys.exit(1)'
   then
     EXCLUDE=profiling/remote/asyncio.py
   fi
-  flake8 profilng test setup.py --show-source --ignore=E301 --exclude=$EXCLUDE
+  flake8 profiling test setup.py \
+    -v --show-source --ignore=E301 --exclude=$EXCLUDE
 - | # pytest
   py.test -v
