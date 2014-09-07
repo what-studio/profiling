@@ -34,9 +34,16 @@ def make_code(name):
 
 
 class Profiler(object):
+    """The profiler."""
 
+    #: The CPU timer.  Usually it is an instance of :class:`profiling.timers.
+    #: Timer`.
     timer = None
+
+    #: The root recording statistics which is an instance of :class:`profiling.
+    #: stats.RecordingStatistics`.
     stats = None
+
     top_frame = None
     top_code = None
 
