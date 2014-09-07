@@ -64,6 +64,19 @@ def test_frame_stack():
     assert list(frame_stack) == [frame.f_back, frame]
 
 
+def test_setprofile():
+    profiler = Profiler()
+    assert sys.getprofile() is None
+    profiler.start()
+    assert sys.getprofile() == profiler._profile
+    profiler.stop()
+    assert sys.getprofile() is None
+    sys.setprofile(lambda *x: x)
+    with pytest.raises(RuntimeError):
+        profiler.start()
+    sys.setprofile(None)
+
+
 def test_profiler():
     profiler = Profiler(top_frame=sys._getframe())
     assert isinstance(profiler.stats, RecordingStatistics)
