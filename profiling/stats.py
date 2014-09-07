@@ -46,7 +46,6 @@ class Stat(object):
 
     def __init__(self, stat=None, name=None, filename=None, lineno=None,
                  module=None):
-        super(Stat, self).__init__()
         if stat is not None:
             assert name is filename is lineno is module is None
             name = stat.name

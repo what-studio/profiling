@@ -50,7 +50,6 @@ class Profiler(object):
     _running = False
 
     def __init__(self, timer=None, top_frame=None, top_code=None):
-        super(Profiler, self).__init__()
         if timer is None:
             timer = Timer()
         self.timer = timer
@@ -83,6 +82,7 @@ class Profiler(object):
         return self._running
 
     def clear(self):
+        """Clears or initializes the recording statistics."""
         try:
             self.stats.clear()
         except AttributeError:
@@ -126,6 +126,7 @@ class Profiler(object):
             self._leaved(time, code, frame_key, parent_stat)
 
     def _entered(self, time, code, frame_key, parent_stat):
+        """Entered to a function call."""
         try:
             stat = parent_stat.get_child(code)
         except KeyError:
@@ -134,6 +135,7 @@ class Profiler(object):
         stat.record_entering(time, frame_key)
 
     def _leaved(self, time, code, frame_key, parent_stat):
+        """Leaved from a function call."""
         try:
             stat = parent_stat.get_child(code)
             stat.record_leaving(time, frame_key)

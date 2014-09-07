@@ -119,7 +119,6 @@ class BaseProfilingServer(object):
 
     def __init__(self, profiler=None, log=LOG,
                  interval=INTERVAL, pickle_protocol=PICKLE_PROTOCOL):
-        super(BaseProfilingServer, self).__init__()
         if profiler is None:
             profiler = Profiler()
         self.profiler = profiler

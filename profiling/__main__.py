@@ -186,7 +186,6 @@ class SignalNumber(click.IntRange):
 class Params(object):
 
     def __init__(self, params):
-        super(Params, self).__init__()
         self.params = params
 
     def __call__(self, f):
