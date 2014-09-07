@@ -48,22 +48,18 @@ class AsyncIOProfilingServer(BaseProfilingServer):
         reader, writer = client
         return writer.get_extra_info('peername')
 
-    def _start_profiling_loop(self):
+    def _start_profiling(self):
         asyncio.async(self.profile_periodically())
 
-    def _detect_disconnection(self, client):
+    def _start_watching(self, client):
         reader, writer = client
         disconnected = lambda x: self.disconnected(reader, writer)
         asyncio.async(reader.read()).add_done_callback(disconnected)
 
     @asyncio.coroutine
     def profile_periodically(self):
-        for data in self.profiling_loop():
-            if data is None:
-                yield from asyncio.sleep(self.interval)
-                continue
-            for reader, writer in self.clients:
-                writer.write(data)
+        for __ in self.profiling():
+            yield from asyncio.sleep(self.interval)
 
     def __call__(self, reader, writer):
         client = (reader, writer)

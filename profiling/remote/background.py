@@ -36,6 +36,15 @@ class BackgroundProfiler(Profiler):
         signal.signal(self.start_signo, self._start_signal_handler)
         signal.signal(self.stop_signo, self._stop_signal_handler)
 
+    def spawn_server(self, listener, log=LOG, interval=INTERVAL,
+                     pickle_protocol=PICKLE_PROTOCOL):
+        args = (listener, self, log, interval, pickle_protocol)
+        thread = threading.Thread(target=profiling_server, args=args)
+        thread.daemon = True
+        self.prepare()
+        thread.start()
+        return thread
+
     def start(self):
         self.event.clear()
         os.kill(os.getpid(), self.start_signo)

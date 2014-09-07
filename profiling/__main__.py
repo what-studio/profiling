@@ -68,6 +68,85 @@ def get_timer(ctx, param, value):
     return timer_class()
 
 
+class Script(click.File):
+
+    def __init__(self):
+        super(Script, self).__init__('rb')
+
+    def convert(self, value, param, ctx):
+        with super(Script, self).convert(value, param, ctx) as f:
+            filename = f.name
+            code = compile(f.read(), filename, 'exec')
+            globals_ = {'__file__': filename,
+                        '__name__': '__main__',
+                        '__package__': None}
+        return (filename, code, globals_)
+
+    def get_metavar(self, param):
+        return 'PYTHON'
+
+
+class Timer(click.ParamType):
+
+    timers = {
+        # timer name: (timer module name, timer class name)
+        None: ('.timers', 'Timer'),
+        'thread': ('.timers.thread', 'ThreadTimer'),
+        'yappi': ('.timers.thread', 'YappiTimer'),
+        'greenlet': ('.timers.greenlet', 'GreenletTimer'),
+    }
+
+    def convert(self, value, param, ctx):
+        try:
+            module_name, class_name = self.timers[value]
+        except KeyError:
+            raise ValueError('No such timer: {0}'.format(value))
+        module = importlib.import_module(module_name, __package__)
+        timer_class = getattr(module, class_name)
+        return timer_class()
+
+    def get_metavar(self, param):
+        return 'TIMER'
+
+
+class Address(click.ParamType):
+
+    def convert(self, value, param, ctx):
+        host, port = value.split(':')
+        port = int(port)
+        return (host, port)
+
+    def get_metavar(self, param):
+        return 'HOST:PORT'
+
+
+class ViewSource(click.ParamType):
+
+    def convert(self, value, param, ctx):
+        src_type = False
+        try:
+            mode = os.stat(value).st_mode
+        except OSError:
+            try:
+                src = Address().convert(value, param, ctx)
+            except ValueError:
+                pass
+            else:
+                src_type = 'tcp'
+        else:
+            src = value
+            if S_ISSOCK(mode):
+                src_type = 'sock'
+            elif S_ISREG(mode):
+                src_type = 'dump'
+        if not src_type:
+            raise ValueError('A dump file or a socket addr required.')
+        return (src_type, src)
+
+    def get_metavar(self, param):
+        return 'SOURCE'
+
+
 def parse_addr(addr):
     host, port = addr.split(':')
     port = int(port)
@@ -107,6 +186,71 @@ def compile_script(script):
                 '__name__': '__main__',
                 '__package__': None}
     return code, globals_
+
+
+def make_params_decorator(params):
+    def decorator(f):
+        for option in params:
+            f = option(f)
+        return f
+    return decorator
+
+
+profiler_params = make_params_decorator([
+    click.argument('script', type=Script()),
+    click.option('-t', '--timer', type=Timer()),
+])
+viewer_params = make_params_decorator([
+    click.option('--mono', is_flag=True),
+])
+
+
+def spawn_server(server):
+    import threading
+    thread = threading.Thread(target=server.profile_periodically)
+    thread.daemon = True
+    thread.start()
+
+
+@main.command('live-profile')
+@profiler_params
+@viewer_params
+def live_profile(script, timer, mono):
+    filename, code, globals_ = script
+    sys.argv[:] = [filename]
+    parent_sock, child_sock = socket.socketpair()
+    pid = os.fork()
+    if pid == 0:
+        # child
+        from .remote.select2 import SelectProfilingServer
+        devnull = os.open(os.devnull, os.O_RDWR)
+        for f in [sys.stdin, sys.stdout, sys.stderr]:
+            os.dup2(devnull, f.fileno())
+        frame = sys._getframe()
+        profiler = BackgroundProfiler(timer, frame, code)
+        profiler.prepare()
+        server = SelectProfilingServer(None, profiler, interval=1)
+        server.clients.add(child_sock)
+        spawn_server(server)
+        try:
+            exec_(code, globals_)
+        finally:
+            child_sock.close()
+    else:
+        # parent
+        viewer = make_viewer()
+        event_loop = urwid.SelectEventLoop()
+        start_client(viewer, event_loop, parent_sock)
+        loop = viewer.loop(event_loop=event_loop)
+        if mono:
+            loop.screen.set_terminal_properties(1)
+        try:
+            loop.run()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            parent_sock.close()
+            os.kill(pid, signal.SIGINT)
 
 
 @main.command()
@@ -200,7 +344,7 @@ def serve(script, addr, timer, interval, pickle_protocol,
         pass
 
 
-class start_client:
+class start_client(object):
     """Starts a client of profiler server which is running by :func:`profiling.
     remote.run_server` behind the `Urwid`_ event loop. Just call this like a
     function.
@@ -209,19 +353,44 @@ class start_client:
 
     """
 
-    def __init__(self, viewer, event_loop, addr, sock_family=socket.AF_INET,
-                 sock_type=socket.SOCK_STREAM, timeout=10):
+    def __init__(self, viewer, event_loop, sock, timeout=10):
         self.viewer = viewer
         self.event_loop = event_loop
+        self.sock = sock
+        self.timeout = timeout
+        self.start()
+
+    def start(self):
+        self.viewer.activate()
+        self.event_loop.watch_file(self.sock.fileno(), self.handle)
+
+    def handle(self):
+        self.viewer.activate()
+        try:
+            stats = recv_stats(self.sock)
+        except socket.error as exc:
+            self.erred(exc.errno)
+            return
+        self.set_stats(stats)
+
+    def erred(self, errno):
+        self.viewer.inactivate()
+
+    def set_stats(self, stats):
+        src_time = datetime.now()
+        self.viewer.set_stats(stats, src_time=src_time)
+
+
+class start_client_with_reconnection(start_client):
+
+    def __init__(self, viewer, event_loop, addr=None,
+                 sock_family=socket.AF_INET, sock_type=socket.SOCK_STREAM,
+                 timeout=(INTERVAL * 2)):
+        base = super(start_client_with_reconnection, self)
+        base.__init__(viewer, event_loop, None, timeout)
         self.addr = addr
         self.sockopts = (sock_family, sock_type)
-        self.timeout = timeout
         self.create_connection()
-
-    def create_connection(self, delay=0):
-        self.sock = socket.socket(*self.sockopts)
-        self.sock.setblocking(0)
-        self.event_loop.alarm(delay, self.connect)
 
     def connect(self):
         errno = self.sock.connect_ex(self.addr)
@@ -237,26 +406,36 @@ class start_client:
             return
         else:
             raise ValueError('Unexpected socket errno: {0}'.format(errno))
-        self.event_loop.watch_file(self.sock.fileno(), self.received)
+        self.event_loop.watch_file(self.sock.fileno(), self.handle)
 
-    def disconnect(self):
+    def disconnect(self, errno):
         self.event_loop.remove_watch_file(self.sock.fileno())
         self.sock.close()
+        # try to reconnect.
+        self.create_connection(1 if errno == 111 else 0)
 
-    def received(self):
+    def create_connection(self, delay=0):
+        self.sock = socket.socket(*self.sockopts)
+        self.sock.setblocking(0)
+        self.event_loop.alarm(delay, self.connect)
+
+    def start(self):
+        self.create_connection()
+
+    def handle(self):
         self.event_loop.remove_alarm(getattr(self, '_t', None))
-        self.viewer.activate()
-        try:
-            stats = recv_stats(self.sock)
-        except socket.error as exc:
-            # try to reconnect.
-            self.viewer.inactivate()
-            self.disconnect()
-            self.create_connection(1 if exc.errno == 111 else 0)
-            return
+        base = super(start_client_with_reconnection, self)
+        base.handle()
+        self._t = self.event_loop.alarm(self.timeout, self.viewer.inactivate)
+
+    def erred(self, errno):
+        base = super(start_client_with_reconnection, self)
+        base.erred(errno)
+        self.disconnect(errno)
+
+    def set_stats(self, stats):
         src_time = datetime.now()
         self.viewer.set_stats(stats, self.addr, src_time)
-        self._t = self.event_loop.alarm(self.timeout, self.viewer.inactivate)
 
 
 @main.command()
@@ -278,7 +457,8 @@ def view(src, timeout, mono):
         viewer.set_stats(stats, src, src_time)
     elif src_type in ('tcp', 'sock'):
         family = {'tcp': socket.AF_INET, 'sock': socket.AF_UNIX}[src_type]
-        start_client(viewer, event_loop, src, family, timeout=timeout)
+        start_client_with_reconnection(viewer, event_loop, src, family,
+                                       timeout=timeout)
     loop = viewer.loop(event_loop=event_loop)
     if mono:
         loop.screen.set_terminal_properties(1)

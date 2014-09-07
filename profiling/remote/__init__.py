@@ -140,49 +140,48 @@ class BaseProfilingServer(object):
     def _addr(self, client):
         pass
 
-    @abstract('Implement _start_profiling_loop() to start a profiling loop.')
-    def _start_profiling_loop(self):
+    @abstract('Implement _start_profiling() to start a profiling loop.')
+    def _start_profiling(self):
         pass
 
-    @abstract('Implement _detect_disconnection() to add a disconnection '
-              'callback to the client')
-    def _detect_disconnection(self, client):
+    @abstract('Implement _start_watching() to add a disconnection callback to '
+              'the client')
+    def _start_watching(self, client):
         pass
 
-    def profiling_loop(self):
-        """A generator which yields packed statistics or ``None``.  When it
-        yields statistics, a server should broadcast that.  Otherwise, a server
-        should sleep for `interval`::
+    def profiling(self):
+        """A generator which profiles then broadcasts the result.  Implement
+        sleeping loop using this::
 
            def profile_periodically(self):
-               for data in self.profiling_loop():
-                   if data is None:
-                       time.sleep(self.interval)
-                       continue
-                   self.broadcast(data)
+               for __ in self.profiling():
+                   time.sleep(self.interval)
 
         """
         self._log_profiler_started()
         while self.clients:
             self.profiler.start()
-            yield  # should sleep
+            # should sleep
+            yield
             self.profiler.stop()
             data = pack_stats(self.profiler, self.pickle_protocol)
             self._latest_data = data
             self.profiler.clear()
-            yield data  # should broadcast
+            # broadcast
+            for client in self.clients:
+                self._send(client, data)
             del data
         self._log_profiler_stopped()
 
     def connected(self, client):
         """Call this method when a client connected."""
         self.clients.add(client)
-        self._detect_disconnection(client)
+        self._log_connected(client)
+        self._start_watching(client)
         if self._latest_data is not None:
             self._send(client, self._latest_data)
         if len(self.clients) == 1:
-            self._start_profiling_loop()
-        self._log_connected(client)
+            self._start_profiling()
 
     def disconnected(self, client):
         """Call this method when a client disconnected."""
