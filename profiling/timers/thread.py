@@ -18,9 +18,7 @@ class ThreadTimer(Timer):
 
     def __init__(self):
         if sys.version_info < (3, 3):
-            class_name = type(self).__name__
-            raise RuntimeError('Python 3.3 or later required '
-                               'to use {0}.'.format(class_name))
+            raise RuntimeError('Python 3.3 or later required.')
         super(ThreadTimer, self).__init__()
 
     def __call__(self):
@@ -37,12 +35,7 @@ class YappiTimer(Timer):
     yappi = None
 
     def __init__(self):
-        try:
-            import yappi
-        except ImportError:
-            class_name = type(self).__name__
-            raise ImportError('Install yappi to use {0}.'.format(class_name))
-        self.yappi = yappi
+        self.yappi = __import__('yappi')
         super(YappiTimer, self).__init__()
 
     def __call__(self):

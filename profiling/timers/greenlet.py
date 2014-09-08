@@ -16,13 +16,7 @@ class GreenletTimer(ContextualTimer):
     greenlet = None
 
     def __init__(self):
-        try:
-            import greenlet
-        except ImportError:
-            class_name = type(self).__name__
-            raise ImportError('Install greenlet to use '
-                              '{0}.'.format(class_name))
-        self.greenlet = greenlet
+        self.greenlet = __import__('greenlet')
         super(GreenletTimer, self).__init__()
 
     def detect_context(self, context=None):
