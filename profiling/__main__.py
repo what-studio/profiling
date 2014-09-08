@@ -30,7 +30,7 @@ from six import PY2, exec_
 
 from .profiler import Profiler
 from .remote import INTERVAL, PICKLE_PROTOCOL, recv_stats
-from .remote.background import START_SIGNO, STOP_SIGNO, BackgroundProfiler
+from .remote.background import SIGNUM, BackgroundProfiler
 from .remote.select import SelectProfilingServer
 from .viewer import StatisticsViewer
 
@@ -176,7 +176,7 @@ class SignalNumber(click.IntRange):
         super(SignalNumber, self).__init__(0, 255)
 
     def get_metavar(self, param):
-        return 'SIGNO'
+        return 'SIGNUM'
 
 
 # common parameters
@@ -207,6 +207,7 @@ profiler_params = Params([
 live_profiler_params = profiler_params.extend([
     click.option('-i', '--interval', type=float, default=INTERVAL,
                  help='How often update the profiling result.'),
+    click.option('--signum', type=SignalNumber(), default=SIGNUM),
 ])
 viewer_params = Params([
     click.option('--mono', is_flag=True, help='Disable coloring.'),
@@ -264,7 +265,7 @@ def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
 @main.command('live-profile')
 @live_profiler_params
 @viewer_params
-def live_profile(script, argv, timer, interval, pickle_protocol, mono):
+def live_profile(script, argv, timer, interval, signum, pickle_protocol, mono):
     """Profile a Python script continuously."""
     filename, code, globals_ = script
     sys.argv[:] = [filename] + list(argv)
@@ -276,7 +277,7 @@ def live_profile(script, argv, timer, interval, pickle_protocol, mono):
         for f in [sys.stdin, sys.stdout, sys.stderr]:
             os.dup2(devnull, f.fileno())
         frame = sys._getframe()
-        profiler = BackgroundProfiler(timer, frame, code)
+        profiler = BackgroundProfiler(timer, frame, code, signum)
         profiler.prepare()
         server_args = (noop, interval, pickle_protocol)
         server = SelectProfilingServer(None, profiler, *server_args)
@@ -305,12 +306,10 @@ def live_profile(script, argv, timer, interval, pickle_protocol, mono):
 @live_profiler_params
 @click.option('-b', '--bind', 'addr', type=Address(), default='127.0.0.1:8912',
               help='IP address to serve profiling results.')
-@click.option('--start-signo', type=SignalNumber(), default=START_SIGNO)
-@click.option('--stop-signo', type=SignalNumber(), default=STOP_SIGNO)
 @click.option('-v', '--verbose', is_flag=True,
               help='Print profiling server logs.')
-def remote_profile(script, argv, timer, interval, pickle_protocol,
-                   addr, start_signo, stop_signo, verbose):
+def remote_profile(script, argv, timer, interval, signum, pickle_protocol,
+                   addr, verbose):
     """Launch a server to profile continuously.  The default address is
     127.0.0.1:8912.
     """
@@ -330,7 +329,7 @@ def remote_profile(script, argv, timer, interval, pickle_protocol,
         log = noop
     # start profiling server.
     frame = sys._getframe()
-    profiler = BackgroundProfiler(timer, frame, code, start_signo, stop_signo)
+    profiler = BackgroundProfiler(timer, frame, code, signum)
     profiler.prepare()
     server_args = (log, interval, pickle_protocol)
     server = SelectProfilingServer(listener, profiler, *server_args)

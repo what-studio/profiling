@@ -14,43 +14,42 @@ import threading
 from ..profiler import Profiler
 
 
-__all__ = ['BackgroundProfiler']
+__all__ = ['SIGNUM', 'BackgroundProfiler']
 
 
-START_SIGNO = signal.SIGUSR1
-STOP_SIGNO = signal.SIGUSR2
+SIGNUM = signal.SIGUSR2
 
 
 class BackgroundProfiler(Profiler):
 
     def __init__(self, timer=None, top_frame=None, top_code=None,
-                 start_signo=START_SIGNO, stop_signo=STOP_SIGNO):
+                 signum=SIGNUM):
         super(BackgroundProfiler, self).__init__(timer, top_frame, top_code)
         self.event = threading.Event()
-        self.start_signo = start_signo
-        self.stop_signo = stop_signo
+        self.signum = signum
 
     def prepare(self):
-        """Registers signal handlers to start and/or stop the profiler at the
-        background thread.  So this function must be called at the main thread.
+        """Registers :meth:`_signal_handler` as a signal handler to start
+        and/or stop the profiler from the background thread.  So this function
+        must be called at the main thread.
         """
-        signal.signal(self.start_signo, self._start_signal_handler)
-        signal.signal(self.stop_signo, self._stop_signal_handler)
+        signal.signal(self.signum, self._signal_handler)
 
     def start(self):
-        self.event.clear()
-        os.kill(os.getpid(), self.start_signo)
-        self.event.wait()
+        self._send_signal()
 
     def stop(self):
+        self._send_signal()
+
+    def _send_signal(self):
         self.event.clear()
-        os.kill(os.getpid(), self.stop_signo)
+        os.kill(os.getpid(), self.signum)
         self.event.wait()
 
-    def _start_signal_handler(self, signo, frame):
-        super(BackgroundProfiler, self).start()
-        self.event.set()
-
-    def _stop_signal_handler(self, signo, frame):
-        super(BackgroundProfiler, self).stop()
+    def _signal_handler(self, signum, frame):
+        base = super(BackgroundProfiler, self)
+        if self.is_running():
+            base.stop()
+        else:
+            base.start()
         self.event.set()
