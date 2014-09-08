@@ -62,7 +62,7 @@ class Formatter(object):
             precision = 1
         else:
             precision = 2
-        return ('{:.' + str(precision) + '%}').format(ratio)
+        return ('{0:.' + str(precision) + '%}').format(ratio)
 
     def attr_ratio(self, ratio, denom=1):
         try:
@@ -86,7 +86,7 @@ class Formatter(object):
     # int
 
     def format_int(self, num):
-        return '{:.0f}'.format(num)
+        return '{0:.0f}'.format(num)
 
     def attr_int(self, num):
         return None if num else 'zero'
@@ -110,9 +110,9 @@ class Formatter(object):
         if sec == 0:
             return '0'
         elif sec < 1:
-            return '{:,.0f}'.format(sec * 1e6).replace(',', '.')
+            return '{0:,.0f}'.format(sec * 1e6).replace(',', '.')
         else:
-            return '{:.2f}s'.format(sec)
+            return '{0:.2f}s'.format(sec)
 
     def attr_time(self, sec):
         if sec == 0:
@@ -566,7 +566,7 @@ class StatisticsTable(urwid.WidgetWrap):
         time = self.time
         if title or time:
             if time is not None:
-                time_string = '{:%H:%M:%S}'.format(time)
+                time_string = '{0:%H:%M:%S}'.format(time)
             if title and time:
                 markup = [('weak', title), ' ', time_string]
             elif title:
