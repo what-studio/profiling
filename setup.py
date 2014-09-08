@@ -9,8 +9,22 @@ An interactive profilier.
 from __future__ import with_statement
 import ast
 from setuptools import setup
+from setuptools.command.install import install
 from setuptools.command.test import test
 import subprocess
+import sys
+from textwrap import dedent
+
+
+# these files require specific python version or later.  they will be replaced
+# with a placeholder which raises a runtime error on installation.
+PYTHON_VERSION_REQUIREMENTS = {
+    'profiling/remote/asyncio.py': (3, 4),
+}
+INCOMPATIBLE_PYTHON_VERSION_PLACEHOLDER = dedent('''
+# -*- coding: utf-8 -*-
+raise RuntimeError('Python {version} or later required.')
+''').strip()
 
 
 def get_version(filename):
@@ -35,6 +49,19 @@ def requirements(filename):
 def run_tests(self):
     raise SystemExit(subprocess.call(['py.test', '-v']))
 test.run_tests = run_tests
+
+
+# replace files which are incompatible with the current python version.
+def replace_incompatible_files():
+    for filename, version_info in PYTHON_VERSION_REQUIREMENTS.items():
+        if sys.version_info >= version_info:
+            continue
+        version = '.'.join(str(v) for v in version_info)
+        code = INCOMPATIBLE_PYTHON_VERSION_PLACEHOLDER.format(version=version)
+        with open(filename, 'w') as f:
+            f.write(code)
+run_install = install.run
+install.run = lambda x: (replace_incompatible_files(), run_install(x))
 
 
 setup(
