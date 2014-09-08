@@ -8,22 +8,8 @@ python:
 - pypy3
 install:
 - pip install -e .
-- pip install -r test/requirements.txt
-- | # install gevent if available.
-  if python -c 'import __pypy__' 2>/dev/null
-  then
-    true
-  elif python -c 'import sys; sys.version_info < (3,) or sys.exit(1)'
-  then
-    pip install gevent
-  fi
-- | # install yappi if available.
-  if ! python -c 'import __pypy__' 2>/dev/null
-  then
-    pip install yappi
-  fi
-- pip install flake8
-- pip install pytest-cov coveralls
+- pip install `python test/filter_requirements.py test/requirements.txt`
+- pip install flake8 pytest-cov coveralls
 script:
 - | # flake8
   if python -c 'import sys; sys.version_info < (3, 3) or sys.exit(1)'
