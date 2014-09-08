@@ -11,7 +11,6 @@
 
 """
 from __future__ import absolute_import
-from collections import OrderedDict
 from datetime import datetime
 import importlib
 import os
@@ -102,13 +101,13 @@ class Script(click.File):
 class Timer(click.ParamType):
     """A parameter type to choose profiling timer."""
 
-    timers = OrderedDict([
+    timers = {
         # timer name: (timer module name, timer class name)
-        (None, ('.timers', 'Timer')),
-        ('thread', ('.timers.thread', 'ThreadTimer')),
-        ('yappi', ('.timers.thread', 'YappiTimer')),
-        ('greenlet', ('.timers.greenlet', 'GreenletTimer')),
-    ])
+        None: ('.timers', 'Timer'),
+        'thread': ('.timers.thread', 'ThreadTimer'),
+        'yappi': ('.timers.thread', 'YappiTimer'),
+        'greenlet': ('.timers.greenlet', 'GreenletTimer'),
+    }
 
     def import_timer_class(self, name):
         try:
