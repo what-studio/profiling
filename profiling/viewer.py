@@ -19,6 +19,7 @@
 """
 from __future__ import absolute_import
 from collections import deque
+import re
 
 import urwid
 from urwid import connect_signal as on
@@ -110,7 +111,13 @@ class Formatter(object):
         if sec == 0:
             return '0'
         elif sec < 1:
-            return '{0:,.0f}'.format(sec * 1e6).replace(',', '.')
+            try:
+                string = '{0:,.0f}'.format(sec * 1e6)
+            except ValueError:
+                # python 2.6 doesn't support comma formatter.
+                usec = str(int(sec * 1e6))
+                string = re.sub(r'(\d{3})(?=\d)', r'\1,', usec[::-1])[::-1]
+            return string.replace(',', '.')
         else:
             return '{0:.2f}s'.format(sec)
 
