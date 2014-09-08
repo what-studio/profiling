@@ -188,7 +188,7 @@ class Params(object):
         self.params = params
 
     def __call__(self, f):
-        for param in self.params:
+        for param in self.params[::-1]:
             f = param(f)
         return f
 
@@ -198,6 +198,7 @@ class Params(object):
 
 profiler_params = Params([
     click.argument('script', type=Script()),
+    click.argument('argv', nargs=-1),
     click.option('-t', '--timer', type=Timer(),
                  help='Choose CPU time measurer.'),
     click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
@@ -221,10 +222,10 @@ viewer_params = Params([
               type=click.Path(writable=True),
               help='Profiling result dump filename.')
 @viewer_params
-def profile(script, timer, pickle_protocol, dump_filename, mono):
+def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
     """Profile a Python script."""
     filename, code, globals_ = script
-    sys.argv[:] = [filename]
+    sys.argv[:] = [filename] + list(argv)
     # start profiling.
     frame = sys._getframe()
     profiler = Profiler(timer, top_frame=frame, top_code=code)
@@ -263,10 +264,10 @@ def profile(script, timer, pickle_protocol, dump_filename, mono):
 @main.command('live-profile')
 @live_profiler_params
 @viewer_params
-def live_profile(script, timer, interval, pickle_protocol, mono):
+def live_profile(script, argv, timer, interval, pickle_protocol, mono):
     """Profile a Python script continuously."""
     filename, code, globals_ = script
-    sys.argv[:] = [filename]
+    sys.argv[:] = [filename] + list(argv)
     parent_sock, child_sock = socket.socketpair()
     pid = os.fork()
     if pid == 0:
@@ -308,13 +309,13 @@ def live_profile(script, timer, interval, pickle_protocol, mono):
 @click.option('--stop-signo', type=SignalNumber(), default=STOP_SIGNO)
 @click.option('-v', '--verbose', is_flag=True,
               help='Print profiling server logs.')
-def remote_profile(script, timer, interval, pickle_protocol,
+def remote_profile(script, argv, timer, interval, pickle_protocol,
                    addr, start_signo, stop_signo, verbose):
     """Launch a server to profile continuously.  The default address is
     127.0.0.1:8912.
     """
     filename, code, globals_ = script
-    sys.argv[:] = [filename]
+    sys.argv[:] = [filename] + list(argv)
     # create listener.
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
