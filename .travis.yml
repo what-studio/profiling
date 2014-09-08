@@ -8,7 +8,7 @@ python:
 - pypy3
 install:
 - pip install -e .
-- pip install `python test/filter_requirements.py test/requirements.txt`
+- pip install `python test/fit_requirements.py test/requirements.txt`
 - pip install flake8 pytest-cov coveralls
 script:
 - | # flake8

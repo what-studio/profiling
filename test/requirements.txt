@@ -1,4 +1,5 @@
 pytest>=2.6.1
-gevent>=1  # python>=2.5,<3 no-pypy
 eventlet>=0.15  # python>=2.6,<3
+gevent>=1  # python>=2.5,<3 no-pypy
+greenlet>=0.4.4  # python>=2.4
 yappi>=0.92  # python>=2.6,!=3.0 no-pypy
