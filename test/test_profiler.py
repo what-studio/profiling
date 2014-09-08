@@ -4,11 +4,16 @@ import sys
 import time
 
 import pytest
+import six
 
 from profiling.profiler import Profiler
 from profiling.mocking import mock_code, mock_stacked_frame
 from profiling.stats import FrozenStatistics, RecordingStatistics
 from profiling.__main__ import spawn_thread
+
+
+if six.PY3:
+    map = lambda *x: list(six.moves.map(*x))
 
 
 @contextmanager

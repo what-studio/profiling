@@ -9,7 +9,6 @@ python:
 install:
 - pip install -e .
 - pip install -r test/requirements.txt
-- pip install flake8
 - | # install gevent if available.
   if python -c 'import __pypy__' 2>/dev/null
   then
@@ -23,6 +22,8 @@ install:
   then
     pip install yappi
   fi
+- pip install flake8
+- pip install pytest-cov coveralls
 script:
 - | # flake8
   if python -c 'import sys; sys.version_info < (3, 3) or sys.exit(1)'
@@ -32,4 +33,6 @@ script:
   flake8 profiling test setup.py \
     -v --show-source --ignore=E301 --exclude=$EXCLUDE
 - | # pytest
-  py.test -v
+  py.test -v --cov=profiling
+after_success:
+- coveralls
