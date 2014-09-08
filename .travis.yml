@@ -18,6 +18,11 @@ install:
   then
     pip install gevent
   fi
+- | # install yappi if available.
+  if ! python -c 'import __pypy__' 2>/dev/null
+  then
+    pip install yappi
+  fi
 script:
 - | # flake8
   if python -c 'import sys; sys.version_info < (3, 3) or sys.exit(1)'

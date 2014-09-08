@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 from contextlib import contextmanager
 import sys
+import time
 
 import pytest
 
 from profiling.profiler import Profiler
+from profiling.mocking import mock_code, mock_stacked_frame
 from profiling.stats import FrozenStatistics, RecordingStatistics
+from profiling.__main__ import spawn_thread
 
 
 @contextmanager
@@ -44,24 +47,24 @@ def factorial(n):
 
 
 def test_frame_stack():
+    def to_code_names(frames):
+        return [f.f_code.co_name for f in frames]
     profiler = Profiler()
-    frame = sys._getframe()
+    frame = mock_stacked_frame(map(mock_code, ['foo', 'bar', 'baz']))
     frame_stack = profiler._frame_stack(frame)
-    assert frame_stack[-1] is frame
-    assert frame_stack[-2] is frame.f_back
-    assert frame_stack[-3] is frame.f_back.f_back
+    assert to_code_names(frame_stack) == ['baz', 'bar', 'foo']
     # top frame
     profiler = Profiler(top_frame=frame.f_back)
     frame_stack = profiler._frame_stack(frame)
-    assert list(frame_stack) == [frame.f_back, frame]
+    assert to_code_names(frame_stack) == ['bar', 'foo']
     # top code
     profiler = Profiler(top_code=frame.f_back.f_code)
     frame_stack = profiler._frame_stack(frame)
-    assert list(frame_stack) == [frame.f_back, frame]
+    assert to_code_names(frame_stack) == ['bar', 'foo']
     # both of top frame and top code
     profiler = Profiler(top_frame=frame.f_back, top_code=frame.f_back.f_code)
     frame_stack = profiler._frame_stack(frame)
-    assert list(frame_stack) == [frame.f_back, frame]
+    assert to_code_names(frame_stack) == ['bar', 'foo']
 
 
 def test_setprofile():
@@ -75,6 +78,20 @@ def test_setprofile():
     with pytest.raises(RuntimeError):
         profiler.start()
     sys.setprofile(None)
+
+
+def test_profile():
+    profiler = Profiler()
+    frame = mock_stacked_frame(map(mock_code, ['foo', 'bar', 'baz']))
+    profiler._profile(frame, 'call', None)
+    profiler._profile(frame, 'return', None)
+    assert len(profiler.stats) == 1
+    stat1 = find_stat(profiler.stats, 'baz')
+    stat2 = find_stat(profiler.stats, 'bar')
+    stat3 = find_stat(profiler.stats, 'foo')
+    assert stat1.calls == 0
+    assert stat2.calls == 0
+    assert stat3.calls == 1
 
 
 def test_profiler():
@@ -97,31 +114,50 @@ def test_profiler():
     assert stat3.calls == 1
 
 
-def test_greenlet_timer():
-    gevent = pytest.importorskip('gevent', '1')
-    from profiling.timers.greenlet import GreenletTimer
+def _test_contextual_timer(timer, sleep, spawn):
     def light():
         factorial(10)
-        gevent.sleep(0.1)
+        sleep(0.1)
         factorial(10)
     def heavy():
         factorial(10000)
     def profile(profiler):
         with profiling(profiler):
-            gevent.spawn(light).join(0)
-            gevent.spawn(heavy)
-            gevent.wait()
+            c1 = spawn(light)
+            c1.join(0)
+            c2 = spawn(heavy)
+            for c in [c1, c2]:
+                c.join()
         stat1 = find_stat(profiler.stats, 'light')
         stat2 = find_stat(profiler.stats, 'heavy')
         return (stat1, stat2)
-    # using default timer.
+    # using the default timer.
     # light() ends later than heavy().  its total time includes heavy's also.
     normal_profiler = Profiler(top_frame=sys._getframe())
     stat1, stat2 = profile(normal_profiler)
     assert stat1.total_time >= stat2.total_time
-    # using greenlet timer.
+    # using the given timer.
     # light() ends later than heavy() like the above case.  but the total time
-    # doesn't include heavy's.  each greenlets have isolated cpu time.
-    greenlet_profiler = Profiler(GreenletTimer(), top_frame=sys._getframe())
-    stat1, stat2 = profile(greenlet_profiler)
+    # doesn't include heavy's.  each contexts should have isolated cpu time.
+    contextual_profiler = Profiler(timer, top_frame=sys._getframe())
+    stat1, stat2 = profile(contextual_profiler)
     assert stat1.total_time < stat2.total_time
+
+
+@pytest.mark.skipif(sys.version_info < (3, 3),
+                    reason='ThreadTimer requires Python 3.3 or later.')
+def test_thread_timer():
+    from profiling.timers.thread import ThreadTimer
+    _test_contextual_timer(ThreadTimer(), time.sleep, spawn_thread)
+
+
+def test_yappi_timer():
+    pytest.importorskip('yappi')
+    from profiling.timers.thread import YappiTimer
+    _test_contextual_timer(YappiTimer(), time.sleep, spawn_thread)
+
+
+def test_greenlet_timer():
+    gevent = pytest.importorskip('gevent', '1')
+    from profiling.timers.greenlet import GreenletTimer
+    _test_contextual_timer(GreenletTimer(), gevent.sleep, gevent.spawn)

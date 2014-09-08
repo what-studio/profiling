@@ -5,32 +5,15 @@
 """
 from __future__ import absolute_import
 from collections import deque
-import functools
 import sys
 import threading
 import time
-import types
-
-from six import PY3
 
 from .stats import RecordingStat, RecordingStatistics, FrozenStatistics
 from .timers import Timer
 
 
 __all__ = ['Profiler']
-
-
-_py2_code_args = (0, 0, 0, 0, b'', (), (), (), '')
-if PY3:
-    _make_code = functools.partial(types.CodeType, 0, *_py2_code_args)
-else:
-    _make_code = functools.partial(types.CodeType, *_py2_code_args)
-del _py2_code_args
-
-
-def make_code(name):
-    """Makes a fake code object by name for built-in functions."""
-    return _make_code(name, 0, b'')
 
 
 class Profiler(object):
@@ -116,7 +99,7 @@ class Profiler(object):
         frame_key = id(frame)
         # if c:
         #     event = event[2:]
-        #     code = make_code(arg.__name__)
+        #     code = mock_code(arg.__name__)
         #     frame_key = id(arg)
         # record
         if event in ('call',):

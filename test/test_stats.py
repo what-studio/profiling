@@ -3,7 +3,7 @@ import pickle
 
 import pytest
 
-from profiling.profiler import make_code
+from profiling.mocking import mock_code
 from profiling.sortkeys import by_calls, by_name, by_total_time_per_call
 from profiling.stats import (
     FrozenStat, RecordingStat, RecordingStatistics, Stat, VoidRecordingStat)
@@ -30,7 +30,7 @@ def test_recording():
         stats.record_leaving()
     stats.wall = lambda: 10
     stats.record_starting(0)
-    code = make_code('foo')
+    code = mock_code('foo')
     stat = RecordingStat(code)
     assert stat.name == 'foo'
     assert stat.calls == 0
@@ -43,7 +43,7 @@ def test_recording():
     stat.record_leaving(400)
     assert stat.calls == 2
     assert stat.total_time == 300
-    code2 = make_code('bar')
+    code2 = mock_code('bar')
     stat2 = RecordingStat(code2)
     assert code2 not in stat
     stat.add_child(code2, stat2)
@@ -63,7 +63,7 @@ def test_recording():
     assert len(stat) == 0
     with pytest.raises(TypeError):
         pickle.dumps(stat)
-    stat3 = stat.ensure_child(make_code('baz'))
+    stat3 = stat.ensure_child(mock_code('baz'))
     assert isinstance(stat3, VoidRecordingStat)
     stats.wall = lambda: 2000
     stats.record_stopping(400)
@@ -73,7 +73,7 @@ def test_recording():
 
 
 def test_frozen():
-    code = make_code('foo')
+    code = mock_code('foo')
     stat = RecordingStat(code)
     stat.record_entering(0)
     stat.record_leaving(10)
@@ -90,10 +90,10 @@ def test_frozen():
 
 
 def test_sorting():
-    stat = RecordingStat(make_code('foo'))
-    stat1 = RecordingStat(make_code('bar'))
-    stat2 = RecordingStat(make_code('baz'))
-    stat3 = RecordingStat(make_code('qux'))
+    stat = RecordingStat(mock_code('foo'))
+    stat1 = RecordingStat(mock_code('bar'))
+    stat2 = RecordingStat(mock_code('baz'))
+    stat3 = RecordingStat(mock_code('qux'))
     stat.add_child(stat1.code, stat1)
     stat.add_child(stat2.code, stat2)
     stat.add_child(stat3.code, stat3)
