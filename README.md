@@ -25,6 +25,12 @@ instead of PyPI:
 $ pip install git+ssh://git@github.com/what-studio/profiling.git
 ```
 
+Or:
+
+```sh
+pip install git+https://github.com/what-studio/profiling.git
+```
+
 Profiling
 ---------
 
