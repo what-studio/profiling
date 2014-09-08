@@ -63,20 +63,32 @@ def make_viewer(mono=False):
     return (viewer, loop)
 
 
+def spawn_thread(func, *args, **kwargs):
+    """Spawns a daemon thread."""
+    thread = threading.Thread(target=func, args=args, kwargs=kwargs)
+    thread.daemon = True
+    thread.start()
+    return thread
+
+
 def spawn(mode, func, *args, **kwargs):
-    """Spawns a context which runs the given function concurrently."""
+    """Spawns a thread-like object which runs the given function concurrently.
+
+    Available modes:
+
+    - `thread`
+    - `greenlet`
+    - `eventlet`
+
+    """
     if mode is None:
         # 'thread' is the default mode.
         mode = 'thread'
     elif mode not in spawn.modes:
         # validate the given mode.
-        raise ValueError('Invalid spawning mode: {0}'.format(mode))
+        raise ValueError('Invalid spawn mode: {0}'.format(mode))
     if mode == 'thread':
-        # spawn a daemon thread.
-        thread = threading.Thread(target=func, args=args, kwargs=kwargs)
-        thread.daemon = True
-        thread.start()
-        return thread
+        return spawn_thread(func, *args, **kwargs)
     elif mode == 'gevent':
         import gevent
         return gevent.spawn(func, *args, **kwargs)
