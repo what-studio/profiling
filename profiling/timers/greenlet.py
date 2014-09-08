@@ -2,6 +2,12 @@
 """
     profiling.timers.greenlet
     ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    .. note::
+
+       PyPy 2.4.0 doesn't implement :func:`greenlet.settrace` so you should not
+       use :class:`GreenletTimer` on there.
+
 """
 from __future__ import absolute_import
 

@@ -11,7 +11,8 @@ def profiling(profiler):
         profiler.start()
         yield
     finally:
-        profiler.stop()
+        if profiler.is_running():
+            profiler.stop()
 
 
 def find_stats(stats, name, _found=None, _on_found=None):
