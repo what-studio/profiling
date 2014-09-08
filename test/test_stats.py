@@ -3,7 +3,7 @@ import pickle
 
 import pytest
 
-from profiling.mocking import mock_code
+from profiling.mock import mock_code
 from profiling.sortkeys import by_calls, by_name, by_total_time_per_call
 from profiling.stats import (
     FrozenStat, RecordingStat, RecordingStatistics, Stat, VoidRecordingStat)

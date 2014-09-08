@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.mocking
-    ~~~~~~~~~~~~~~~~~
+    profiling.mock
+    ~~~~~~~~~~~~~~
 """
 from __future__ import absolute_import
 import functools
