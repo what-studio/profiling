@@ -104,9 +104,9 @@ class Formatter(object):
     markup_int_or_na = _markup(format_int_or_na, attr_int)
     make_int_or_na_text = _make_text(markup_int_or_na, **_numeric)
 
-    # clock
+    # time
 
-    def format_clock(self, sec):
+    def format_time(self, sec):
         if sec == 0:
             return '0'
         elif sec < 1:
@@ -114,7 +114,7 @@ class Formatter(object):
         else:
             return '{:.2f}s'.format(sec)
 
-    def attr_clock(self, sec):
+    def attr_time(self, sec):
         if sec == 0:
             return 'zero'
         elif sec < 1:
@@ -122,8 +122,8 @@ class Formatter(object):
         else:
             return 'sec'
 
-    markup_clock = _markup(format_clock, attr_clock)
-    make_clock_text = _make_text(markup_clock, **_numeric)
+    markup_time = _markup(format_time, attr_time)
+    make_time_text = _make_text(markup_time, **_numeric)
 
     # stat
 
@@ -180,10 +180,10 @@ class StatWidget(urwid.TreeWidget):
             fmt.make_percent_text(stat.total_time, stats.cpu_time),
             fmt.make_percent_text(stat.own_time, stats.cpu_time),
             fmt.make_int_or_na_text(stat.calls),
-            fmt.make_clock_text(stat.total_time),
-            fmt.make_clock_text(stat.total_time_per_call),
-            fmt.make_clock_text(stat.own_time),
-            fmt.make_clock_text(stat.own_time_per_call)])
+            fmt.make_time_text(stat.total_time),
+            fmt.make_time_text(stat.total_time_per_call),
+            fmt.make_time_text(stat.own_time),
+            fmt.make_time_text(stat.own_time_per_call)])
 
     def get_indented_widget(self):
         icon = self.get_mark()
@@ -577,8 +577,8 @@ class StatisticsTable(urwid.WidgetWrap):
         else:
             meta_info = None
         fraction_string = '({0}/{1})'.format(
-            fmt.format_clock(stats.cpu_time),
-            fmt.format_clock(stats.wall_time))
+            fmt.format_time(stats.cpu_time),
+            fmt.format_time(stats.wall_time))
         cpu_info = urwid.Text([
             'CPU ', fmt.markup_percent(stats.cpu_usage),
             ' ', ('weak', fraction_string)])

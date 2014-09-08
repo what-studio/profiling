@@ -10,6 +10,9 @@ import time
 from . import Timer
 
 
+__all__ = ['ThreadTimer', 'YappiTimer']
+
+
 class ThreadTimer(Timer):
     """A timer to get CPU time per thread.  Python 3.3 or later required."""
 

@@ -3,8 +3,7 @@
     profiling.remote.background
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    A profiling server in a background thread starts profiling in the main
-    thread.
+    Utilities to run a profiler in a background thread.
 
 """
 from __future__ import absolute_import
@@ -18,10 +17,14 @@ from ..profiler import Profiler
 __all__ = ['BackgroundProfiler']
 
 
+START_SIGNO = signal.SIGUSR1
+STOP_SIGNO = signal.SIGUSR2
+
+
 class BackgroundProfiler(Profiler):
 
     def __init__(self, timer=None, top_frame=None, top_code=None,
-                 start_signo=signal.SIGUSR1, stop_signo=signal.SIGUSR2):
+                 start_signo=START_SIGNO, stop_signo=STOP_SIGNO):
         super(BackgroundProfiler, self).__init__(timer, top_frame, top_code)
         self.event = threading.Event()
         self.start_signo = start_signo

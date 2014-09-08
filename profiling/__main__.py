@@ -31,7 +31,7 @@ from six import PY2, exec_
 
 from .profiler import Profiler
 from .remote import INTERVAL, PICKLE_PROTOCOL, recv_stats
-from .remote.background import BackgroundProfiler
+from .remote.background import START_SIGNO, STOP_SIGNO, BackgroundProfiler
 from .remote.select import SelectProfilingServer
 from .viewer import StatisticsViewer
 
@@ -305,8 +305,8 @@ def live_profile(script, timer, interval, pickle_protocol, mono):
 @live_profiler_params
 @click.option('-b', '--bind', 'addr', type=Address(), default='127.0.0.1:8912',
               help='IP address to serve profiling results.')
-@click.option('--start-signo', type=SignalNumber(), default=signal.SIGUSR1)
-@click.option('--stop-signo', type=SignalNumber(), default=signal.SIGUSR2)
+@click.option('--start-signo', type=SignalNumber(), default=START_SIGNO)
+@click.option('--stop-signo', type=SignalNumber(), default=STOP_SIGNO)
 @click.option('-v', '--verbose', is_flag=True,
               help='Print profiling server logs.')
 def remote_profile(script, timer, interval, pickle_protocol,
