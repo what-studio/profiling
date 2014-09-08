@@ -11,7 +11,7 @@ from profiling.timers.thread import ThreadTimer, YappiTimer
 from utils import factorial, find_stat, profiling
 
 
-def _test_contextual_timer(timer, sleep, spawn):
+def _test_contextual_timer(timer, sleep, spawn, join=lambda x: x.join()):
     def light():
         factorial(10)
         sleep(0.1)
@@ -21,10 +21,9 @@ def _test_contextual_timer(timer, sleep, spawn):
     def profile(profiler):
         with profiling(profiler):
             c1 = spawn(light)
-            c1.join(0)
             c2 = spawn(heavy)
             for c in [c1, c2]:
-                c.join()
+                join(c)
         stat1 = find_stat(profiler.stats, 'light')
         stat2 = find_stat(profiler.stats, 'heavy')
         return (stat1, stat2)
@@ -52,9 +51,15 @@ def test_yappi_timer():
     _test_contextual_timer(YappiTimer(), time.sleep, spawn_thread)
 
 
-def test_greenlet_timer():
+def test_greenlet_timer_with_gevent():
     gevent = pytest.importorskip('gevent', '1')
     _test_contextual_timer(GreenletTimer(), gevent.sleep, gevent.spawn)
+
+
+def test_greenlet_timer_with_eventlet():
+    eventlet = pytest.importorskip('eventlet', '0.15')
+    _test_contextual_timer(GreenletTimer(), eventlet.sleep, eventlet.spawn,
+                           eventlet.greenthread.GreenThread.wait)
 
 
 @pytest.mark.skipif(sys.version_info >= (3, 3),
