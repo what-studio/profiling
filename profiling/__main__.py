@@ -12,6 +12,7 @@
 """
 from __future__ import absolute_import
 from datetime import datetime
+from functools import partial
 import importlib
 import os
 try:
@@ -62,14 +63,30 @@ def make_viewer(mono=False):
     return (viewer, loop)
 
 
-def spawn_thread(func, *args, **kwargs):
-    """Spawns a daemon thread.  The thread executes the given function by the
-    given arguments.
-    """
-    thread = threading.Thread(target=func, args=args, kwargs=kwargs)
-    thread.daemon = True
-    thread.start()
-    return thread
+def spawn(mode, func, *args, **kwargs):
+    """Spawns a context which runs the given function concurrently."""
+    if mode is None:
+        # 'thread' is the default mode.
+        mode = 'thread'
+    elif mode not in spawn.modes:
+        # validate the given mode.
+        raise ValueError('Invalid spawning mode: {0}'.format(mode))
+    if mode == 'thread':
+        # spawn a daemon thread.
+        thread = threading.Thread(target=func, args=args, kwargs=kwargs)
+        thread.daemon = True
+        thread.start()
+        return thread
+    elif mode == 'gevent':
+        import gevent
+        return gevent.spawn(func, *args, **kwargs)
+    elif mode == 'eventlet':
+        import eventlet
+        return eventlet.spawn(func, *args, **kwargs)
+    assert False
+
+
+spawn.modes = ['thread', 'gevent', 'eventlet']
 
 
 #: Just returns the first argument.
@@ -207,6 +224,8 @@ profiler_params = Params([
 live_profiler_params = profiler_params.extend([
     click.option('-i', '--interval', type=float, default=INTERVAL,
                  help='How often update the profiling result.'),
+    click.option('--spawn', type=click.Choice(spawn.modes),
+                 callback=lambda c, p, v: partial(spawn, v)),
     click.option('--signum', type=SignalNumber(), default=SIGNUM),
 ])
 viewer_params = Params([
@@ -265,7 +284,8 @@ def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
 @main.command('live-profile')
 @live_profiler_params
 @viewer_params
-def live_profile(script, argv, timer, interval, signum, pickle_protocol, mono):
+def live_profile(script, argv, timer, interval, spawn, signum,
+                 pickle_protocol, mono):
     """Profile a Python script continuously."""
     filename, code, globals_ = script
     sys.argv[:] = [filename] + list(argv)
@@ -282,7 +302,7 @@ def live_profile(script, argv, timer, interval, signum, pickle_protocol, mono):
         server_args = (noop, interval, pickle_protocol)
         server = SelectProfilingServer(None, profiler, *server_args)
         server.clients.add(child_sock)
-        spawn_thread(server.connected, child_sock)
+        spawn(server.connected, child_sock)
         try:
             exec_(code, globals_)
         finally:
@@ -308,8 +328,8 @@ def live_profile(script, argv, timer, interval, signum, pickle_protocol, mono):
               help='IP address to serve profiling results.')
 @click.option('-v', '--verbose', is_flag=True,
               help='Print profiling server logs.')
-def remote_profile(script, argv, timer, interval, signum, pickle_protocol,
-                   addr, verbose):
+def remote_profile(script, argv, timer, interval, spawn, signum,
+                   pickle_protocol, addr, verbose):
     """Launch a server to profile continuously.  The default address is
     127.0.0.1:8912.
     """
@@ -333,7 +353,7 @@ def remote_profile(script, argv, timer, interval, signum, pickle_protocol,
     profiler.prepare()
     server_args = (log, interval, pickle_protocol)
     server = SelectProfilingServer(listener, profiler, *server_args)
-    spawn_thread(server.serve_forever)
+    spawn(server.serve_forever)
     # exec the script.
     try:
         exec_(code, globals_)
