@@ -225,7 +225,18 @@ class start_client:
 
     def connect(self):
         errno = self.sock.connect_ex(self.addr)
-        assert errno == 115
+        if errno == 0:
+            # connected immediately.
+            pass
+        elif errno == 115:
+            # will be connected.
+            pass
+        elif errno == 2:
+            # no such socket file.
+            self.event_loop.alarm(1, self.create_connection)
+            return
+        else:
+            raise ValueError('Unexpected socket errno: {0}'.format(errno))
         self.event_loop.watch_file(self.sock.fileno(), self.received)
 
     def disconnect(self):

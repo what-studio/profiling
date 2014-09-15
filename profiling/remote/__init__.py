@@ -187,15 +187,17 @@ class BaseProfilingServer(object):
     def disconnected(self, client):
         """Call this method when a client disconnected."""
         self.clients.remove(client)
-        self._close(client)
         self._log_disconnected(client)
+        self._close(client)
 
     def _log_connected(self, client):
         addr = self._addr(client)
+        addr = addr if isinstance(addr, tuple) else None
         self.log(fmt_connected(addr, len(self.clients)))
 
     def _log_disconnected(self, client):
         addr = self._addr(client)
+        addr = addr if isinstance(addr, tuple) else None
         self.log(fmt_disconnected(addr, len(self.clients)))
 
     def _log_profiler_started(self):
