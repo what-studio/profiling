@@ -59,7 +59,7 @@ It works by `live-profile` command:
 $ python -m profiling live-profile webserver.py
 ```
 
-See a demo: [https://asciinema.org/a/12318]().
+See [a demo](https://asciinema.org/a/12318).
 
 There's a live-profiling server also.  The server doesn't profile the
 program at ordinary times.  But when a client connects to the server, it
