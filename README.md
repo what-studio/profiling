@@ -9,6 +9,8 @@ features:
 1. Greenlet-aware CPU timer.
 1. Supports both of Python 2.7 and Python 3.4.
 
+[![Build Status](https://travis-ci.org/what-studio/profiling.svg?branch=master)](https://travis-ci.org/what-studio/profiling)
+
 Installation
 ------------
 
