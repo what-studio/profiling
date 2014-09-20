@@ -74,6 +74,18 @@ Then run a client with `view` command:
 $ python -m profiling view 127.0.0.1:8912
 ```
 
+Viewer key commands
+-------------------
+
+- <tt>q</tt> - Quit.
+- <tt>space</tt> - Pause/Resume.
+- <tt>↑</tt> and <tt>↓</tt> - Navigate frames.
+- <tt>→</tt> - Expand the frame.
+- <tt>←</tt> - Fold the frame.
+- <tt>></tt> - Go to the hotspot.
+- <tt>esc</tt> - Defocus.
+- <tt>[</tt> and <tt>]</tt> - Change sorting colunm.
+
 Licensing
 ---------
 
