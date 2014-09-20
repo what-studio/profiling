@@ -7,13 +7,23 @@ An interactive profilier.
 
 """
 from __future__ import with_statement
-import re
+import ast
 from setuptools import setup
 
 
-# detect the current version.
-with open('profiling/__init__.py') as f:
-    version = re.search(r'__version__\s*=\s*\'(.+?)\'', f.read()).group(1)
+def get_version(filename):
+    """detect the current version."""
+    with open(filename) as f:
+        tree = ast.parse(f.read(), filename)
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and \
+           len(node.targets) == 1:
+            target, = node.targets
+            if isinstance(target, ast.Name) and target.id == '__version__':
+                return node.value.s
+
+
+version = get_version('profiling/__init__.py')
 assert version
 
 
