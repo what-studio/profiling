@@ -1,82 +1,82 @@
-    Profiling
-    =========
+Profiling
+=========
 
-    The profiling package is an interactive Python profiler.  It provides these
-    features:
+The profiling package is an interactive Python profiler.  It provides these
+features:
 
-    1. An interactive TUI profiling statistics viewer.
-    1. Utilities for remote profiling.
-    1. Greenlet-aware CPU timer.
-    1. Supports both of Python 2.7 and Python 3.4.
+1. An interactive TUI profiling statistics viewer.
+1. Utilities for remote profiling.
+1. Greenlet-aware CPU timer.
+1. Supports both of Python 2.7 and Python 3.4.
 
-    [![Build Status](https://travis-ci.org/what-studio/profiling.svg?branch=master)](https://travis-ci.org/what-studio/profiling)
+[![Build Status](https://travis-ci.org/what-studio/profiling.svg?branch=master)](https://travis-ci.org/what-studio/profiling)
 
-    Installation
-    ------------
+Installation
+------------
 
-    This project is under development yet.  So you should install it via GitHub
-    instead of PyPI:
+This project is under development yet.  So you should install it via GitHub
+instead of PyPI:
 
-    ```sh
-    $ pip install git+ssh://git@github.com/what-studio/profiling.git
-    ```
+```sh
+$ pip install git+ssh://git@github.com/what-studio/profiling.git
+```
 
-    Profiling
-    ---------
+Profiling
+---------
 
-    To profile a single program, simply run `profile` command:
+To profile a single program, simply run `profile` command:
 
-    ```sh
-    $ python -m profiling profile your-program.py
-    ```
+```sh
+$ python -m profiling profile your-program.py
+```
 
-    Then an interactive viewer will be executed:
+Then an interactive viewer will be executed:
 
-    ![](screenshots/your-program.png)
+![](screenshots/your-program.png)
 
-    If your program uses greenlets, choose `greenlet` timer:
+If your program uses greenlets, choose `greenlet` timer:
 
-    ```sh
-    $ python -m profiling profile your-program.py --timer=greenlet
-    ```
+```sh
+$ python -m profiling profile your-program.py --timer=greenlet
+```
 
-    With `--dump` option, it saves the profiling result to a file.  You can
-    browse save result by `view` command.
+With `--dump` option, it saves the profiling result to a file.  You can
+browse save result by `view` command:
 
-    ```sh
-    $ python -m profiling profile your-program.py --dump=your-program.prf
-    $ python -m profiling view your-program.prf
-    ```
+```sh
+$ python -m profiling profile your-program.py --dump=your-program.prf
+$ python -m profiling view your-program.prf
+```
 
-    Live-profiling
-    --------------
+Live-profiling
+--------------
 
-    If your program has a long life time like a web server, profiling result
-    at the end of progam doesn't help you.  You will need a continuos profiler.
-    It works by `live-profile` command:
+If your program has a long life time like a web server, profiling result
+at the end of progam doesn't help you.  You will need a continuos profiler.
+It works by `live-profile` command:
 
-    ```sh
-    $ python -m profiling live-profile webserver.py
-    ```
+```sh
+$ python -m profiling live-profile webserver.py
+```
 
-    There's a live-profiling server also.  The server doesn't profile the
-    program at ordinary times.  But when a client connects to the server, it
-    runs profiler and reports to the all connected clients.  Start a server
-    with `remote-profile` command:
+There's a live-profiling server also.  The server doesn't profile the
+program at ordinary times.  But when a client connects to the server, it
+runs profiler and reports to the all connected clients.  Start a server
+with `remote-profile` command:
 
-    ```sh
-    $ python -m profiling remote-profile webserver.py --bind 127.0.0.1:8912
-    ```
+```sh
+$ python -m profiling remote-profile webserver.py --bind 127.0.0.1:8912
+```
 
-    Then run a client with `view` command:
+Then run a client with `view` command:
 
-    ```sh
-    $ python -m profiling view 127.0.0.1:8912
-    ```
+```sh
+$ python -m profiling view 127.0.0.1:8912
+```
 
-    Licensing
-    ---------
+Licensing
+---------
 
-    This project is opened under the [BSD 3-Clause] license.
+This project is opened under the [BSD 3-Clause] license.
 
-    [BSD 3-Clause]: http://opensource.org/licenses/BSD-3-Clause
+[BSD 3-Clause]: http://opensource.org/licenses/BSD-3-Clause
