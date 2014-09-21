@@ -20,7 +20,7 @@ __all__ = ['GeventProfilingServer']
 
 
 class GeventProfilingServer(StreamServer, BaseProfilingServer):
-    """A profiling server implementation based on `gevent`_.  When use choose
+    """A profiling server implementation based on `gevent`_.  When you choose
     it, you should set a :class:`profiling.timers.greenlet.GreenletTimer` for
     the profiler's timer::
 
