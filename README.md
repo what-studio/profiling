@@ -22,7 +22,7 @@ The profiling package is an interactive Python profiler.  It is inspired from
 Installation
 ------------
 
-This project is under development yet.  So you should install it via GitHub
+This project is still under development, so you should install it via GitHub
 instead of PyPI:
 
 ```sh
@@ -49,7 +49,7 @@ $ python -m profiling profile your-program.py --timer=greenlet
 ```
 
 With `--dump` option, it saves the profiling result to a file.  You can
-browse save result by `view` command:
+browse the saved result by using the `view` command:
 
 ```sh
 $ python -m profiling profile your-program.py --dump=your-program.prf
@@ -60,8 +60,8 @@ Live-profiling
 --------------
 
 If your program has a long life time like a web server, profiling result
-at the end of progam doesn't help you.  You will need a continuos profiler.
-It works by `live-profile` command:
+at the end of program doesn't help you.  You will need a continuous profiler.
+It works via `live-profile` command:
 
 ```sh
 $ python -m profiling live-profile webserver.py
@@ -99,6 +99,6 @@ Viewer key commands
 Licensing
 ---------
 
-This project is opened under the [BSD 3-Clause] license.
+This project is licensed under the [BSD 3-Clause] license.
 
 [BSD 3-Clause]: http://opensource.org/licenses/BSD-3-Clause
