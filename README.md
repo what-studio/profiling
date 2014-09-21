@@ -4,11 +4,11 @@ Profiling
 The profiling package is an interactive Python profiler.  It is inspired from
 [Unity 3D] profiler.  This package provides these features:
 
-1. Profiling statistics keep the frame stack.
-1. An interactive TUI profiling statistics viewer.
-1. Utilities for remote profiling.
-1. Thread or greenlet aware CPU timer.
-1. Supports both of Python 2 and Python 3.
+- Profiling statistics keep the frame stack.
+- An interactive TUI profiling statistics viewer.
+- Utilities for remote profiling.
+- Thread or greenlet aware CPU timer.
+- Supports both of Python 2 and Python 3.
 
 [![Build Status]
 (https://travis-ci.org/what-studio/profiling.svg)]
