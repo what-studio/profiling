@@ -10,8 +10,12 @@ The profiling package is an interactive Python profiler.  It is inspired from
 1. Thread or greenlet aware CPU timer.
 1. Supports both of Python 2 and Python 3.
 
-[![Build Status](https://travis-ci.org/what-studio/profiling.svg)]
+[![Build Status]
+(https://travis-ci.org/what-studio/profiling.svg)]
 (https://travis-ci.org/what-studio/profiling)
+[![Coverage Status]
+(https://coveralls.io/repos/what-studio/profiling/badge.png)]
+(https://coveralls.io/r/what-studio/profiling)
 
 [Unity 3D]: http://unity3d.com/
 
