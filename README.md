@@ -14,7 +14,7 @@ The profiling package is an interactive Python profiler.  It is inspired from
 (https://travis-ci.org/what-studio/profiling.svg)]
 (https://travis-ci.org/what-studio/profiling)
 [![Coverage Status]
-(https://coveralls.io/repos/what-studio/profiling/badge.png)]
+(https://img.shields.io/coveralls/what-studio/profiling.svg)]
 (https://coveralls.io/r/what-studio/profiling)
 
 [Unity 3D]: http://unity3d.com/
