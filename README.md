@@ -94,7 +94,7 @@ Viewer key commands
 - <tt>←</tt> - Fold the frame.
 - <tt>></tt> - Go to the hotspot.
 - <tt>esc</tt> - Defocus.
-- <tt>[</tt> and <tt>]</tt> - Change sorting colunm.
+- <tt>[</tt> and <tt>]</tt> - Change sorting column.
 
 Licensing
 ---------
