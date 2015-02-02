@@ -11,7 +11,7 @@
 from __future__ import absolute_import
 import select
 
-from . import INTERVAL, LOG, PICKLE_PROTOCOL, BaseProfilingServer
+from . import BaseProfilingServer
 
 
 __all__ = ['SelectProfilingServer']
@@ -19,10 +19,8 @@ __all__ = ['SelectProfilingServer']
 
 class SelectProfilingServer(BaseProfilingServer):
 
-    def __init__(self, listener, profiler=None, log=LOG,
-                 interval=INTERVAL, pickle_protocol=PICKLE_PROTOCOL):
-        base = super(SelectProfilingServer, self)
-        base.__init__(profiler, log, interval, pickle_protocol)
+    def __init__(self, listener, *args, **kwargs):
+        super(SelectProfilingServer, self).__init__(*args, **kwargs)
         self.listener = listener
 
     def serve_forever(self):

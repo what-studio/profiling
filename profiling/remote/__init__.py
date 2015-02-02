@@ -117,13 +117,13 @@ class BaseProfilingServer(object):
 
     _latest_data = None
 
-    def __init__(self, profiler=None, log=LOG,
-                 interval=INTERVAL, pickle_protocol=PICKLE_PROTOCOL):
+    def __init__(self, profiler=None, interval=INTERVAL,
+                 log=LOG, pickle_protocol=PICKLE_PROTOCOL):
         if profiler is None:
             profiler = Profiler()
         self.profiler = profiler
-        self.log = log
         self.interval = interval
+        self.log = log
         self.pickle_protocol = pickle_protocol
         self.clients = set()
 

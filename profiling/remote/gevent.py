@@ -37,12 +37,11 @@ class GeventProfilingServer(StreamServer, BaseProfilingServer):
 
     """
 
-    def __init__(self, listener, profiler=None, log=LOG,
-                 interval=INTERVAL, pickle_protocol=PICKLE_PROTOCOL,
-                 **server_kwargs):
+    def __init__(self, listener, profiler=None, interval=INTERVAL,
+                 log=LOG, pickle_protocol=PICKLE_PROTOCOL, **server_kwargs):
         StreamServer.__init__(self, listener, **server_kwargs)
-        BaseProfilingServer.__init__(self, profiler, log,
-                                     interval, pickle_protocol)
+        BaseProfilingServer.__init__(self, profiler, interval,
+                                     log, pickle_protocol)
 
     def _send(self, sock, data):
         sock.sendall(data)
