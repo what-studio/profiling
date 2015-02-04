@@ -21,6 +21,7 @@ except ImportError:
     import pickle
 import signal
 import socket
+import select
 from stat import S_ISREG, S_ISSOCK
 import sys
 import threading
@@ -32,6 +33,7 @@ from six import PY2, exec_
 from .profiler import Profiler
 from .remote import INTERVAL, PICKLE_PROTOCOL, recv_stats
 from .remote.background import SIGNUM, BackgroundProfiler
+from .remote.errnos import ENOENT, EAGAIN, ECONNREFUSED, EINPROGRESS
 from .remote.select import SelectProfilingServer
 from .viewer import StatisticsViewer
 
@@ -388,8 +390,8 @@ def view(src, mono):
         viewer.set_stats(stats, title, time)
     elif src_type in ('tcp', 'sock'):
         family = {'tcp': socket.AF_INET, 'sock': socket.AF_UNIX}[src_type]
-        client = FailoverProfilingClient(
-            viewer, loop.event_loop, src_name, family, title=title)
+        client = FailoverProfilingClient(viewer, loop.event_loop,
+                                         src_name, family, title=title)
         client.start()
     try:
         loop.run()
@@ -447,14 +449,20 @@ class FailoverProfilingClient(ProfilingClient):
         base.__init__(viewer, event_loop, None, title)
 
     def connect(self):
-        errno = self.sock.connect_ex(self.addr)
-        if errno == 0:
+        while True:
+            errno = self.sock.connect_ex(self.addr)
+            if errno == EAGAIN:
+                # wait to be connectable.
+                select.select([self.sock], [], [])
+            else:
+                break
+        if not errno:
             # connected immediately.
             pass
-        elif errno == 115:
+        elif errno == EINPROGRESS:
             # will be connected.
             pass
-        elif errno == 2:
+        elif errno == ENOENT:
             # no such socket file.
             self.create_connection(self.failover_interval)
             return
@@ -466,7 +474,8 @@ class FailoverProfilingClient(ProfilingClient):
         self.event_loop.remove_watch_file(self.sock.fileno())
         self.sock.close()
         # try to reconnect.
-        self.create_connection(self.failover_interval if errno == 111 else 0)
+        delay = self.failover_interval if errno == ECONNREFUSED else 0
+        self.create_connection(delay)
 
     def create_connection(self, delay=0):
         self.sock = socket.socket(self.family)

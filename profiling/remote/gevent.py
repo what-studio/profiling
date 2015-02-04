@@ -9,9 +9,12 @@
 
 """
 from __future__ import absolute_import
+import socket
 
 import gevent
+from gevent.lock import Semaphore
 from gevent.server import StreamServer
+from gevent.util import wrap_errors
 
 from . import INTERVAL, LOG, PICKLE_PROTOCOL, BaseProfilingServer
 
@@ -42,6 +45,7 @@ class GeventProfilingServer(StreamServer, BaseProfilingServer):
         StreamServer.__init__(self, listener, **server_kwargs)
         BaseProfilingServer.__init__(self, profiler, interval,
                                      log, pickle_protocol)
+        self.lock = Semaphore()
 
     def _send(self, sock, data):
         sock.sendall(data)
@@ -57,11 +61,13 @@ class GeventProfilingServer(StreamServer, BaseProfilingServer):
 
     def _start_watching(self, sock):
         disconnected = lambda x: self.disconnected(sock)
-        gevent.spawn(sock.recv, 1).link(disconnected)
+        recv = wrap_errors(socket.error, sock.recv)
+        gevent.spawn(recv, 1).link(disconnected)
 
     def profile_periodically(self):
-        for __ in self.profiling():
-            gevent.sleep(self.interval)
+        with self.lock:
+            for __ in self.profiling():
+                gevent.sleep(self.interval)
 
     def handle(self, sock, addr=None):
         self.connected(sock)

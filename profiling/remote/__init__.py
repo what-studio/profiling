@@ -15,9 +15,11 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import select as _select
 import socket
 import struct
 
+from .errnos import EBADF, EAGAIN, EPIPE, ECONNRESET
 from ..profiler import Profiler
 
 
@@ -59,9 +61,16 @@ def recv_exactly(sock, size):
         size_required = size - buf.tell()
         if not size_required:
             break
-        data = sock.recv(size_required)
+        try:
+            data = sock.recv(size_required)
+        except socket.error as err:
+            if err.errno != EAGAIN:
+                raise
+            # wait to be receivable.
+            _select.select([sock], [], [])
+            data = sock.recv(size_required)
         if not data:
-            raise socket.error(54, 'Connection closed')
+            raise socket.error(ECONNRESET, 'Connection closed')
         buf.write(data)
     buf.seek(0)
     return buf
@@ -171,9 +180,19 @@ class BaseProfilingServer(object):
             self._latest_data = data
             self.profiler.clear()
             # broadcast
+            closed_clients = []
             for client in self.clients:
-                self._send(client, data)
+                try:
+                    self._send(client, data)
+                except socket.error as err:
+                    if err.errno == EPIPE:
+                        closed_clients.append(client)
+                        continue
+                    pass
             del data
+            # handle disconnections.
+            for client in closed_clients:
+                self.disconnected(client)
         self._log_profiler_stopped()
 
     def connected(self, client):
@@ -182,12 +201,21 @@ class BaseProfilingServer(object):
         self._log_connected(client)
         self._start_watching(client)
         if self._latest_data is not None:
-            self._send(client, self._latest_data)
+            try:
+                self._send(client, self._latest_data)
+            except socket.error as err:
+                if err.errno in (EBADF, EPIPE):
+                    self.disconnected(client)
+                    return
+                raise
         if len(self.clients) == 1:
             self._start_profiling()
 
     def disconnected(self, client):
         """Call this method when a client disconnected."""
+        if client not in self.clients:
+            # already disconnected.
+            return
         self.clients.remove(client)
         self._log_disconnected(client)
         self._close(client)
