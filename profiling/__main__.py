@@ -21,7 +21,6 @@ except ImportError:
     import pickle
 import signal
 import socket
-import select
 from stat import S_ISREG, S_ISSOCK
 import sys
 import threading
@@ -33,7 +32,7 @@ from six import PY2, exec_
 from .profiler import Profiler
 from .remote import INTERVAL, PICKLE_PROTOCOL, recv_stats
 from .remote.background import SIGNUM, BackgroundProfiler
-from .remote.errnos import ENOENT, EAGAIN, ECONNREFUSED, EINPROGRESS
+from .remote.errnos import ENOENT, ECONNREFUSED, EINPROGRESS
 from .remote.select import SelectProfilingServer
 from .viewer import StatisticsViewer
 
@@ -451,10 +450,7 @@ class FailoverProfilingClient(ProfilingClient):
     def connect(self):
         while True:
             errno = self.sock.connect_ex(self.addr)
-            if errno == EAGAIN:
-                # wait to be connectable.
-                select.select([self.sock], [], [])
-            else:
+            if errno == 0:
                 break
         if not errno:
             # connected immediately.

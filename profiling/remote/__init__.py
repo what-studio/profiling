@@ -15,18 +15,17 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import select as _select
 import socket
 import struct
 
-from .errnos import EBADF, EAGAIN, EPIPE, ECONNRESET
+from .errnos import EBADF, EPIPE, ECONNRESET
 from ..profiler import Profiler
 
 
 __all__ = ['LOGGER', 'LOG', 'INTERVAL', 'PICKLE_PROTOCOL',
-           'SIZE_STRUCT_FORMAT', 'pack_stats', 'recv_exactly', 'recv_stats',
-           'fmt_connected', 'fmt_disconnected', 'fmt_profiler_started',
-           'fmt_profiler_stopped', 'BaseProfilingServer']
+           'SIZE_STRUCT_FORMAT', 'pack_stats', 'recv_stats', 'fmt_connected',
+           'fmt_disconnected', 'fmt_profiler_started', 'fmt_profiler_stopped',
+           'BaseProfilingServer']
 
 
 #: The standard logger.
@@ -54,35 +53,21 @@ def pack_stats(profiler, pickle_protocol=PICKLE_PROTOCOL):
     return struct.pack(SIZE_STRUCT_FORMAT, size) + dump.getvalue()
 
 
-def recv_exactly(sock, size):
+def recv(sock, size):
     """Receives exactly `size` bytes.  This function blocks the thread."""
-    buf = io.BytesIO()
-    while True:
-        size_required = size - buf.tell()
-        if not size_required:
-            break
-        try:
-            data = sock.recv(size_required)
-        except socket.error as err:
-            if err.errno != EAGAIN:
-                raise
-            # wait to be receivable.
-            _select.select([sock], [], [])
-            data = sock.recv(size_required)
-        if not data:
-            raise socket.error(ECONNRESET, 'Connection closed')
-        buf.write(data)
-    buf.seek(0)
-    return buf
+    data = sock.recv(size, socket.MSG_WAITALL)
+    if len(data) < size:
+        raise socket.error(ECONNRESET, 'Connection closed')
+    return data
 
 
 def recv_stats(sock):
     """Receives statistics from the socket.  This function blocks the thread.
     """
-    buf = recv_exactly(sock, struct.calcsize(SIZE_STRUCT_FORMAT))
-    size = struct.unpack(SIZE_STRUCT_FORMAT, buf.getvalue())[0]
-    buf = recv_exactly(sock, size)
-    stats = pickle.load(buf)
+    data = recv(sock, struct.calcsize(SIZE_STRUCT_FORMAT))
+    size, = struct.unpack(SIZE_STRUCT_FORMAT, data)
+    data = recv(sock, size)
+    stats = pickle.loads(data)
     return stats
 
 
