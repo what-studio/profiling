@@ -11,7 +11,6 @@ import ast
 from setuptools import setup
 from setuptools.command.install import install
 from setuptools.command.test import test
-import subprocess
 import sys
 from textwrap import dedent
 
@@ -47,7 +46,7 @@ def requirements(filename):
 
 # use pytest instead.
 def run_tests(self):
-    raise SystemExit(subprocess.call(['py.test', '-v']))
+    raise SystemExit(__import__('pytest').main(['-v']))
 test.run_tests = run_tests
 
 

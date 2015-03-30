@@ -312,7 +312,7 @@ def live_profile(script, argv, timer, interval, spawn, signum,
         frame = sys._getframe()
         profiler = BackgroundProfiler(timer, frame, code, signum)
         profiler.prepare()
-        server_args = (noop, interval, pickle_protocol)
+        server_args = (interval, noop, pickle_protocol)
         server = SelectProfilingServer(None, profiler, *server_args)
         server.clients.add(child_sock)
         spawn(server.connected, child_sock)
@@ -364,7 +364,7 @@ def remote_profile(script, argv, timer, interval, spawn, signum,
     frame = sys._getframe()
     profiler = BackgroundProfiler(timer, frame, code, signum)
     profiler.prepare()
-    server_args = (log, interval, pickle_protocol)
+    server_args = (interval, log, pickle_protocol)
     server = SelectProfilingServer(listener, profiler, *server_args)
     spawn(server.serve_forever)
     # exec the script.
