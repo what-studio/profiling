@@ -90,5 +90,5 @@ setup(
     ],
     install_requires=requirements('requirements.txt'),
     tests_require=requirements('test/requirements.txt'),
-    test_suite='',
+    test_suite='...',
 )
