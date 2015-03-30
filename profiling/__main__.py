@@ -287,7 +287,7 @@ def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
     else:
         # save the result.
         stats = profiler.result()
-        with open(dump_filename, 'w') as f:
+        with open(dump_filename, 'wb') as f:
             pickle.dump(stats, f, pickle_protocol)
         click.echo('To view statistics:')
         click.echo('  $ python -m profiling view ', nl=False)
@@ -383,7 +383,7 @@ def view(src, mono):
     title = get_title(src_name, src_type)
     viewer, loop = make_viewer(mono)
     if src_type == 'dump':
-        with open(src_name) as f:
+        with open(src_name, 'rb') as f:
             stats = pickle.load(f)
         time = datetime.fromtimestamp(os.path.getmtime(src_name))
         viewer.set_stats(stats, title, time)
