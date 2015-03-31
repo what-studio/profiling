@@ -19,7 +19,10 @@ frame_stack(PyObject *self, PyObject *args)
     }
     while (frame != NULL)
     {
-        PyList_Append(frame_stack, (PyObject*)frame);
+        if (PyList_Append(frame_stack, (PyObject*)frame))
+        {
+            return NULL;
+        }
         if (frame == top_frame || frame->f_code == top_code)
         {
             break;
