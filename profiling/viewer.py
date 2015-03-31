@@ -129,11 +129,10 @@ class Formatter(object):
 
     def markup_stat(self, stat):
         if stat.name and stat.module:
-            return [('name', stat.name), ('module', ' (' + stat.module + ')')]
-        elif not stat.name and not stat.module:
-            return ('module', stat.filename)  # e.g. <string>
+            return [('name', stat.name),
+                    ('module', ' ({0}:{1})'.format(stat.module, stat.lineno))]
         else:
-            return ('module', stat.name or stat.module)
+            return ('module', stat.name or stat.module or stat.filename)
 
     make_stat_text = _make_text(markup_stat, wrap='clip')
 
