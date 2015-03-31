@@ -86,6 +86,28 @@ Then run a client with `view` command:
 $ python -m profiling view 127.0.0.1:8912
 ```
 
+Profiling from code
+-------------------
+
+You can also profile your program by ``profiling.Profiler`` directly:
+
+```python
+from profiling import Profiler
+from profiling.viewer import StatisticsViewer
+
+# profile your program.
+profiler = Profiler()
+profiler.start()
+...  # run your program.
+profiler.stop()
+
+# view statistics.
+viewer = StatisticsViewer()
+viewer.set_stats(profiler.stats)
+loop = viewer.loop()
+loop.run()
+```
+
 Viewer key commands
 -------------------
 
