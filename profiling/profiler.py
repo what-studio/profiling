@@ -115,7 +115,7 @@ class Profiler(object):
             time = self.timer()
             self._entered(time, code, frame_key, parent_stat)
         elif event in ('return', 'exception'):
-            self._leaved(time, code, frame_key, parent_stat)
+            self._left(time, code, frame_key, parent_stat)
 
     def _entered(self, time, code, frame_key, parent_stat):
         """Entered to a function call."""
@@ -126,8 +126,8 @@ class Profiler(object):
             parent_stat.add_child(code, stat)
         stat.record_entering(time, frame_key)
 
-    def _leaved(self, time, code, frame_key, parent_stat):
-        """Leaved from a function call."""
+    def _left(self, time, code, frame_key, parent_stat):
+        """Left from a function call."""
         try:
             stat = parent_stat.get_child(code)
             stat.record_leaving(time, frame_key)
