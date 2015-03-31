@@ -9,6 +9,10 @@ import sys
 import threading
 import time
 
+try:
+    from . import speedup
+except ImportError:
+    speedup = False
 from .stats import RecordingStat, RecordingStatistics, FrozenStatistics
 from .timers import Timer
 
@@ -71,17 +75,22 @@ class Profiler(object):
         except AttributeError:
             self.stats = RecordingStatistics()
 
-    def _frame_stack(self, frame):
-        """Returns a deque of frame stack."""
-        frame_stack = deque()
-        top_frame = self.top_frame
-        top_code = self.top_code
-        while frame is not None:
-            frame_stack.appendleft(frame)
-            if frame is top_frame or frame.f_code is top_code:
-                break
-            frame = frame.f_back
-        return frame_stack
+    if speedup:
+        def _frame_stack(self, frame):
+            """Returns a deque of frame stack."""
+            return speedup.frame_stack(frame, self.top_frame, self.top_code)
+    else:
+        def _frame_stack(self, frame):
+            """Returns a deque of frame stack."""
+            frame_stack = deque()
+            top_frame = self.top_frame
+            top_code = self.top_code
+            while frame is not None:
+                frame_stack.appendleft(frame)
+                if frame is top_frame or frame.f_code is top_code:
+                    break
+                frame = frame.f_back
+            return frame_stack
 
     def _profile(self, frame, event, arg):
         """The callback function to register by :func:`sys.setprofile`."""

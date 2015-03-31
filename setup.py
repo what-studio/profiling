@@ -11,8 +11,14 @@ import ast
 from setuptools import setup
 from setuptools.command.install import install
 from setuptools.command.test import test
+from setuptools.extension import Extension
 import sys
 from textwrap import dedent
+
+try:
+    import __pypy__
+except ImportError:
+    __pypy__ = False
 
 
 # these files require specific python version or later.  they will be replaced
@@ -63,6 +69,13 @@ run_install = install.run
 install.run = lambda x: (replace_incompatible_files(), run_install(x))
 
 
+# build profiling.speedup on cpython.
+if __pypy__:
+    ext_modules = []
+else:
+    ext_modules = [Extension('profiling.speedup', ['profiling/speedup.c'])]
+
+
 setup(
     name='profiling',
     version=get_version('profiling/__init__.py'),
@@ -72,6 +85,7 @@ setup(
     maintainer_email='sub@nexon.co.kr',
     platforms='linux',
     packages=['profiling', 'profiling.remote', 'profiling.timers'],
+    ext_modules=ext_modules,
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
