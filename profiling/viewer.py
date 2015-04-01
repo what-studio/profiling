@@ -128,11 +128,11 @@ class Formatter(object):
     # stat
 
     def markup_stat(self, stat):
-        if stat.name and stat.module:
-            return [('name', stat.name),
-                    ('module', ' ({0}:{1})'.format(stat.module, stat.lineno))]
+        if stat.name:
+            loc = '({0}:{1})'.format(stat.module or stat.filename, stat.lineno)
+            return [('name', stat.name), ' ', ('loc', loc)]
         else:
-            return ('module', stat.name or stat.module or stat.filename)
+            return ('loc', stat.module or stat.filename)
 
     make_stat_text = _make_text(markup_stat, wrap='clip')
 
@@ -673,7 +673,7 @@ class StatisticsViewer(object):
         # etc
         ('zero', weak_color, ''),
         ('name', 'bold', ''),
-        ('module', 'dark blue', ''),
+        ('loc', 'dark blue', ''),
     ]
     # add thead.*.sorted palette entries
     for entry in palette[:]:
