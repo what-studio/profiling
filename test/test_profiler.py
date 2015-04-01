@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
+from collections import deque
 import sys
+from textwrap import dedent
 
 import pytest
 import six
 
 from profiling.profiler import Profiler
-from profiling.mock import mock_code, mock_stacked_frame
 from profiling.stats import FrozenStatistics, RecordingStatistics
 from utils import factorial, find_stat, profiling
 
@@ -14,25 +15,41 @@ if six.PY3:
     map = lambda *x: list(six.moves.map(*x))
 
 
+foo = None  # placeheolder
+mock_code_names = ['foo', 'bar', 'baz']
+for name, next_name in zip(mock_code_names[:-1], mock_code_names[1:]):
+    exec(dedent('''
+    def {0}():
+        return {1}()
+    ''').format(name, next_name))
+exec('def {0}(): return sys._getframe()'.format(mock_code_names[-1]))
+
+
 def test_frame_stack():
     def to_code_names(frames):
-        return [f.f_code.co_name for f in frames]
+        code_names = deque()
+        for frame in reversed(frames):
+            code_name = frame.f_code.co_name
+            if code_name not in mock_code_names:
+                break
+            code_names.appendleft(code_name)
+        return list(code_names)
     profiler = Profiler()
-    frame = mock_stacked_frame(map(mock_code, ['foo', 'bar', 'baz']))
+    frame = foo()
     frame_stack = profiler._frame_stack(frame)
-    assert to_code_names(frame_stack) == ['baz', 'bar', 'foo']
+    assert to_code_names(frame_stack) == ['foo', 'bar', 'baz']
     # top frame
     profiler = Profiler(top_frame=frame.f_back)
     frame_stack = profiler._frame_stack(frame)
-    assert to_code_names(frame_stack) == ['bar', 'foo']
+    assert to_code_names(frame_stack) == ['bar', 'baz']
     # top code
     profiler = Profiler(top_code=frame.f_back.f_code)
     frame_stack = profiler._frame_stack(frame)
-    assert to_code_names(frame_stack) == ['bar', 'foo']
+    assert to_code_names(frame_stack) == ['bar', 'baz']
     # both of top frame and top code
     profiler = Profiler(top_frame=frame.f_back, top_code=frame.f_back.f_code)
     frame_stack = profiler._frame_stack(frame)
-    assert to_code_names(frame_stack) == ['bar', 'foo']
+    assert to_code_names(frame_stack) == ['bar', 'baz']
 
 
 def test_setprofile():
@@ -50,13 +67,13 @@ def test_setprofile():
 
 def test_profile():
     profiler = Profiler()
-    frame = mock_stacked_frame(map(mock_code, ['foo', 'bar', 'baz']))
+    frame = foo()
     profiler._profile(frame, 'call', None)
     profiler._profile(frame, 'return', None)
     assert len(profiler.stats) == 1
-    stat1 = find_stat(profiler.stats, 'baz')
+    stat1 = find_stat(profiler.stats, 'foo')
     stat2 = find_stat(profiler.stats, 'bar')
-    stat3 = find_stat(profiler.stats, 'foo')
+    stat3 = find_stat(profiler.stats, 'baz')
     assert stat1.calls == 0
     assert stat2.calls == 0
     assert stat3.calls == 1
