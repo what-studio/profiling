@@ -1,12 +1,22 @@
 # -*- coding: utf-8 -*-
 import pickle
+from types import CodeType
 
 import pytest
+from six import PY3
 
-from profiling.mock import mock_code
 from profiling.sortkeys import by_calls, by_name, by_total_time_per_call
 from profiling.stats import (
     FrozenStat, RecordingStat, RecordingStatistics, Stat, VoidRecordingStat)
+
+
+def mock_code(name):
+    """Makes a fake code object by name for built-in functions."""
+    left_args = (0, 0, 0, 0, b'', (), (), (), '')
+    if PY3:
+        left_args = (0,) + left_args
+    args = left_args + (name, 0, b'')
+    return CodeType(*args)
 
 
 def test_stat():
