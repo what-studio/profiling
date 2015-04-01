@@ -11,10 +11,10 @@ The profiling package is an interactive Python profiler.  It is inspired from
 - Supports both of Python 2 and Python 3.
 
 [![Build Status]
-(https://travis-ci.org/what-studio/profiling.svg)]
+(https://travis-ci.org/what-studio/profiling.svg?branch=master)]
 (https://travis-ci.org/what-studio/profiling)
 [![Coverage Status]
-(https://img.shields.io/coveralls/what-studio/profiling.svg)]
+(https://coveralls.io/repos/what-studio/profiling/badge.svg?branch=master)]
 (https://coveralls.io/r/what-studio/profiling)
 
 [Unity 3D]: http://unity3d.com/
