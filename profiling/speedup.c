@@ -1,10 +1,10 @@
 #include "Python.h"
 #include "frameobject.h"
 
-
 static PyObject *
 frame_stack(PyObject *self, PyObject *args)
 {
+    // frame_stack(frame[, top_frame[, top_code]]) -> list of frames
     PyFrameObject* frame;
     const PyFrameObject* top_frame;
     const PyCodeObject* top_code;
@@ -33,12 +33,10 @@ frame_stack(PyObject *self, PyObject *args)
     return frame_stack;
 }
 
-
 static PyMethodDef SpeedupMethods[] = {
     {"frame_stack", frame_stack, METH_VARARGS, ""},
     {NULL, NULL, 0, NULL}
 };
-
 
 // https://docs.python.org/3/howto/cporting.html
 #if PY_MAJOR_VERSION >= 3
