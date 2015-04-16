@@ -8,7 +8,7 @@ The profiling package is an interactive Python profiler.  It is inspired from
 - An interactive TUI profiling statistics viewer.
 - Utilities for remote profiling.
 - Thread or greenlet aware CPU timer.
-- Supports both of Python 2 and Python 3.
+- Supports Python 2.7, 3.2, 3.3 and 3.4.
 
 [![Build Status]
 (https://travis-ci.org/what-studio/profiling.svg?branch=master)]
