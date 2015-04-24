@@ -24,6 +24,7 @@ import socket
 from stat import S_ISREG, S_ISSOCK
 import sys
 import threading
+import time
 import traceback
 
 import click
@@ -222,48 +223,46 @@ class Params(object):
             f = param(f)
         return f
 
-    def extend(self, params):
+    def __add__(self, params):
         return type(self)(self.params + params)
 
 
-profiler_params = Params([
+profiler_arguments = Params([
     click.argument('script', type=Script()),
     click.argument('argv', nargs=-1),
+])
+profiler_options = Params([
     click.option('-t', '--timer', type=Timer(),
                  help='Choose CPU time measurer.'),
     click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
                  help='Pickle protocol to dump profiling result.'),
 ])
-live_profiler_params = profiler_params.extend([
+viewer_options = Params([
+    click.option('--mono', is_flag=True, help='Disable coloring.'),
+])
+onetime_profiler_options = Params([
+    click.option('-d', '--dump', 'dump_filename',
+                 type=click.Path(writable=True),
+                 help='Profiling result dump filename.'),
+])
+live_profiler_options = Params([
     click.option('-i', '--interval', type=float, default=INTERVAL,
                  help='How often update the profiling result.'),
     click.option('--spawn', type=click.Choice(spawn.modes),
                  callback=lambda c, p, v: partial(spawn, v)),
     click.option('--signum', type=SignalNumber(), default=SIGNUM),
 ])
-viewer_params = Params([
-    click.option('--mono', is_flag=True, help='Disable coloring.'),
-])
 
 
 # sub-commands
 
 
-@main.command()
-@profiler_params
-@click.option('-d', '--dump', 'dump_filename',
-              type=click.Path(writable=True),
-              help='Profiling result dump filename.')
-@viewer_params
-def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
-    """Profile a Python script."""
-    filename, code, globals_ = script
-    sys.argv[:] = [filename] + list(argv)
-    # start profiling.
+def __profile__(filename, code, globals_,
+                timer=None, pickle_protocol=PICKLE_PROTOCOL,
+                dump_filename=None, mono=False):
     frame = sys._getframe()
     profiler = Profiler(timer, top_frame=frame, top_code=code)
     profiler.start()
-    # exec the script.
     try:
         exec_(code, globals_)
     except:
@@ -277,7 +276,6 @@ def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
         stat = profiler.stats.get_child(frame.f_code)
         stat.remove_child(exec_.func_code)
     if dump_filename is None:
-        # show the result using a viewer.
         viewer, loop = make_viewer(mono)
         viewer.set_stats(profiler.stats, get_title(filename))
         try:
@@ -285,7 +283,6 @@ def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
         except KeyboardInterrupt:
             pass
     else:
-        # save the result.
         stats = profiler.result()
         with open(dump_filename, 'wb') as f:
             pickle.dump(stats, f, pickle_protocol)
@@ -294,9 +291,71 @@ def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
         click.secho(dump_filename, underline=True)
 
 
+@main.command()
+@profiler_arguments
+@profiler_options
+@onetime_profiler_options
+@viewer_options
+def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
+    """Profile a Python script."""
+    filename, code, globals_ = script
+    sys.argv[:] = [filename] + list(argv)
+    __profile__(filename, code, globals_,
+                timer=timer, pickle_protocol=pickle_protocol,
+                dump_filename=dump_filename, mono=mono)
+
+
+@main.command('timeit-profile')
+@click.argument('stmt', metavar='STATEMENT', default='pass')
+@click.option('-n', '--number', type=int,
+              help='How many times to execute the statement.')
+@click.option('-r', '--repeat', type=int, default=3,
+              help='How many times to repeat the timer.')
+@click.option('-s', '--setup', default='pass',
+              help='Statement to be executed once initially.')
+@click.option('-t', '--time', help='Ignored.')
+@click.option('-c', '--clock', help='Ignored.')
+@click.option('-v', '--verbose', help='Ignored.')
+@profiler_options
+@onetime_profiler_options
+@viewer_options
+def timeit_profile(stmt, number, repeat, setup,
+                   timer, pickle_protocol, dump_filename, mono, **_ignored):
+    del _ignored
+    sys.path.insert(0, os.curdir)
+    globals_ = {}
+    exec_(setup, globals_)
+    if number is None:
+        # determine number so that 0.2 <= total time < 2.0 like timeit.
+        dummy_profiler = Profiler()
+        dummy_profiler.start()
+        for x in range(1, 10):
+            number = 10 ** x
+            t = time.time()
+            for y in range(number):
+                exec_(stmt, globals_)
+            if time.time() - t >= 0.2:
+                break
+        dummy_profiler.stop()
+        del dummy_profiler
+    code = compile('for _ in range(%d): %s' % (number, stmt),
+                   'STATEMENT', 'exec')
+    __profile__(stmt, code, globals_,
+                timer=timer, pickle_protocol=pickle_protocol,
+                dump_filename=dump_filename, mono=mono)
+
+
+@main.command('timeit', help='Alias for timeit-profile.')
+def timeit():
+    # how can i make it?
+    pass
+
+
 @main.command('live-profile')
-@live_profiler_params
-@viewer_params
+@profiler_arguments
+@profiler_options
+@live_profiler_options
+@viewer_options
 def live_profile(script, argv, timer, interval, spawn, signum,
                  pickle_protocol, mono):
     """Profile a Python script continuously."""
@@ -336,7 +395,9 @@ def live_profile(script, argv, timer, interval, spawn, signum,
 
 
 @main.command('remote-profile')
-@live_profiler_params
+@profiler_arguments
+@profiler_options
+@live_profiler_options
 @click.option('-b', '--bind', 'addr', type=Address(), default='127.0.0.1:8912',
               help='IP address to serve profiling results.')
 @click.option('-v', '--verbose', is_flag=True,
@@ -376,7 +437,7 @@ def remote_profile(script, argv, timer, interval, spawn, signum,
 
 @main.command()
 @click.argument('src', type=ViewerSource())
-@viewer_params
+@viewer_options
 def view(src, mono):
     """Inspect statistics by TUI view."""
     src_type, src_name = src
