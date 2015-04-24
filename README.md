@@ -86,7 +86,24 @@ Then run a client with `view` command:
 $ python -m profiling view 127.0.0.1:8912
 ```
 
-Profiling from code
+Timeit then Profiling
+---------------------
+
+Do you use `timeit` to check the performance of your code?
+
+```sh
+$ python -m timeit -s 'from trueskill import *' 'rate_1vs1(Rating(), Rating())'
+1000 loops, best of 3: 722 usec per loop
+```
+
+If you want to profile the checked code, just add `profiling` before `timeit`:
+
+```sh
+$ python -m profiling timeit -s 'from trueskill import *' 'rate_1vs1(Rating(), Rating())'
+            ^^^^^^^^^
+```
+
+Profiling from Code
 -------------------
 
 You can also profile your program by ``profiling.Profiler`` directly:
