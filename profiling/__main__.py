@@ -41,7 +41,39 @@ from .viewer import StatisticsViewer
 __all__ = ['main', 'profile', 'view']
 
 
-@click.group()
+class AliasedGroup(click.Group):
+
+    def __init__(self, *args, **kwargs):
+        super(AliasedGroup, self).__init__(*args, **kwargs)
+        self.aliases = {}
+
+    def command(self, *args, **kwargs):
+        """Usage::
+
+           @group.command(aliases=['ci'])
+           def commit():
+               ...
+
+        """
+        aliases = kwargs.pop('aliases', None)
+        decorator = super(AliasedGroup, self).command(*args, **kwargs)
+        if aliases is None:
+            return decorator
+        def aliased_decorator(f):
+            cmd = decorator(f)
+            for alias in aliases:
+                self.aliases[alias] = cmd
+            return cmd
+        return aliased_decorator
+
+    def get_command(self, ctx, cmd_name):
+        try:
+            return self.aliases[cmd_name]
+        except KeyError:
+            return super(AliasedGroup, self).get_command(ctx, cmd_name)
+
+
+@click.command(cls=AliasedGroup)
 def main():
     pass
 
@@ -305,7 +337,7 @@ def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
                 dump_filename=dump_filename, mono=mono)
 
 
-@main.command('timeit-profile')
+@main.command('timeit-profile', aliases=['timeit'])
 @click.argument('stmt', metavar='STATEMENT', default='pass')
 @click.option('-n', '--number', type=int,
               help='How many times to execute the statement.')
@@ -321,6 +353,7 @@ def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
 @viewer_options
 def timeit_profile(stmt, number, repeat, setup,
                    timer, pickle_protocol, dump_filename, mono, **_ignored):
+    """Profile a Python statement like timeit."""
     del _ignored
     sys.path.insert(0, os.curdir)
     globals_ = {}
@@ -343,12 +376,6 @@ def timeit_profile(stmt, number, repeat, setup,
     __profile__(stmt, code, globals_,
                 timer=timer, pickle_protocol=pickle_protocol,
                 dump_filename=dump_filename, mono=mono)
-
-
-@main.command('timeit', help='Alias for timeit-profile.')
-def timeit():
-    # how can i make it?
-    pass
 
 
 @main.command('live-profile')
