@@ -38,7 +38,7 @@ from .remote.select import SelectProfilingServer
 from .viewer import StatisticsViewer
 
 
-__all__ = ['main', 'profile', 'view']
+__all__ = ['cli', 'profile', 'view']
 
 
 class AliasedGroup(click.Group):
@@ -74,7 +74,7 @@ class AliasedGroup(click.Group):
 
 
 @click.command(cls=AliasedGroup)
-def main():
+def cli():
     pass
 
 
@@ -323,7 +323,17 @@ def __profile__(filename, code, globals_,
         click.secho(dump_filename, underline=True)
 
 
-@main.command()
+class ProfilingCommand(click.Command):
+
+    def collect_usage_pieces(self, ctx):
+        """Prepend "[--]" before "[ARGV]..."."""
+        pieces = super(ProfilingCommand, self).collect_usage_pieces(ctx)
+        assert pieces[-1] == '[ARGV]...'
+        pieces.insert(-1, '[--]')
+        return pieces
+
+
+@cli.command(cls=ProfilingCommand)
 @profiler_arguments
 @profiler_options
 @onetime_profiler_options
@@ -337,48 +347,7 @@ def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
                 dump_filename=dump_filename, mono=mono)
 
 
-@main.command('timeit-profile', aliases=['timeit'])
-@click.argument('stmt', metavar='STATEMENT', default='pass')
-@click.option('-n', '--number', type=int,
-              help='How many times to execute the statement.')
-@click.option('-r', '--repeat', type=int, default=3,
-              help='How many times to repeat the timer.')
-@click.option('-s', '--setup', default='pass',
-              help='Statement to be executed once initially.')
-@click.option('-t', '--time', help='Ignored.')
-@click.option('-c', '--clock', help='Ignored.')
-@click.option('-v', '--verbose', help='Ignored.')
-@profiler_options
-@onetime_profiler_options
-@viewer_options
-def timeit_profile(stmt, number, repeat, setup,
-                   timer, pickle_protocol, dump_filename, mono, **_ignored):
-    """Profile a Python statement like timeit."""
-    del _ignored
-    sys.path.insert(0, os.curdir)
-    globals_ = {}
-    exec_(setup, globals_)
-    if number is None:
-        # determine number so that 0.2 <= total time < 2.0 like timeit.
-        dummy_profiler = Profiler()
-        dummy_profiler.start()
-        for x in range(1, 10):
-            number = 10 ** x
-            t = time.time()
-            for y in range(number):
-                exec_(stmt, globals_)
-            if time.time() - t >= 0.2:
-                break
-        dummy_profiler.stop()
-        del dummy_profiler
-    code = compile('for _ in range(%d): %s' % (number, stmt),
-                   'STATEMENT', 'exec')
-    __profile__(stmt, code, globals_,
-                timer=timer, pickle_protocol=pickle_protocol,
-                dump_filename=dump_filename, mono=mono)
-
-
-@main.command('live-profile')
+@cli.command('live-profile', cls=ProfilingCommand)
 @profiler_arguments
 @profiler_options
 @live_profiler_options
@@ -421,7 +390,7 @@ def live_profile(script, argv, timer, interval, spawn, signum,
             os.kill(pid, signal.SIGINT)
 
 
-@main.command('remote-profile')
+@cli.command('remote-profile', cls=ProfilingCommand)
 @profiler_arguments
 @profiler_options
 @live_profiler_options
@@ -462,7 +431,7 @@ def remote_profile(script, argv, timer, interval, spawn, signum,
         pass
 
 
-@main.command()
+@cli.command()
 @click.argument('src', type=ViewerSource())
 @viewer_options
 def view(src, mono):
@@ -484,6 +453,47 @@ def view(src, mono):
         loop.run()
     except KeyboardInterrupt:
         pass
+
+
+@cli.command('timeit-profile', aliases=['timeit'])
+@click.argument('stmt', metavar='STATEMENT', default='pass')
+@click.option('-n', '--number', type=int,
+              help='How many times to execute the statement.')
+@click.option('-r', '--repeat', type=int, default=3,
+              help='How many times to repeat the timer.')
+@click.option('-s', '--setup', default='pass',
+              help='Statement to be executed once initially.')
+@click.option('-t', '--time', help='Ignored.')
+@click.option('-c', '--clock', help='Ignored.')
+@click.option('-v', '--verbose', help='Ignored.')
+@profiler_options
+@onetime_profiler_options
+@viewer_options
+def timeit_profile(stmt, number, repeat, setup,
+                   timer, pickle_protocol, dump_filename, mono, **_ignored):
+    """Profile a Python statement like timeit."""
+    del _ignored
+    sys.path.insert(0, os.curdir)
+    globals_ = {}
+    exec_(setup, globals_)
+    if number is None:
+        # determine number so that 0.2 <= total time < 2.0 like timeit.
+        dummy_profiler = Profiler()
+        dummy_profiler.start()
+        for x in range(1, 10):
+            number = 10 ** x
+            t = time.time()
+            for y in range(number):
+                exec_(stmt, globals_)
+            if time.time() - t >= 0.2:
+                break
+        dummy_profiler.stop()
+        del dummy_profiler
+    code = compile('for _ in range(%d): %s' % (number, stmt),
+                   'STATEMENT', 'exec')
+    __profile__(stmt, code, globals_,
+                timer=timer, pickle_protocol=pickle_protocol,
+                dump_filename=dump_filename, mono=mono)
 
 
 # profiling clients for urwid
@@ -574,5 +584,9 @@ class FailoverProfilingClient(ProfilingClient):
         self.disconnect(errno)
 
 
+# Deprecated.
+main = cli
+
+
 if __name__ == '__main__':
-    main()
+    cli()
