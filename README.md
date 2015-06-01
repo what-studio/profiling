@@ -45,15 +45,22 @@ Then an interactive viewer will be executed:
 If your program uses greenlets, choose `greenlet` timer:
 
 ```sh
-$ python -m profiling profile your-program.py --timer=greenlet
+$ python -m profiling profile --timer=greenlet your-program.py
 ```
 
 With `--dump` option, it saves the profiling result to a file.  You can
 browse the saved result by using the `view` command:
 
 ```sh
-$ python -m profiling profile your-program.py --dump=your-program.prf
+$ python -m profiling profile --dump=your-program.prf your-program.py
 $ python -m profiling view your-program.prf
+```
+
+If your script reads ``sys.argv``, append your arguments after ``--``.
+It isolates your arguments from the ``profile`` command:
+
+```sh
+$ python -m profiling profile your-program.py -- --your-flag --your-param=42 -hjkl
 ```
 
 Live-profiling
