@@ -32,16 +32,16 @@ def failure(funcname, message='{class} not allow {func}.', exctype=TypeError):
 
 
 class Stat(object):
-    """Stat."""
+    """A statistic."""
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'calls', 'total_time']
+                    'own_calls', 'total_time']
 
     name = None
     filename = None
     lineno = None
     module = None
-    calls = 0
+    own_calls = 0
     total_time = 0.0
 
     def __init__(self, stat=None, name=None, filename=None, lineno=None,
@@ -72,6 +72,10 @@ class Stat(object):
         return name or module
 
     @property
+    def total_calls(self):
+        return self.own_calls + sum(stat.total_calls for stat in self)
+
+    @property
     def own_time(self):
         sub_time = sum(stat.total_time for stat in self)
         return max(0., self.total_time - sub_time)
@@ -79,14 +83,14 @@ class Stat(object):
     @property
     def total_time_per_call(self):
         try:
-            return self.total_time / self.calls
+            return self.total_time / self.total_calls
         except ZeroDivisionError:
             return 0.0
 
     @property
     def own_time_per_call(self):
         try:
-            return self.own_time / self.calls
+            return self.own_time / self.own_calls
         except ZeroDivisionError:
             return 0.0
 
@@ -109,12 +113,21 @@ class Stat(object):
             setattr(self, attr, val)
 
     def __repr__(self):
-        class_name = type(self).__name__
+        # format name
         regular_name = self.regular_name
         name_string = '' if regular_name else "'{0}'".format(regular_name)
-        fmt = '<{0} {1}calls={2} total_time={3:.6f} own_time={4:.6f}>'
-        return fmt.format(class_name, name_string, self.calls,
-                          self.total_time, self.own_time)
+        # format calls
+        total_calls = self.total_calls
+        if self.own_calls == total_calls:
+            calls_string = str(self.own_calls)
+        else:
+            calls_string = '{0}/{1}'.format(self.own_calls, total_calls)
+        # format time
+        time_string = '{0:.6f}/{1:.6f}'.format(self.own_time, self.total_time)
+        # join all
+        class_name = type(self).__name__
+        return ('<{0} {1}calls={2} time={3}>'
+                ''.format(class_name, name_string, calls_string, time_string))
 
 
 class Statistics(Stat):
@@ -148,7 +161,7 @@ class Statistics(Stat):
     def clear(self):
         self.children.clear()
         cls = type(self)
-        self.calls = cls.calls
+        self.own_calls = cls.own_calls
         self.cpu_time = cls.cpu_time
         self.wall_time = cls.wall_time
         try:
@@ -204,7 +217,7 @@ class RecordingStat(Stat):
 
     def record_entering(self, time, frame_key=None):
         self._times_entered[frame_key] = time
-        self.calls += 1
+        self.own_calls += 1
 
     def record_leaving(self, time, frame_key=None):
         time_entered = self._times_entered.pop(frame_key)
@@ -215,7 +228,7 @@ class RecordingStat(Stat):
         self.code = None
         self.children.clear()
         cls = type(self)
-        self.calls = cls.calls
+        self.own_calls = cls.own_calls
         self.total_time = cls.total_time
         self._times_entered.clear()
 
@@ -269,7 +282,7 @@ class RecordingStatistics(RecordingStat, Statistics):
             self.wall_time = max(0, self.wall() - self._wall_time_started)
         except AttributeError:
             raise RuntimeError('Starting does not recorded.')
-        self.calls = 1
+        self.own_calls = 1
         del self._cpu_time_started
         del self._wall_time_started
 
@@ -296,11 +309,11 @@ class FrozenStat(Stat):
     """Frozen :class:`Stat` to serialize by Pickle."""
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'calls', 'total_time', 'children']
+                    'own_calls', 'total_time', 'children']
 
     def __init__(self, stat):
         super(FrozenStat, self).__init__(stat)
-        self.calls = stat.calls
+        self.own_calls = stat.own_calls
         self.total_time = stat.total_time
         self.children = list(map(type(self), stat))
 
@@ -326,7 +339,7 @@ class FrozenStatistics(FrozenStat, Statistics):
 class FlatStat(Stat):
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'calls', 'total_time', 'own_time']
+                    'own_calls', 'total_time', 'own_time']
 
     own_time = 0.0
 
@@ -346,7 +359,7 @@ class FlatStatistics(Statistics):
             except KeyError:
                 flatten_stat = FlatStat(stat)
                 registry[stat.regular_name] = flatten_stat
-            for attr in ['calls', 'total_time', 'own_time']:
+            for attr in ['own_calls', 'total_time', 'own_time']:
                 value = getattr(flatten_stat, attr) + getattr(stat, attr)
                 setattr(flatten_stat, attr, value)
             cls._flatten_stats(stat, registry=registry)
