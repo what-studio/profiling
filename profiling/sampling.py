@@ -76,4 +76,4 @@ class SamplingProfiler(Profiler):
         if event in ('call',):
             self._entered(0, code, frame_key, parent_stat)
         elif event in ('return', 'exception'):
-            self._left(1, code, frame_key, parent_stat)
+            self._left(0, code, frame_key, parent_stat)
