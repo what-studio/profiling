@@ -7,7 +7,8 @@ from six import PY3
 
 from profiling.sortkeys import by_name, by_own_calls, by_total_time_per_call
 from profiling.stats import (
-    FrozenStat, RecordingStat, RecordingStatistics, Stat, VoidRecordingStat)
+    FrozenStatistic, RecordingStatistic, RecordingStatistics, Statistic,
+    VoidRecordingStatistic)
 
 
 def mock_code(name):
@@ -20,7 +21,7 @@ def mock_code(name):
 
 
 def test_stat():
-    stat = Stat(name='foo', filename='bar', lineno=42)
+    stat = Statistic(name='foo', filename='bar', lineno=42)
     assert stat.regular_name == 'foo'
     stat.module = 'baz'
     assert stat.regular_name == 'baz:foo'
@@ -41,7 +42,7 @@ def test_recording():
     stats.wall = lambda: 10
     stats.record_starting(0)
     code = mock_code('foo')
-    stat = RecordingStat(code)
+    stat = RecordingStatistic(code)
     assert stat.name == 'foo'
     assert stat.own_calls == 0
     assert stat.total_time == 0
@@ -54,7 +55,7 @@ def test_recording():
     assert stat.own_calls == 2
     assert stat.total_time == 300
     code2 = mock_code('bar')
-    stat2 = RecordingStat(code2)
+    stat2 = RecordingStatistic(code2)
     assert code2 not in stat
     stat.add_child(code2, stat2)
     assert code2 in stat
@@ -74,7 +75,7 @@ def test_recording():
     with pytest.raises(TypeError):
         pickle.dumps(stat)
     stat3 = stat.ensure_child(mock_code('baz'))
-    assert isinstance(stat3, VoidRecordingStat)
+    assert isinstance(stat3, VoidRecordingStatistic)
     stats.wall = lambda: 2000
     stats.record_stopping(400)
     assert stats.cpu_time == 400
@@ -84,12 +85,12 @@ def test_recording():
 
 def test_frozen():
     code = mock_code('foo')
-    stat = RecordingStat(code)
+    stat = RecordingStatistic(code)
     stat.record_entering(0)
     stat.record_leaving(10)
     assert stat.name == 'foo'
     assert stat.total_time == 10
-    frozen_stat = FrozenStat(stat)
+    frozen_stat = FrozenStatistic(stat)
     with pytest.raises(AttributeError):
         frozen_stat.record_entering(0)
     assert frozen_stat.name == 'foo'
@@ -100,10 +101,10 @@ def test_frozen():
 
 
 def test_sorting():
-    stat = RecordingStat(mock_code('foo'))
-    stat1 = RecordingStat(mock_code('bar'))
-    stat2 = RecordingStat(mock_code('baz'))
-    stat3 = RecordingStat(mock_code('qux'))
+    stat = RecordingStatistic(mock_code('foo'))
+    stat1 = RecordingStatistic(mock_code('bar'))
+    stat2 = RecordingStatistic(mock_code('baz'))
+    stat3 = RecordingStatistic(mock_code('qux'))
     stat.add_child(stat1.code, stat1)
     stat.add_child(stat2.code, stat2)
     stat.add_child(stat3.code, stat3)

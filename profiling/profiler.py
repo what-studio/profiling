@@ -13,7 +13,7 @@ try:
     from . import speedup
 except ImportError:
     speedup = False
-from .stats import RecordingStat, RecordingStatistics, FrozenStatistics
+from .stats import RecordingStatistic, RecordingStatistics, FrozenStatistics
 from .timers import Timer
 
 
@@ -129,7 +129,7 @@ class Profiler(object):
         try:
             stat = parent_stat.get_child(code)
         except KeyError:
-            stat = RecordingStat(code)
+            stat = RecordingStatistic(code)
             parent_stat.add_child(code, stat)
         stat.record_entering(time, frame_key)
 

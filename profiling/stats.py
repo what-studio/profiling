@@ -3,7 +3,7 @@
     profiling.stats
     ~~~~~~~~~~~~~~~
 
-    Stat classes.
+    Statistic classes.
 
 """
 from __future__ import absolute_import, division
@@ -17,9 +17,9 @@ from six.moves import map
 from .sortkeys import by_total_time
 
 
-__all__ = ['Stat', 'Statistics', 'RecordingStat', 'RecordingStatistics',
-           'VoidRecordingStat', 'FrozenStat', 'FrozenStatistics', 'FlatStat',
-           'FlatStatistics']
+__all__ = ['Statistic', 'Statistics', 'RecordingStatistic',
+           'RecordingStatistics', 'VoidRecordingStatistic', 'FrozenStatistic',
+           'FrozenStatistics', 'FlatStatistic', 'FlatStatistics']
 
 
 def failure(funcname, message='{class} not allow {func}.', exctype=TypeError):
@@ -31,7 +31,12 @@ def failure(funcname, message='{class} not allow {func}.', exctype=TypeError):
     return func
 
 
-class Stat(object):
+# Statistic
+# CountedStatistic
+# TimedStatistic
+
+
+class Statistic(object):
     """A statistic."""
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
@@ -130,7 +135,7 @@ class Stat(object):
                 ''.format(class_name, name_string, calls_string, time_string))
 
 
-class Statistics(Stat):
+class Statistics(Statistic):
     """Thr root statistic of the statistics tree."""
 
     _state_slots = ['cpu_time', 'wall_time']
@@ -178,13 +183,13 @@ class Statistics(Stat):
         return '<{0} cpu_usage={1:.2%}>'.format(class_name, self.cpu_usage)
 
 
-class RecordingStat(Stat):
+class RecordingStatistic(Statistic):
     """Recordig statistic measures execution time of a code."""
 
     _state_slots = None
 
     def __init__(self, code=None):
-        super(RecordingStat, self).__init__()
+        super(RecordingStatistic, self).__init__()
         self.code = code
         self.children = {}
         self._times_entered = {}
@@ -215,9 +220,12 @@ class RecordingStat(Stat):
             return
         return module.__name__
 
+    def record_call(self):
+        self.own_calls += 1
+
     def record_entering(self, time, frame_key=None):
         self._times_entered[frame_key] = time
-        self.own_calls += 1
+        self.record_call()
 
     def record_leaving(self, time, frame_key=None):
         time_entered = self._times_entered.pop(frame_key)
@@ -245,7 +253,7 @@ class RecordingStat(Stat):
         try:
             return self.get_child(code)
         except KeyError:
-            stat = VoidRecordingStat(code)
+            stat = VoidRecordingStatistic(code)
             self.add_child(code, stat)
             return stat
 
@@ -262,7 +270,7 @@ class RecordingStat(Stat):
         raise TypeError('Cannot dump recording statistic.')
 
 
-class RecordingStatistics(RecordingStat, Statistics):
+class RecordingStatistics(RecordingStatistic, Statistics):
     """Thr root statistic of the recording statistics tree."""
 
     _state_slots = None
@@ -287,8 +295,8 @@ class RecordingStatistics(RecordingStat, Statistics):
         del self._wall_time_started
 
 
-class VoidRecordingStat(RecordingStat):
-    """Stat for an absent frame."""
+class VoidRecordingStatistic(RecordingStatistic):
+    """Statistic for an absent frame."""
 
     _state_slots = None
 
@@ -305,14 +313,14 @@ class VoidRecordingStat(RecordingStat):
         pass
 
 
-class FrozenStat(Stat):
-    """Frozen :class:`Stat` to serialize by Pickle."""
+class FrozenStatistic(Statistic):
+    """Frozen :class:`Statistic` to serialize by Pickle."""
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
                     'own_calls', 'total_time', 'children']
 
     def __init__(self, stat):
-        super(FrozenStat, self).__init__(stat)
+        super(FrozenStatistic, self).__init__(stat)
         self.own_calls = stat.own_calls
         self.total_time = stat.total_time
         self.children = list(map(type(self), stat))
@@ -324,19 +332,19 @@ class FrozenStat(Stat):
         return len(self.children)
 
 
-class FrozenStatistics(FrozenStat, Statistics):
+class FrozenStatistics(FrozenStatistic, Statistics):
     """Frozen :class:`Statistics` to serialize by Pickle."""
 
     _state_slots = ['cpu_time', 'wall_time', 'children']
 
     def __init__(self, stats):
-        Stat.__init__(self)
+        Statistic.__init__(self)
         self.cpu_time = stats.cpu_time
         self.wall_time = stats.wall_time
-        self.children = list(map(FrozenStat, stats))
+        self.children = list(map(FrozenStatistic, stats))
 
 
-class FlatStat(Stat):
+class FlatStatistic(Statistic):
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
                     'own_calls', 'total_time', 'own_time']
@@ -352,12 +360,12 @@ class FlatStatistics(Statistics):
     def _flatten_stats(cls, stats, registry=None):
         if registry is None:
             registry = {}
-            defaultdict(FlatStat)
+            defaultdict(FlatStatistic)
         for stat in stats:
             try:
                 flatten_stat = registry[stat.regular_name]
             except KeyError:
-                flatten_stat = FlatStat(stat)
+                flatten_stat = FlatStatistic(stat)
                 registry[stat.regular_name] = flatten_stat
             for attr in ['own_calls', 'total_time', 'own_time']:
                 value = getattr(flatten_stat, attr) + getattr(stat, attr)
@@ -366,7 +374,7 @@ class FlatStatistics(Statistics):
         return registry.values()
 
     def __init__(self, stats):
-        Stat.__init__(self)
+        Statistic.__init__(self)
         self.cpu_time = stats.cpu_time
         self.wall_time = stats.wall_time
         self.children = type(self)._flatten_stats(stats)
