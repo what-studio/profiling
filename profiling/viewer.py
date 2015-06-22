@@ -50,9 +50,9 @@ class Formatter(object):
 
     # percent
 
-    def format_percent(self, ratio, denom=1):
+    def format_percent(self, ratio, denom=1, unit=True):
         try:
-            ratio /= denom
+            ratio /= float(denom)
         except ZeroDivisionError:
             ratio = 0
         ratio = round(ratio, 4)
@@ -62,11 +62,15 @@ class Formatter(object):
             precision = 1
         else:
             precision = 2
-        return ('{:.' + str(precision) + '%}').format(ratio)
+        string = ('{:.' + str(precision) + 'f}').format(ratio * 100)
+        if unit:
+            return string + '%'
+        else:
+            return string
 
-    def attr_ratio(self, ratio, denom=1):
+    def attr_ratio(self, ratio, denom=1, unit=True):
         try:
-            ratio /= denom
+            ratio /= float(denom)
         except ZeroDivisionError:
             ratio = 0
         if ratio > 0.9:
@@ -143,13 +147,13 @@ class Formatter(object):
 fmt = Formatter()
 
 
-class StatWidget(urwid.TreeWidget):
+class StatisticWidget(urwid.TreeWidget):
 
     signals = ['expanded', 'collapsed']
     icon_chars = ('+', '-', ' ')  # collapsed, expanded, leaf
 
     def __init__(self, node):
-        super(StatWidget, self).__init__(node)
+        super(StatisticWidget, self).__init__(node)
         self._w = urwid.AttrWrap(self._w, None, StatisticsViewer.focus_map)
 
     @property
@@ -174,16 +178,34 @@ class StatWidget(urwid.TreeWidget):
         node = self.get_node()
         stat = node.get_value()
         stats = node.get_root().get_value()
+        if node.table.order is sortkeys.by_total_calls:
+            numer = stat.total_calls
+            denom = stats.total_calls
+        elif node.table.order is sortkeys.by_total_time:
+            numer = stat.total_time
+            denom = stats.cpu_time
+        elif node.table.order is sortkeys.by_total_time_per_call:
+            numer = stat.total_time_per_call
+            denom = stats.cpu_time / stats.total_calls
+        elif node.table.order is sortkeys.by_own_calls:
+            numer = stat.own_calls
+            denom = stats.total_calls
+        elif node.table.order is sortkeys.by_own_time:
+            numer = stat.own_time
+            denom = stats.cpu_time
+        elif node.table.order is sortkeys.by_own_time_per_call:
+            numer = stat.own_time_per_call
+            denom = stats.cpu_time / stats.total_calls
         return StatisticsTable.make_columns([
             fmt.make_stat_text(stat),
-            fmt.make_percent_text(stat.total_time, stats.cpu_time),
-            fmt.make_percent_text(stat.own_time, stats.cpu_time),
-            urwid.Text('{0}/{1}'.format(stat.own_calls, stat.total_calls)),
-            # fmt.make_int_or_na_text(stat.total_calls),
+            fmt.make_int_or_na_text(stat.total_calls),
             fmt.make_time_text(stat.total_time),
             fmt.make_time_text(stat.total_time_per_call),
+            fmt.make_int_or_na_text(stat.own_calls),
             fmt.make_time_text(stat.own_time),
-            fmt.make_time_text(stat.own_time_per_call)])
+            fmt.make_time_text(stat.own_time_per_call),
+            fmt.make_percent_text(numer, denom, unit=False),
+        ])
 
     def get_indented_widget(self):
         icon = self.get_mark()
@@ -227,7 +249,7 @@ class StatWidget(urwid.TreeWidget):
             key = '+'
         elif self.expanded and command == urwid.CURSOR_LEFT:
             key = '-'
-        return super(StatWidget, self).keypress(size, key)
+        return super(StatisticWidget, self).keypress(size, key)
 
 
 class EmptyWidget(urwid.Widget):
@@ -244,7 +266,7 @@ class EmptyWidget(urwid.Widget):
         return urwid.SolidCanvas(' ', size[0], self.rows(size, focus))
 
 
-class StatisticsWidget(StatWidget):
+class StatisticsWidget(StatisticWidget):
 
     def load_inner_widget(self):
         return EmptyWidget()
@@ -262,15 +284,15 @@ class StatisticsWidget(StatWidget):
         pass
 
 
-class StatNodeBase(urwid.TreeNode):
+class StatisticNodeBase(urwid.TreeNode):
 
     def __init__(self, stat=None, parent=None, key=None, depth=None,
                  table=None):
-        super(StatNodeBase, self).__init__(stat, parent, key, depth)
+        super(StatisticNodeBase, self).__init__(stat, parent, key, depth)
         self.table = table
 
     def get_focus(self):
-        widget, focus = super(StatNodeBase, self).get_focus()
+        widget, focus = super(StatisticNodeBase, self).get_focus()
         if self.table is not None:
             self.table.walker.set_focus(self)
         return widget, focus
@@ -292,7 +314,7 @@ class StatNodeBase(urwid.TreeNode):
             widget.expand()
 
 
-class NullStatWidget(StatWidget):
+class NullStatisticWidget(StatisticWidget):
 
     def __init__(self, node):
         urwid.TreeWidget.__init__(self, node)
@@ -304,17 +326,17 @@ class NullStatWidget(StatWidget):
         return widget
 
 
-class NullStatNode(StatNodeBase):
+class NullStatisticNode(StatisticNodeBase):
 
-    _widget_class = NullStatWidget
-
-
-class LeafStatNode(StatNodeBase):
-
-    _widget_class = StatWidget
+    _widget_class = NullStatisticWidget
 
 
-class StatNode(StatNodeBase, urwid.ParentNode):
+class LeafStatisticNode(StatisticNodeBase):
+
+    _widget_class = StatisticWidget
+
+
+class StatisticNode(StatisticNodeBase, urwid.ParentNode):
 
     def total_usage(self):
         stat = self.get_value()
@@ -328,13 +350,13 @@ class StatNode(StatNodeBase, urwid.ParentNode):
         if self.is_root():
             widget_class = StatisticsWidget
         else:
-            widget_class = StatWidget
+            widget_class = StatisticWidget
         widget = widget_class(self)
         widget.collapse()
         return widget
 
     def setup_widget(self, widget):
-        super(StatNode, self).setup_widget(widget)
+        super(StatisticNode, self).setup_widget(widget)
         if self.get_depth() == 0:
             # just expand the root node
             widget.expand()
@@ -353,7 +375,7 @@ class StatNode(StatNodeBase, urwid.ParentNode):
 
     def load_child_node(self, stat):
         depth = self.get_depth() + 1
-        node_class = StatNode if len(stat) else LeafStatNode
+        node_class = StatisticNode if len(stat) else LeafStatisticNode
         return node_class(stat, self, stat, depth, self.table)
 
 
@@ -382,13 +404,13 @@ class StatisticsTable(urwid.WidgetWrap):
     columns = [
         # name, align, width, order
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('TOTAL%', 'right', (6,), None),
-        ('OWN%', 'right', (6,), None),
-        ('CALLS', 'right', (6,), sortkeys.by_total_calls),
-        ('TOTAL', 'right', (10,), sortkeys.by_total_time),
+        ('TOTAL#', 'right', (6,), sortkeys.by_total_calls),
+        ('TIME', 'right', (6,), sortkeys.by_total_time),
         ('/CALL', 'right', (6,), sortkeys.by_total_time_per_call),
-        ('OWN', 'right', (10,), sortkeys.by_own_time),
+        ('OWN#', 'right', (6,), sortkeys.by_own_calls),
+        ('TIME', 'right', (6,), sortkeys.by_own_time),
         ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
+        ('%', 'right', (4,), None),
     ]
 
     #: The initial order.
@@ -407,7 +429,7 @@ class StatisticsTable(urwid.WidgetWrap):
     def __init__(self):
         cls = type(self)
         self._expanded_stat_hashes = set()
-        self.walker = StatisticsWalker(NullStatNode())
+        self.walker = StatisticsWalker(NullStatisticNode())
         on(self.walker, 'focus_changed', self._walker_focus_changed)
         tbody = StatisticsListBox(self.walker)
         thead = urwid.AttrMap(cls.make_columns([
@@ -480,7 +502,7 @@ class StatisticsTable(urwid.WidgetWrap):
     def find_node(self, node, path):
         """Finds a node by the given path from the given node."""
         for hash_value in path:
-            if isinstance(node, LeafStatNode):
+            if isinstance(node, LeafStatisticNode):
                 break
             for stat in node.get_child_keys():
                 if hash(stat) == hash_value:
@@ -536,7 +558,7 @@ class StatisticsTable(urwid.WidgetWrap):
 
     def refresh(self):
         stats = self.get_stats()
-        node = StatNode(stats, table=self)
+        node = StatisticNode(stats, table=self)
         path = self.get_path()
         node = self.find_node(node, path)
         self.set_focus(node)
@@ -679,10 +701,10 @@ class StatisticsViewer(object):
     # add thead.*.sorted palette entries
     for entry in palette[:]:
         attr = entry[0]
-        if attr is None or not attr.startswith('thead'):
-            continue
-        palette.append((attr + '.sorted', entry[1] + ', underline',
-                        entry[2], entry[3] + ', underline'))
+        if attr is not None and attr.startswith('thead'):
+            fg, bg, mono = entry[1:4]
+            palette.append((attr + '.sorted', fg + ', underline',
+                            bg, mono + ', underline'))
 
     focus_map = {None: 'focus'}
     focus_map.update((x[0], 'focus') for x in palette)
