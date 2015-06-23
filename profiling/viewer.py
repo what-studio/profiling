@@ -156,6 +156,13 @@ class StatisticWidget(urwid.TreeWidget):
         super(StatisticWidget, self).__init__(node)
         self._w = urwid.AttrWrap(self._w, None, StatisticsViewer.focus_map)
 
+    def get_indented_widget(self):
+        # don't indent at here.
+        return self.get_inner_widget()
+
+    def selectable(self):
+        return True
+
     @property
     def expanded(self):
         return self._expanded
@@ -171,8 +178,31 @@ class StatisticWidget(urwid.TreeWidget):
         else:
             urwid.emit_signal(self, 'collapsed')
 
-    def selectable(self):
-        return True
+    def get_mark(self):
+        """Gets an expanded, collapsed, or leaf icon."""
+        if self.is_leaf:
+            char = self.icon_chars[2]
+        else:
+            char = self.icon_chars[int(self.expanded)]
+        return urwid.SelectableIcon(('mark', char), 0)
+
+    def get_function_widget(self):
+        """Gets the cached function identification widget."""
+        widget = self._w.base_widget
+        return widget.widget_list[1]
+
+    def load_function_widget(self, node=None, stat=None):
+        """Creates an indented function identification widget."""
+        if node is None:
+            node = self.get_node()
+        if stat is None:
+            stat = node.get_value()
+        icon = self.get_mark()
+        indent = (node.get_depth() - 1)
+        widget = fmt.make_stat_text(stat)
+        widget = urwid.Columns([('fixed', 1, icon), widget], 1)
+        widget = urwid.Padding(widget, left=indent)
+        return widget
 
     def load_inner_widget(self):
         node = self.get_node()
@@ -198,14 +228,10 @@ class StatisticWidget(urwid.TreeWidget):
             denom = stats.cpu_time / stats.total_calls
         else:
             numer, denom = 0, 1
-        icon = self.get_mark()
-        indent = (node.get_depth() - 1)
-        subject_widget = fmt.make_stat_text(stat)
-        subject_widget = urwid.Columns([('fixed', 1, icon), subject_widget], 1)
-        subject_widget = urwid.Padding(subject_widget, left=indent)
+        function_widget = self.load_function_widget(node, stat)
         return StatisticsTable.make_columns([
             fmt.make_percent_text(numer, denom, unit=False),
-            subject_widget,
+            function_widget,
             fmt.make_int_or_na_text(stat.total_calls),
             fmt.make_time_text(stat.total_time),
             fmt.make_time_text(stat.total_time_per_call),
@@ -214,33 +240,13 @@ class StatisticWidget(urwid.TreeWidget):
             fmt.make_time_text(stat.own_time_per_call),
         ])
 
-    def get_indented_widget(self):
-        widget = self.get_inner_widget()
-        # node = self.get_node()
-        # icon = self.get_mark()
-        # widget = urwid.Columns([('fixed', 1, icon), widget], 1)
-        # indent = (node.get_depth() - 1)
-        # widget = urwid.Padding(widget, left=indent)
-        return widget
-
-    def get_mark(self):
-        if self.is_leaf:
-            char = self.icon_chars[2]
-        else:
-            char = self.icon_chars[int(self.expanded)]
-        return urwid.SelectableIcon(('mark', char), 0)
-
     def update_mark(self):
-        widget = self._w.base_widget
         try:
             icon = self.get_mark()
         except TypeError:
             return
-        widget.widget_list[1].base_widget.widget_list[0] = icon
-        # try:
-        #     widget.widget_list[0] = self.get_mark()
-        # except (AttributeError, TypeError):
-        #     pass
+        function_widget = self.get_function_widget()
+        function_widget.base_widget.widget_list[0] = icon
 
     def update_expanded_icon(self):
         self.update_mark()
@@ -282,9 +288,6 @@ class StatisticsWidget(StatisticWidget):
 
     def load_inner_widget(self):
         return EmptyWidget()
-
-    def get_indented_widget(self):
-        return self.get_inner_widget()
 
     def get_mark(self):
         raise TypeError('Statistics widget has no mark')
@@ -331,7 +334,7 @@ class NullStatisticWidget(StatisticWidget):
     def __init__(self, node):
         urwid.TreeWidget.__init__(self, node)
 
-    def get_indented_widget(self):
+    def get_inner_widget(self):
         widget = urwid.Text(('weak', '- Not Available -'), align='center')
         widget = urwid.Filler(widget)
         widget = urwid.BoxAdapter(widget, 3)
@@ -695,7 +698,7 @@ class StatisticsViewer(object):
         ('thead', 'dark cyan, standout', '', 'standout'),
         ('thead.paused', 'dark red, standout', '', 'standout'),
         ('thead.inactive', 'brown, standout', '', 'standout'),
-        ('mark', 'dark cyan', ''),
+        ('mark', 'dark magenta', ''),
         # risk
         ('danger', 'dark red', '', 'blink'),
         ('caution', 'light red', '', 'blink'),
