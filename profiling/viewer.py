@@ -196,24 +196,31 @@ class StatisticWidget(urwid.TreeWidget):
         elif node.table.order is sortkeys.by_own_time_per_call:
             numer = stat.own_time_per_call
             denom = stats.cpu_time / stats.total_calls
+        else:
+            numer, denom = 0, 1
+        icon = self.get_mark()
+        indent = (node.get_depth() - 1)
+        subject_widget = fmt.make_stat_text(stat)
+        subject_widget = urwid.Columns([('fixed', 1, icon), subject_widget], 1)
+        subject_widget = urwid.Padding(subject_widget, left=indent)
         return StatisticsTable.make_columns([
-            fmt.make_stat_text(stat),
+            fmt.make_percent_text(numer, denom, unit=False),
+            subject_widget,
             fmt.make_int_or_na_text(stat.total_calls),
             fmt.make_time_text(stat.total_time),
             fmt.make_time_text(stat.total_time_per_call),
             fmt.make_int_or_na_text(stat.own_calls),
             fmt.make_time_text(stat.own_time),
             fmt.make_time_text(stat.own_time_per_call),
-            fmt.make_percent_text(numer, denom, unit=False),
         ])
 
     def get_indented_widget(self):
-        icon = self.get_mark()
         widget = self.get_inner_widget()
-        node = self.get_node()
-        widget = urwid.Columns([('fixed', 1, icon), widget], 1)
-        indent = (node.get_depth() - 1)
-        widget = urwid.Padding(widget, left=indent)
+        # node = self.get_node()
+        # icon = self.get_mark()
+        # widget = urwid.Columns([('fixed', 1, icon), widget], 1)
+        # indent = (node.get_depth() - 1)
+        # widget = urwid.Padding(widget, left=indent)
         return widget
 
     def get_mark(self):
@@ -226,9 +233,14 @@ class StatisticWidget(urwid.TreeWidget):
     def update_mark(self):
         widget = self._w.base_widget
         try:
-            widget.widget_list[0] = self.get_mark()
-        except (AttributeError, TypeError):
-            pass
+            icon = self.get_mark()
+        except TypeError:
+            return
+        widget.widget_list[1].base_widget.widget_list[0] = icon
+        # try:
+        #     widget.widget_list[0] = self.get_mark()
+        # except (AttributeError, TypeError):
+        #     pass
 
     def update_expanded_icon(self):
         self.update_mark()
@@ -403,6 +415,7 @@ class StatisticsTable(urwid.WidgetWrap):
     #: The column declarations.
     columns = [
         # name, align, width, order
+        ('%', 'right', (4,), None),
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
         ('TOTAL#', 'right', (6,), sortkeys.by_total_calls),
         ('TIME', 'right', (6,), sortkeys.by_total_time),
@@ -410,7 +423,6 @@ class StatisticsTable(urwid.WidgetWrap):
         ('OWN#', 'right', (6,), sortkeys.by_own_calls),
         ('TIME', 'right', (6,), sortkeys.by_own_time),
         ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
-        ('%', 'right', (4,), None),
     ]
 
     #: The initial order.
