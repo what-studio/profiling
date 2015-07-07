@@ -208,36 +208,12 @@ class StatisticWidget(urwid.TreeWidget):
         node = self.get_node()
         stat = node.get_value()
         stats = node.get_root().get_value()
-        if node.table.order is sortkeys.by_total_calls:
-            numer = stat.total_calls
-            denom = stats.total_calls
-        elif node.table.order is sortkeys.by_total_time:
-            numer = stat.total_time
-            denom = stats.cpu_time
-        elif node.table.order is sortkeys.by_total_time_per_call:
-            numer = stat.total_time_per_call
-            denom = stats.cpu_time / stats.total_calls
-        elif node.table.order is sortkeys.by_own_calls:
-            numer = stat.own_calls
-            denom = stats.total_calls
-        elif node.table.order is sortkeys.by_own_time:
-            numer = stat.own_time
-            denom = stats.cpu_time
-        elif node.table.order is sortkeys.by_own_time_per_call:
-            numer = stat.own_time_per_call
-            denom = stats.cpu_time / stats.total_calls
-        else:
-            numer, denom = 0, 1
-        function_widget = self.load_function_widget(node, stat)
         return StatisticsTable.make_columns([
-            fmt.make_percent_text(numer, denom, unit=False),
-            function_widget,
-            fmt.make_int_or_na_text(stat.total_calls),
-            fmt.make_time_text(stat.total_time),
-            fmt.make_time_text(stat.total_time_per_call),
-            fmt.make_int_or_na_text(stat.own_calls),
-            fmt.make_time_text(stat.own_time),
-            fmt.make_time_text(stat.own_time_per_call),
+            self.load_function_widget(node, stat),
+            # fmt.make_int_or_na_text(stat.own_calls),
+            # fmt.make_int_or_na_text(stat.total_calls),
+            fmt.make_percent_text(stat.own_calls, stats.total_calls, False),
+            fmt.make_percent_text(stat.total_calls, stats.total_calls, False),
         ])
 
     def update_mark(self):
@@ -418,18 +394,13 @@ class StatisticsTable(urwid.WidgetWrap):
     #: The column declarations.
     columns = [
         # name, align, width, order
-        ('%', 'right', (4,), None),
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('TOTAL#', 'right', (6,), sortkeys.by_total_calls),
-        ('TIME', 'right', (6,), sortkeys.by_total_time),
-        ('/CALL', 'right', (6,), sortkeys.by_total_time_per_call),
-        ('OWN#', 'right', (6,), sortkeys.by_own_calls),
-        ('TIME', 'right', (6,), sortkeys.by_own_time),
-        ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
+        ('OWN%', 'right', (4,), sortkeys.by_own_calls),
+        ('TOT%', 'right', (4,), sortkeys.by_total_calls),
     ]
 
     #: The initial order.
-    order = sortkeys.by_total_time
+    order = sortkeys.by_total_calls
 
     #: Whether the viewer is active.
     active = False
