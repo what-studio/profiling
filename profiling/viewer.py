@@ -156,10 +156,6 @@ class StatisticWidget(urwid.TreeWidget):
         super(StatisticWidget, self).__init__(node)
         self._w = urwid.AttrWrap(self._w, None, StatisticsViewer.focus_map)
 
-    def get_indented_widget(self):
-        # don't indent at here.
-        return self.get_inner_widget()
-
     def selectable(self):
         return True
 
@@ -186,43 +182,33 @@ class StatisticWidget(urwid.TreeWidget):
             char = self.icon_chars[int(self.expanded)]
         return urwid.SelectableIcon(('mark', char), 0)
 
-    def get_function_widget(self):
-        """Gets the cached function identification widget."""
-        widget = self._w.base_widget
-        return widget.widget_list[1]
-
-    def load_function_widget(self, node=None, stat=None):
-        """Creates an indented function identification widget."""
-        if node is None:
-            node = self.get_node()
-        if stat is None:
-            stat = node.get_value()
-        icon = self.get_mark()
-        indent = (node.get_depth() - 1)
-        widget = fmt.make_stat_text(stat)
-        widget = urwid.Columns([('fixed', 1, icon), widget], 1)
-        widget = urwid.Padding(widget, left=indent)
-        return widget
-
     def load_inner_widget(self):
         node = self.get_node()
         stat = node.get_value()
         stats = node.get_root().get_value()
         return StatisticsTable.make_columns([
-            self.load_function_widget(node, stat),
+            fmt.make_stat_text(stat),
             # fmt.make_int_or_na_text(stat.own_calls),
             # fmt.make_int_or_na_text(stat.total_calls),
             fmt.make_percent_text(stat.own_calls, stats.total_calls, False),
             fmt.make_percent_text(stat.total_calls, stats.total_calls, False),
         ])
 
+    def get_indented_widget(self):
+        icon = self.get_mark()
+        widget = self.get_inner_widget()
+        node = self.get_node()
+        widget = urwid.Columns([('fixed', 1, icon), widget], 1)
+        indent = (node.get_depth() - 1)
+        widget = urwid.Padding(widget, left=indent)
+        return widget
+
     def update_mark(self):
+        widget = self._w.base_widget
         try:
-            icon = self.get_mark()
-        except TypeError:
+            widget.widget_list[0] = self.get_mark()
+        except (TypeError, AttributeError):
             return
-        function_widget = self.get_function_widget()
-        function_widget.base_widget.widget_list[0] = icon
 
     def update_expanded_icon(self):
         self.update_mark()
@@ -264,6 +250,9 @@ class StatisticsWidget(StatisticWidget):
 
     def load_inner_widget(self):
         return EmptyWidget()
+
+    def get_indented_widget(self):
+        return self.get_inner_widget()
 
     def get_mark(self):
         raise TypeError('Statistics widget has no mark')
