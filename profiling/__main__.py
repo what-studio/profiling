@@ -362,7 +362,7 @@ def live_profile(script, argv, timer, interval, spawn, signum,
     if pid == 0:
         # child
         devnull = os.open(os.devnull, os.O_RDWR)
-        for f in [sys.stdin, sys.stdout, sys.stderr]:
+        for f in [sys.stdin, sys.stdout]:
             os.dup2(devnull, f.fileno())
         frame = sys._getframe()
         from .sampling import SamplingProfiler as Profiler

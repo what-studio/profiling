@@ -9,10 +9,10 @@
 from __future__ import absolute_import, division
 from collections import defaultdict
 import inspect
+from threading import RLock
 import time
 
 from six import itervalues
-from six.moves import map
 
 from .sortkeys import by_total_time
 
@@ -193,6 +193,7 @@ class RecordingStatistic(Statistic):
         self.code = code
         self.children = {}
         self._times_entered = {}
+        self.lock = RLock()
 
     @property
     def name(self):
@@ -221,41 +222,49 @@ class RecordingStatistic(Statistic):
         return module.__name__
 
     def record_call(self):
-        self.own_calls += 1
+        with self.lock:
+            self.own_calls += 1
 
     def record_entering(self, time, frame_key=None):
-        self._times_entered[frame_key] = time
-        self.record_call()
+        with self.lock:
+            self._times_entered[frame_key] = time
+            self.record_call()
 
     def record_leaving(self, time, frame_key=None):
-        time_entered = self._times_entered.pop(frame_key)
-        time_elapsed = time - time_entered
-        self.total_time += max(0, time_elapsed)
+        with self.lock:
+            time_entered = self._times_entered.pop(frame_key)
+            time_elapsed = time - time_entered
+            self.total_time += max(0, time_elapsed)
 
     def clear(self):
-        self.code = None
-        self.children.clear()
-        cls = type(self)
-        self.own_calls = cls.own_calls
-        self.total_time = cls.total_time
-        self._times_entered.clear()
+        with self.lock:
+            self.code = None
+            self.children.clear()
+            cls = type(self)
+            self.own_calls = cls.own_calls
+            self.total_time = cls.total_time
+            self._times_entered.clear()
 
     def get_child(self, code):
-        return self.children[code]
+        with self.lock:
+            return self.children[code]
 
     def add_child(self, code, stat):
-        self.children[code] = stat
+        with self.lock:
+            self.children[code] = stat
 
     def remove_child(self, code):
-        del self.children[code]
+        with self.lock:
+            del self.children[code]
 
     def ensure_child(self, code):
-        try:
-            return self.get_child(code)
-        except KeyError:
-            stat = VoidRecordingStatistic(code)
-            self.add_child(code, stat)
-            return stat
+        with self.lock:
+            try:
+                return self.get_child(code)
+            except KeyError:
+                stat = VoidRecordingStatistic(code)
+                self.add_child(code, stat)
+                return stat
 
     def __iter__(self):
         return itervalues(self.children)
@@ -323,7 +332,12 @@ class FrozenStatistic(Statistic):
         super(FrozenStatistic, self).__init__(stat)
         self.own_calls = stat.own_calls
         self.total_time = stat.total_time
-        self.children = list(map(type(self), stat))
+        self.children = type(self)._freeze_children(stat)
+
+    @classmethod
+    def _freeze_children(cls, stat):
+        with stat.lock:
+            return [cls(s) for s in stat]
 
     def __iter__(self):
         return iter(self.children)
@@ -341,7 +355,7 @@ class FrozenStatistics(FrozenStatistic, Statistics):
         Statistic.__init__(self)
         self.cpu_time = stats.cpu_time
         self.wall_time = stats.wall_time
-        self.children = list(map(FrozenStatistic, stats))
+        self.children = FrozenStatistic._freeze_children(stats)
 
 
 class FlatStatistic(Statistic):

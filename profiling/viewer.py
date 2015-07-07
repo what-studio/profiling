@@ -385,7 +385,7 @@ class StatisticsTable(urwid.WidgetWrap):
         # name, align, width, order
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
         ('OWN%', 'right', (4,), sortkeys.by_own_calls),
-        ('TOT%', 'right', (4,), sortkeys.by_total_calls),
+        ('ALL%', 'right', (4,), sortkeys.by_total_calls),
     ]
 
     #: The initial order.

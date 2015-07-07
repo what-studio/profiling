@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import os
 import signal
 import threading
+import time
 
 from .profiler import Profiler
 from .stats import RecordingStatistic
@@ -26,14 +27,14 @@ class SignalThread(threading.Thread):
         self.daemon = True
 
     def send_signal(self):
-        try:
+        if os is not None:
             os.kill(self.pid, self.signum)
-        except AttributeError:
-            pass
 
     def run(self):
         while not self.stopper.wait(self.interval):
             self.send_signal()
+            if self.stopper.wait is None:
+                break
 
     def stop(self):
         self.stopper.set()
@@ -48,6 +49,7 @@ class SamplingProfiler(Profiler):
         frame_stack.pop()
         if not frame_stack:
             return
+        # count function call.
         parent_stat = self.stats
         for f in frame_stack:
             parent_stat = parent_stat.ensure_child(f.f_code)
@@ -60,10 +62,14 @@ class SamplingProfiler(Profiler):
         stat.record_call()
 
     def start(self):
+        self._running = True
         self.prev_handler = signal.signal(self.signum, self.handle_signal)
         self.signal_thread = SignalThread(self.signum)
         self.signal_thread.start()
+        self.stats.record_starting(time.clock())
 
     def stop(self):
+        self.stats.record_stopping(time.clock())
         signal.signal(signal.SIGALRM, self.prev_handler)
         self.signal_thread.stop()
+        self._running = False
