@@ -520,7 +520,7 @@ class StatisticsTable(urwid.WidgetWrap):
         try:
             stats, title, time = self._pending
         except AttributeError:
-            pass
+            self.activate()
         else:
             del self._pending
             self.set_stats(stats, title, time)
