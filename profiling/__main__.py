@@ -366,7 +366,7 @@ def live_profile(script, argv, timer, interval, spawn, signum,
             os.dup2(devnull, f.fileno())
         frame = sys._getframe()
         from .sampling import SamplingProfiler as Profiler
-        profiler = Profiler(timer, frame, code)
+        profiler = Profiler(frame, code)  # timer, frame, code)
         profiler_trigger = BackgroundProfilerTrigger(profiler, signum)
         profiler_trigger.prepare()
         server_args = (interval, noop, pickle_protocol)

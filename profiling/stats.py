@@ -159,9 +159,17 @@ class Statistics(Statistic):
     def total_time(self):
         return self.wall_time
 
+    @total_time.setter
+    def total_time(self, wall_time):
+        self.wall_time = wall_time
+
     @property
     def own_time(self):
         return self.cpu_time
+
+    @own_time.setter
+    def own_time(self, cpu_time):
+        self.cpu_time = cpu_time
 
     def clear(self):
         self.children.clear()

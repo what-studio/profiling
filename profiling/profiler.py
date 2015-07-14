@@ -4,42 +4,26 @@
     ~~~~~~~~~~~~~~~~~~
 """
 from __future__ import absolute_import
-from collections import deque
-import sys
-import threading
-import time
 
-try:
-    from . import speedup
-except ImportError:
-    speedup = False
-from .stats import RecordingStatistic, RecordingStatistics, FrozenStatistics
-from .timers import Timer
+from .stats import FrozenStatistics
 
 
 __all__ = ['Profiler']
 
 
 class Profiler(object):
-    """The profiler."""
+    """The base class for profiler."""
 
-    #: The CPU timer.  Usually it is an instance of :class:`profiling.timers.
-    #: Timer`.
-    timer = None
-
-    #: The root recording statistics which is an instance of :class:`profiling.
-    #: stats.RecordingStatistics`.
+    #: The root recording statistics.
     stats = None
 
-    top_frame = None
-    top_code = None
+    #: The class of the root recording statistics.
+    stats_class = NotImplemented
 
-    _running = False
+    #: The generator :meth:`run` returns.  It will be set by :meth:`start`.
+    _running = None
 
-    def __init__(self, timer=None, top_frame=None, top_code=None):
-        if timer is None:
-            timer = Timer()
-        self.timer = timer
+    def __init__(self, top_frame=None, top_code=None):
         self.top_frame = top_frame
         self.top_code = top_code
         self.clear()
@@ -55,88 +39,62 @@ class Profiler(object):
         """Gets the frozen statistics to serialize by Pickle."""
         return FrozenStatistics(self.stats)
 
-    def start(self):
-        if sys.getprofile() is not None:
-            raise RuntimeError('Another profiler already registered.')
-        self._running = True
-        sys.setprofile(self._profile)
-        threading.setprofile(self._profile)
-        self.timer.start()
-        self.stats.record_starting(time.clock())
-
-    def stop(self):
-        self.stats.record_stopping(time.clock())
-        self.timer.stop()
-        threading.setprofile(None)
-        sys.setprofile(None)
-        self._running = False
+    def clear(self):
+        """Clears or initializes the recording statistics."""
+        if self.stats is None:
+            self.stats = self.stats_class()
+        else:
+            self.stats.clear()
 
     def is_running(self):
         """Whether the profiler is running."""
-        return self._running
+        return self._running is not None
 
-    def clear(self):
-        """Clears or initializes the recording statistics."""
+    def start(self):
+        """Starts the profiler.
+
+        :raises RuntimeError: the profiler has been already started.
+        :raises TypeError: :meth:`run` is not canonical.
+
+        """
+        if self.is_running():
+            raise RuntimeError('Already started')
+        self._running = self.run()
         try:
-            self.stats.clear()
-        except AttributeError:
-            self.stats = RecordingStatistics()
+            yielded = next(self._running)
+        except StopIteration:
+            raise TypeError('run() must yield just one time')
+        if yielded is not None:
+            raise TypeError('run() must yield without value')
 
-    if speedup:
-        def _frame_stack(self, frame):
-            """Returns a deque of frame stack."""
-            return speedup.frame_stack(frame, self.top_frame, self.top_code)
-    else:
-        def _frame_stack(self, frame):
-            """Returns a deque of frame stack."""
-            frame_stack = deque()
-            top_frame = self.top_frame
-            top_code = self.top_code
-            while frame is not None:
-                frame_stack.appendleft(frame)
-                if frame is top_frame or frame.f_code is top_code:
-                    break
-                frame = frame.f_back
-            return frame_stack
+    def stop(self):
+        """Stops the profiler.
 
-    def _profile(self, frame, event, arg):
-        """The callback function to register by :func:`sys.setprofile`."""
-        time = self.timer()
-        if event.startswith('c_'):
-            return
-        frame_stack = self._frame_stack(frame)
-        frame_stack.pop()
-        if not frame_stack:
-            return
-        parent_stat = self.stats
-        for f in frame_stack:
-            parent_stat = parent_stat.ensure_child(f.f_code)
-        code = frame.f_code
-        frame_key = id(frame)
-        # if c:
-        #     event = event[2:]
-        #     code = mock_code(arg.__name__)
-        #     frame_key = id(arg)
-        # record
-        if event in ('call',):
-            time = self.timer()
-            self._entered(time, code, frame_key, parent_stat)
-        elif event in ('return', 'exception'):
-            self._left(time, code, frame_key, parent_stat)
+        :raises RuntimeError: the profiler has not been started.
+        :raises TypeError: :meth:`run` is not canonical.
 
-    def _entered(self, time, code, frame_key, parent_stat):
-        """Entered to a function call."""
+        """
+        if not self.is_running():
+            raise RuntimeError('Not started')
         try:
-            stat = parent_stat.get_child(code)
-        except KeyError:
-            stat = RecordingStatistic(code)
-            parent_stat.add_child(code, stat)
-        stat.record_entering(time, frame_key)
-
-    def _left(self, time, code, frame_key, parent_stat):
-        """Left from a function call."""
-        try:
-            stat = parent_stat.get_child(code)
-            stat.record_leaving(time, frame_key)
-        except KeyError:
+            next(self._running)
+        except StopIteration:
+            # expected.
             pass
+        else:
+            raise TypeError('run() must yield just one time')
+        finally:
+            self._running = None
+
+    def run(self):
+        """Override it to implement the starting and stopping behavior.
+
+        An overriding method must be a generator function which yields just one
+        time without any value.  :meth:`start` creates and iterates once the
+        generator it returns.  Then :meth:`stop` will iterates again.
+
+        :raises NotImplementedError: :meth:`run` is not overridden.
+
+        """
+        raise NotImplementedError('Implement run()')
+        yield

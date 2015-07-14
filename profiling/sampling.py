@@ -10,7 +10,8 @@ import threading
 import time
 
 from .profiler import Profiler
-from .stats import RecordingStatistic
+from .stats import RecordingStatistic, RecordingStatistics
+from .util import frame_stack
 
 
 __all__ = ['SamplingProfiler']
@@ -42,16 +43,18 @@ class SignalThread(threading.Thread):
 
 class SamplingProfiler(Profiler):
 
+    stats_class = RecordingStatistics
+
     signum = signal.SIGALRM
 
     def handle_signal(self, signum, frame):
-        frame_stack = self._frame_stack(frame)
-        frame_stack.pop()
-        if not frame_stack:
+        frames = frame_stack(frame, self.top_frame, self.top_code)
+        frames.pop()
+        if not frames:
             return
         # count function call.
         parent_stat = self.stats
-        for f in frame_stack:
+        for f in frames:
             parent_stat = parent_stat.ensure_child(f.f_code)
         code = frame.f_code
         try:
@@ -61,15 +64,12 @@ class SamplingProfiler(Profiler):
             parent_stat.add_child(code, stat)
         stat.record_call()
 
-    def start(self):
-        self._running = True
+    def run(self):
         self.prev_handler = signal.signal(self.signum, self.handle_signal)
         self.signal_thread = SignalThread(self.signum)
         self.signal_thread.start()
         self.stats.record_starting(time.clock())
-
-    def stop(self):
+        yield
         self.stats.record_stopping(time.clock())
         signal.signal(signal.SIGALRM, self.prev_handler)
         self.signal_thread.stop()
-        self._running = False
