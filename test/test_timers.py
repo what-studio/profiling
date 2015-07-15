@@ -63,7 +63,12 @@ def test_yappi_timer():
 
 @pytest.mark.xfail(PYPY, reason='greenlet.settrace() not available on PyPy.')
 def test_greenlet_timer_with_gevent():
-    gevent = pytest.importorskip('gevent', '1')
+    try:
+        gevent = pytest.importorskip('gevent', '1')
+    except ValueError:
+        # gevent Alpha versions doesn't respect Semantic Versioning.
+        gevent = pytest.importorskip('gevent')
+        assert gevent.__version__.startswith('1.1a')
     _test_contextual_timer(GreenletTimer(), gevent.sleep, gevent.spawn)
 
 

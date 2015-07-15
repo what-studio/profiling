@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from contextlib import contextmanager
+from textwrap import dedent
 
 
-__all__ = ['profiling', 'find_stats', 'find_stat', 'factorial']
+__all__ = ['profiling', 'find_stats', 'find_stat', 'factorial',
+           'mock_code_names']
 
 
 @contextmanager
@@ -39,3 +41,17 @@ def factorial(n):
         f *= n
         n -= 1
     return f
+
+
+foo = None  # placeheolder
+mock_code_names = ['foo', 'bar', 'baz']
+for name, next_name in zip(mock_code_names[:-1], mock_code_names[1:]):
+    exec(dedent('''
+    def {0}():
+        return {1}()
+    ''').format(name, next_name))
+exec('''
+def {0}():
+    return __import__('sys')._getframe()
+'''.format(mock_code_names[-1]))
+__all__.extend(mock_code_names)
