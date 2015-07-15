@@ -20,6 +20,9 @@ class Profiler(object):
     #: The class of the root recording statistics.
     stats_class = NotImplemented
 
+    top_frame = None
+    top_code = None
+
     #: The generator :meth:`run` returns.  It will be set by :meth:`start`.
     _running = None
 
@@ -98,3 +101,15 @@ class Profiler(object):
         """
         raise NotImplementedError('Implement run()')
         yield
+
+
+class ProfilerWrapper(Profiler):
+
+    for attr in ['stats', 'stats_class', 'top_frame', 'top_code',
+                 'result', 'clear', 'is_running']:
+        f = lambda self, attr=attr: getattr(self.profiler, attr)
+        locals()[attr] = property(f)
+        del f
+
+    def __init__(self, profiler):
+        self.profiler = profiler

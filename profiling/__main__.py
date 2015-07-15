@@ -32,7 +32,7 @@ from six import PY2, exec_
 
 from .profiler import Profiler
 from .remote import INTERVAL, PICKLE_PROTOCOL, recv_stats
-from .remote.background import SIGNUM, BackgroundProfilerTrigger
+from .remote.background import SIGNUM, BackgroundProfiler
 from .remote.errnos import ENOENT, ECONNREFUSED, EINPROGRESS
 from .remote.select import SelectProfilingServer
 from .viewer import StatisticsViewer
@@ -367,7 +367,7 @@ def live_profile(script, argv, timer, interval, spawn, signum,
         frame = sys._getframe()
         from .sampling import SamplingProfiler as Profiler
         profiler = Profiler(frame, code)  # timer, frame, code)
-        profiler_trigger = BackgroundProfilerTrigger(profiler, signum)
+        profiler_trigger = BackgroundProfiler(profiler, signum)
         profiler_trigger.prepare()
         server_args = (interval, noop, pickle_protocol)
         server = SelectProfilingServer(None, profiler_trigger, *server_args)
@@ -422,7 +422,7 @@ def remote_profile(script, argv, timer, interval, spawn, signum,
     # start profiling server.
     frame = sys._getframe()
     profiler = Profiler(timer, frame, code)
-    profiler_trigger = BackgroundProfilerTrigger(profiler, signum)
+    profiler_trigger = BackgroundProfiler(profiler, signum)
     profiler_trigger.prepare()
     server_args = (interval, log, pickle_protocol)
     server = SelectProfilingServer(listener, profiler_trigger, *server_args)
