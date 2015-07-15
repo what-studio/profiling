@@ -4,8 +4,8 @@ import sys
 import pytest
 import six
 
-from profiling.profiler import Profiler
 from profiling.stats import FrozenStatistics, RecordingStatistics
+from profiling.tracing import TracingProfiler
 from utils import factorial, find_stat, foo, profiling
 
 
@@ -14,7 +14,7 @@ if six.PY3:
 
 
 def test_setprofile():
-    profiler = Profiler()
+    profiler = TracingProfiler()
     assert sys.getprofile() is None
     profiler.start()
     assert sys.getprofile() == profiler._profile
@@ -27,7 +27,7 @@ def test_setprofile():
 
 
 def test_profile():
-    profiler = Profiler()
+    profiler = TracingProfiler()
     frame = foo()
     profiler._profile(frame, 'call', None)
     profiler._profile(frame, 'return', None)
@@ -44,7 +44,7 @@ def test_profile():
 
 
 def test_profiler():
-    profiler = Profiler(top_frame=sys._getframe())
+    profiler = TracingProfiler(top_frame=sys._getframe())
     assert isinstance(profiler.stats, RecordingStatistics)
     assert isinstance(profiler.result(), FrozenStatistics)
     assert len(profiler.stats) == 0

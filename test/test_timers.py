@@ -5,9 +5,9 @@ import time
 import pytest
 
 from profiling.__main__ import spawn_thread
-from profiling.profiler import Profiler
 from profiling.timers.greenlet import GreenletTimer
 from profiling.timers.thread import ThreadTimer, YappiTimer
+from profiling.tracing import TracingProfiler
 from utils import factorial, find_stat, profiling
 
 
@@ -39,13 +39,13 @@ def _test_contextual_timer(timer, sleep, spawn, join=lambda x: x.join()):
         return (stat1, stat2)
     # using the default timer.
     # light() ends later than heavy().  its total time includes heavy's also.
-    normal_profiler = Profiler(top_frame=sys._getframe())
+    normal_profiler = TracingProfiler(top_frame=sys._getframe())
     stat1, stat2 = profile(normal_profiler)
     assert stat1.total_time >= stat2.total_time
     # using the given timer.
     # light() ends later than heavy() like the above case.  but the total time
     # doesn't include heavy's.  each contexts should have isolated cpu time.
-    contextual_profiler = Profiler(timer, top_frame=sys._getframe())
+    contextual_profiler = TracingProfiler(timer, top_frame=sys._getframe())
     stat1, stat2 = profile(contextual_profiler)
     assert stat1.total_time < stat2.total_time
 

@@ -36,6 +36,8 @@ class TracingProfiler(Profiler):
         super(TracingProfiler, self).__init__(top_frame, top_code)
 
     def run(self):
+        if sys.getprofile() is not None:
+            raise RuntimeError('Another profiler already registered.')
         sys.setprofile(self._profile)
         threading.setprofile(self._profile)
         self.timer.start()
