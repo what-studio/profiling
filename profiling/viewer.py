@@ -310,11 +310,11 @@ class LeafStatisticNode(StatisticNodeBase):
 
 class StatisticNode(StatisticNodeBase, urwid.ParentNode):
 
-    def total_usage(self):
+    def all_usage(self):
         stat = self.get_value()
         stats = self.get_root().get_value()
         try:
-            return stat.total_time / stats.cpu_time
+            return stat.all_time / stats.cpu_time
         except AttributeError:
             return 0.0
 
@@ -486,7 +486,7 @@ class StatisticsTable(urwid.WidgetWrap):
             self.activate()
             self.refresh()
 
-    def sort_stats(self, order=sortkeys.by_total_time):
+    def sort_stats(self, order=sortkeys.by_all_time):
         assert callable(order)
         self.order = order
         self.refresh()
@@ -642,14 +642,14 @@ class TracingStatisticsTable(StatisticsTable):
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
         ('OWN', 'right', (10,), sortkeys.by_own_time),
         ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
-        ('ALL', 'right', (10,), sortkeys.by_total_time),
-        ('/CALL', 'right', (6,), sortkeys.by_total_time_per_call),
+        ('ALL', 'right', (10,), sortkeys.by_all_time),
+        ('/CALL', 'right', (6,), sortkeys.by_all_time_per_call),
         ('OWN%', 'right', (4,), None),
         ('ALL%', 'right', (4,), None),
-        ('CALLS', 'right', (6,), sortkeys.by_total_calls),
+        ('CALLS', 'right', (6,), sortkeys.by_all_calls),
     ]
 
-    order = sortkeys.by_total_time
+    order = sortkeys.by_all_time
 
     def make_row(self, node):
         stat = node.get_value()
@@ -658,11 +658,11 @@ class TracingStatisticsTable(StatisticsTable):
             fmt.make_stat_text(stat),
             fmt.make_time_text(stat.own_time),
             fmt.make_time_text(stat.own_time_per_call),
-            fmt.make_time_text(stat.total_time),
-            fmt.make_time_text(stat.total_time_per_call),
+            fmt.make_time_text(stat.all_time),
+            fmt.make_time_text(stat.all_time_per_call),
             fmt.make_percent_text(stat.own_time, stats.cpu_time, False),
-            fmt.make_percent_text(stat.total_time, stats.cpu_time, False),
-            fmt.make_int_or_na_text(stat.total_calls),
+            fmt.make_percent_text(stat.all_time, stats.cpu_time, False),
+            fmt.make_int_or_na_text(stat.all_calls),
         ])
 
 
@@ -671,18 +671,18 @@ class SamplingStatisticsTable(StatisticsTable):
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
         ('OWN%', 'right', (4,), sortkeys.by_own_calls),
-        ('ALL%', 'right', (4,), sortkeys.by_total_calls),
+        ('ALL%', 'right', (4,), sortkeys.by_all_calls),
     ]
 
-    order = sortkeys.by_total_calls
+    order = sortkeys.by_all_calls
 
     def make_row(self, node):
         stat = node.get_value()
         stats = node.get_root().get_value()
         return self.make_columns([
             fmt.make_stat_text(stat),
-            fmt.make_percent_text(stat.own_calls, stats.total_calls, False),
-            fmt.make_percent_text(stat.total_calls, stats.total_calls, False),
+            fmt.make_percent_text(stat.own_calls, stats.all_calls, False),
+            fmt.make_percent_text(stat.all_calls, stats.all_calls, False),
         ])
 
 

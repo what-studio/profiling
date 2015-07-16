@@ -38,9 +38,9 @@ def test_profile():
     assert stat1.own_calls == 0
     assert stat2.own_calls == 0
     assert stat3.own_calls == 1
-    assert stat1.total_calls == 1
-    assert stat2.total_calls == 1
-    assert stat3.total_calls == 1
+    assert stat1.all_calls == 1
+    assert stat2.all_calls == 1
+    assert stat3.all_calls == 1
 
 
 def test_profiler():
@@ -54,8 +54,8 @@ def test_profiler():
     stat1 = find_stat(profiler.stats, 'factorial')
     stat2 = find_stat(profiler.stats, '__enter__')
     stat3 = find_stat(profiler.stats, '__exit__')
-    assert stat1.total_time != 0
-    assert stat1.total_time == stat1.own_time
+    assert stat1.all_time != 0
+    assert stat1.all_time == stat1.own_time
     assert stat1.own_time > stat2.own_time
     assert stat1.own_time > stat3.own_time
     assert stat1.own_calls == 2

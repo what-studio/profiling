@@ -41,13 +41,13 @@ def _test_contextual_timer(timer, sleep, spawn, join=lambda x: x.join()):
     # light() ends later than heavy().  its total time includes heavy's also.
     normal_profiler = TracingProfiler(top_frame=sys._getframe())
     stat1, stat2 = profile(normal_profiler)
-    assert stat1.total_time >= stat2.total_time
+    assert stat1.all_time >= stat2.all_time
     # using the given timer.
     # light() ends later than heavy() like the above case.  but the total time
     # doesn't include heavy's.  each contexts should have isolated cpu time.
     contextual_profiler = TracingProfiler(timer, top_frame=sys._getframe())
     stat1, stat2 = profile(contextual_profiler)
-    assert stat1.total_time < stat2.total_time
+    assert stat1.all_time < stat2.all_time
 
 
 @pytest.mark.xfail(sys.version_info < (3, 3),
