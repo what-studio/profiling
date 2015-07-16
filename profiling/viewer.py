@@ -184,15 +184,7 @@ class StatisticWidget(urwid.TreeWidget):
 
     def load_inner_widget(self):
         node = self.get_node()
-        stat = node.get_value()
-        stats = node.get_root().get_value()
-        return StatisticsTable.make_columns([
-            fmt.make_stat_text(stat),
-            # fmt.make_int_or_na_text(stat.own_calls),
-            # fmt.make_int_or_na_text(stat.total_calls),
-            fmt.make_percent_text(stat.own_calls, stats.total_calls, False),
-            fmt.make_percent_text(stat.total_calls, stats.total_calls, False),
-        ])
+        return node.table.make_row(node)
 
     def get_indented_widget(self):
         icon = self.get_mark()
@@ -380,16 +372,12 @@ class StatisticsWalker(urwid.TreeWalker):
 
 class StatisticsTable(urwid.WidgetWrap):
 
-    #: The column declarations.
-    columns = [
-        # name, align, width, order
-        ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('OWN%', 'right', (4,), sortkeys.by_own_calls),
-        ('ALL%', 'right', (4,), sortkeys.by_total_calls),
-    ]
+    #: The column declarations.  Define it with a list of (name, align, width,
+    #: order) tuples.
+    columns = NotImplemented
 
     #: The initial order.
-    order = sortkeys.by_total_calls
+    order = NotImplemented
 
     #: Whether the viewer is active.
     active = False
@@ -648,6 +636,56 @@ class StatisticsTable(urwid.WidgetWrap):
         self._expanded_stat_hashes.discard(hash(stat))
 
 
+class TracingStatisticsTable(StatisticsTable):
+
+    columns = [
+        ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
+        ('OWN', 'right', (10,), sortkeys.by_own_time),
+        ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
+        ('ALL', 'right', (10,), sortkeys.by_total_time),
+        ('/CALL', 'right', (6,), sortkeys.by_total_time_per_call),
+        ('OWN%', 'right', (4,), None),
+        ('ALL%', 'right', (4,), None),
+        ('CALLS', 'right', (6,), sortkeys.by_total_calls),
+    ]
+
+    order = sortkeys.by_total_time
+
+    def make_row(self, node):
+        stat = node.get_value()
+        stats = node.get_root().get_value()
+        return self.make_columns([
+            fmt.make_stat_text(stat),
+            fmt.make_time_text(stat.own_time),
+            fmt.make_time_text(stat.own_time_per_call),
+            fmt.make_time_text(stat.total_time),
+            fmt.make_time_text(stat.total_time_per_call),
+            fmt.make_percent_text(stat.own_time, stats.cpu_time, False),
+            fmt.make_percent_text(stat.total_time, stats.cpu_time, False),
+            fmt.make_int_or_na_text(stat.total_calls),
+        ])
+
+
+class SamplingStatisticsTable(StatisticsTable):
+
+    columns = [
+        ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
+        ('OWN%', 'right', (4,), sortkeys.by_own_calls),
+        ('ALL%', 'right', (4,), sortkeys.by_total_calls),
+    ]
+
+    order = sortkeys.by_total_calls
+
+    def make_row(self, node):
+        stat = node.get_value()
+        stats = node.get_root().get_value()
+        return self.make_columns([
+            fmt.make_stat_text(stat),
+            fmt.make_percent_text(stat.own_calls, stats.total_calls, False),
+            fmt.make_percent_text(stat.total_calls, stats.total_calls, False),
+        ])
+
+
 class StatisticsViewer(object):
 
     weak_color = 'light green'
@@ -689,7 +727,7 @@ class StatisticsViewer(object):
             raise urwid.ExitMainLoop()
 
     def __init__(self):
-        self.table = StatisticsTable()
+        self.table = SamplingStatisticsTable()
         self.widget = urwid.Padding(self.table, right=1)
 
     def loop(self, *args, **kwargs):
