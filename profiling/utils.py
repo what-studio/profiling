@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.util
-    ~~~~~~~~~~~~~~
+    profiling.utils
+    ~~~~~~~~~~~~~~~
 """
 from __future__ import absolute_import
 from collections import deque

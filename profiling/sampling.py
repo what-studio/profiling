@@ -11,7 +11,7 @@ import time
 
 from .profiler import Profiler
 from .stats import RecordingStatistic, RecordingStatistics
-from .util import frame_stack
+from .utils import frame_stack
 
 
 __all__ = ['SamplingProfiler']

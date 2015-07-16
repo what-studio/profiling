@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from collections import deque
 
-from profiling.util import frame_stack
+from profiling.utils import frame_stack
 from utils import foo, mock_code_names
 
 
