@@ -19,6 +19,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import re
 import signal
 import socket
 from stat import S_ISREG, S_ISSOCK
@@ -120,7 +121,7 @@ def spawn(mode, func, *args, **kwargs):
         mode = 'thread'
     elif mode not in spawn.modes:
         # validate the given mode.
-        raise ValueError('Invalid spawn mode: {0}'.format(mode))
+        raise ValueError('Invalid spawn mode: %s' % mode)
     if mode == 'thread':
         return spawn_thread(func, *args, **kwargs)
     elif mode == 'gevent':
@@ -133,6 +134,11 @@ def spawn(mode, func, *args, **kwargs):
 
 
 spawn.modes = ['thread', 'gevent', 'eventlet']
+
+
+def import_(module_name, name):
+    module = importlib.import_module(module_name, __package__)
+    return getattr(module, name)
 
 
 #: Just returns the first argument.
@@ -161,34 +167,48 @@ class Script(click.File):
         return 'PYTHON'
 
 
-class Timer(click.ParamType):
-    """A parameter type to choose profiling timer."""
+class ProfilerFactory(click.ParamType):
 
+    profilers = {
+        # profiler key: (module name, class name)
+        'tracing': ('.tracing', 'TracingProfiler'),
+        'sampling': ('.sampling', 'SamplingProfiler'),
+    }
     timers = {
-        # timer name: (timer module name, timer class name)
-        None: ('.timers', 'Timer'),
+        # timer key: (module name, class name)
+        'default': ('.timers', 'Timer'),
         'thread': ('.timers.thread', 'ThreadTimer'),
         'yappi': ('.timers.thread', 'YappiTimer'),
         'greenlet': ('.timers.greenlet', 'GreenletTimer'),
     }
-
-    def import_timer_class(self, name):
-        try:
-            module_name, class_name = self.timers[name]
-        except KeyError:
-            raise ValueError('No such timer: {0}'.format(name))
-        module = importlib.import_module(module_name, __package__)
-        timer_class = getattr(module, class_name)
-        return timer_class
+    timers[None] = timers['default']
+    default = 'tracing'
 
     def convert(self, value, param, ctx):
-        if value == 'default':
-            value = None
-        timer_class = self.import_timer_class(value)
-        return timer_class()
+        m = re.match(r'^(.*?)(?::(.*?))?$', value)
+        if m is None:
+            self.fail('Invalid profiler expression: %s' % value)
+        profiler_key, timer_key = m.groups()
+        return self.make(profiler_key, timer_key)
+
+    def make(self, profiler_key, timer_key=None):
+        """Makes a profiler factory."""
+        try:
+            profiler_class = import_(*self.profilers[profiler_key])
+        except KeyError:
+            self.fail('No such profiler: %s' % profiler_key)
+        if not hasattr(profiler_class, 'timer'):
+            # doesn't require timer.
+            return profiler_class
+        try:
+            timer_class = import_(*self.timers[timer_key])
+        except KeyError:
+            self.fail('No such timer: %s' % timer_key)
+        timer = timer_class()
+        return partial(profiler_class, timer)
 
     def get_metavar(self, param):
-        return 'TIMER'
+        return 'PROFILER[:TIMER]'
 
 
 class Address(click.ParamType):
@@ -264,8 +284,9 @@ profiler_arguments = Params([
     click.argument('argv', nargs=-1),
 ])
 profiler_options = Params([
-    click.option('-t', '--timer', type=Timer(),
-                 help='Choose CPU time measurer.'),
+    click.option('-p', '--profiler', 'profiler_factory',
+                 type=ProfilerFactory(), default=ProfilerFactory.default,
+                 help='Choose profiler.'),
     click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
                  help='Pickle protocol to dump profiling result.'),
 ])
@@ -289,11 +310,11 @@ live_profiler_options = Params([
 # sub-commands
 
 
-def __profile__(filename, code, globals_,
-                timer=None, pickle_protocol=PICKLE_PROTOCOL,
-                dump_filename=None, mono=False):
+def __profile__(filename, code, globals_, profiler_factory,
+                pickle_protocol=PICKLE_PROTOCOL, dump_filename=None,
+                mono=False):
     frame = sys._getframe()
-    profiler = Profiler(timer, top_frame=frame, top_code=code)
+    profiler = profiler_factory(top_frame=frame, top_code=code)
     profiler.start()
     try:
         exec_(code, globals_)
@@ -338,13 +359,14 @@ class ProfilingCommand(click.Command):
 @profiler_options
 @onetime_profiler_options
 @viewer_options
-def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
+def profile(script, argv, profiler_factory,
+            pickle_protocol, dump_filename, mono):
     """Profile a Python script."""
     filename, code, globals_ = script
     sys.argv[:] = [filename] + list(argv)
-    __profile__(filename, code, globals_,
-                timer=timer, pickle_protocol=pickle_protocol,
-                dump_filename=dump_filename, mono=mono)
+    __profile__(filename, code, globals_, profiler_factory,
+                pickle_protocol=pickle_protocol, dump_filename=dump_filename,
+                mono=mono)
 
 
 @cli.command('live-profile', cls=ProfilingCommand)
@@ -352,7 +374,7 @@ def profile(script, argv, timer, pickle_protocol, dump_filename, mono):
 @profiler_options
 @live_profiler_options
 @viewer_options
-def live_profile(script, argv, timer, interval, spawn, signum,
+def live_profile(script, argv, profiler_factory, interval, spawn, signum,
                  pickle_protocol, mono):
     """Profile a Python script continuously."""
     filename, code, globals_ = script
@@ -365,8 +387,7 @@ def live_profile(script, argv, timer, interval, spawn, signum,
         for f in [sys.stdin, sys.stdout]:
             os.dup2(devnull, f.fileno())
         frame = sys._getframe()
-        from .sampling import SamplingProfiler as Profiler
-        profiler = Profiler(frame, code)  # timer, frame, code)
+        profiler = profiler_factory(top_frame=frame, top_code=code)
         profiler_trigger = BackgroundProfiler(profiler, signum)
         profiler_trigger.prepare()
         server_args = (interval, noop, pickle_protocol)
@@ -400,7 +421,7 @@ def live_profile(script, argv, timer, interval, spawn, signum,
               help='IP address to serve profiling results.')
 @click.option('-v', '--verbose', is_flag=True,
               help='Print profiling server logs.')
-def remote_profile(script, argv, timer, interval, spawn, signum,
+def remote_profile(script, argv, profiler_factory, interval, spawn, signum,
                    pickle_protocol, addr, verbose):
     """Launch a server to profile continuously.  The default address is
     127.0.0.1:8912.
@@ -421,7 +442,7 @@ def remote_profile(script, argv, timer, interval, spawn, signum,
         log = noop
     # start profiling server.
     frame = sys._getframe()
-    profiler = Profiler(timer, frame, code)
+    profiler = profiler_factory(top_frame=frame, top_code=code)
     profiler_trigger = BackgroundProfiler(profiler, signum)
     profiler_trigger.prepare()
     server_args = (interval, log, pickle_protocol)
@@ -473,7 +494,8 @@ def view(src, mono):
 @onetime_profiler_options
 @viewer_options
 def timeit_profile(stmt, number, repeat, setup,
-                   timer, pickle_protocol, dump_filename, mono, **_ignored):
+                   profiler_factory, pickle_protocol, dump_filename, mono,
+                   **_ignored):
     """Profile a Python statement like timeit."""
     del _ignored
     sys.path.insert(0, os.curdir)
@@ -494,9 +516,9 @@ def timeit_profile(stmt, number, repeat, setup,
         del dummy_profiler
     code = compile('for _ in range(%d): %s' % (number, stmt),
                    'STATEMENT', 'exec')
-    __profile__(stmt, code, globals_,
-                timer=timer, pickle_protocol=pickle_protocol,
-                dump_filename=dump_filename, mono=mono)
+    __profile__(stmt, code, globals_, profiler_factory,
+                pickle_protocol=pickle_protocol, dump_filename=dump_filename,
+                mono=mono)
 
 
 # profiling clients for urwid
@@ -564,7 +586,7 @@ class FailoverProfilingClient(ProfilingClient):
             self.create_connection(self.failover_interval)
             return
         else:
-            raise ValueError('Unexpected socket errno: {0}'.format(errno))
+            raise ValueError('Unexpected socket errno: %d' % errno)
         self.event_loop.watch_file(self.sock.fileno(), self.handle)
 
     def disconnect(self, errno):

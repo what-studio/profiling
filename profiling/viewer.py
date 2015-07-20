@@ -24,6 +24,8 @@ import urwid
 from urwid import connect_signal as on
 
 from . import sortkeys
+from .sampling import SamplingProfiler
+from .tracing import TracingProfiler
 
 
 __all__ = ['StatisticsTable', 'StatisticsViewer']
@@ -736,7 +738,14 @@ class StatisticsViewer(object):
         return loop
 
     def set_stats(self, stats, title=None, time=None):
+        if issubclass(stats.profiler_class, SamplingProfiler):
+            if not isinstance(self.table, SamplingStatisticsTable):
+                self.table = SamplingStatisticsTable()
+        elif issubclass(stats.profiler_class, TracingProfiler):
+            if not isinstance(self.table, TracingStatisticsTable):
+                self.table = TracingStatisticsTable()
         self.table.set_stats(stats, title, time)
+        self.widget.original_widget = self.table
 
     def activate(self):
         return self.table.activate()

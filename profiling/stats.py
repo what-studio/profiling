@@ -357,13 +357,14 @@ class FrozenStatistic(Statistic):
 class FrozenStatistics(FrozenStatistic, Statistics):
     """Frozen :class:`Statistics` to serialize by Pickle."""
 
-    _state_slots = ['cpu_time', 'wall_time', 'children']
+    _state_slots = ['cpu_time', 'wall_time', 'children', 'profiler_class']
 
-    def __init__(self, stats):
+    def __init__(self, stats, profiler_class=None):
         Statistic.__init__(self)
         self.cpu_time = stats.cpu_time
         self.wall_time = stats.wall_time
         self.children = FrozenStatistic._freeze_children(stats)
+        self.profiler_class = profiler_class
 
 
 class FlatStatistic(Statistic):
