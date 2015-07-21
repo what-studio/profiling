@@ -12,14 +12,13 @@
 """
 from __future__ import absolute_import
 from datetime import datetime
-from functools import partial
+from functools import partial, wraps
 import importlib
 import os
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import re
 import signal
 import socket
 from stat import S_ISREG, S_ISSOCK
@@ -136,16 +135,47 @@ def spawn(mode, func, *args, **kwargs):
 spawn.modes = ['thread', 'gevent', 'eventlet']
 
 
-def import_(module_name, name):
-    module = importlib.import_module(module_name, __package__)
-    return getattr(module, name)
-
-
 #: Just returns the first argument.
 noop = lambda x: x
 
 
+def import_(module_name, name):
+    """Imports an object by a relative module path::
+
+       Profiler = import_('.profiler', 'Profiler')
+
+    """
+    module = importlib.import_module(module_name, __package__)
+    return getattr(module, name)
+
+
+#: Makes a function which import an object by :func:`import_` lazily.
+importer = lambda module_name, name: partial(import_, module_name, name)
+
+
 # custom parameter types
+
+
+class TimerClass(click.ParamType):
+    """A parameter type to choose profiling timer."""
+
+    timers = {
+        # timer name: (timer module name, timer class name)
+        'default': ('.timers', 'Timer'),
+        'thread': ('.timers.thread', 'ThreadTimer'),
+        'yappi': ('.timers.thread', 'YappiTimer'),
+        'greenlet': ('.timers.greenlet', 'GreenletTimer'),
+    }
+
+    def convert(self, value, param, ctx):
+        try:
+            return import_(*self.timers[value])
+        except KeyError:
+            self.fail('No such timer: %s' % value)
+
+    def get_metavar(self, param):
+        # return '[' + '|'.join(self.timers.keys()) + ']'
+        return 'TIMER'
 
 
 class Script(click.File):
@@ -165,50 +195,6 @@ class Script(click.File):
 
     def get_metavar(self, param):
         return 'PYTHON'
-
-
-class ProfilerFactory(click.ParamType):
-
-    profilers = {
-        # profiler key: (module name, class name)
-        'tracing': ('.tracing', 'TracingProfiler'),
-        'sampling': ('.sampling', 'SamplingProfiler'),
-    }
-    timers = {
-        # timer key: (module name, class name)
-        'default': ('.timers', 'Timer'),
-        'thread': ('.timers.thread', 'ThreadTimer'),
-        'yappi': ('.timers.thread', 'YappiTimer'),
-        'greenlet': ('.timers.greenlet', 'GreenletTimer'),
-    }
-    timers[None] = timers['default']
-    default = 'tracing'
-
-    def convert(self, value, param, ctx):
-        m = re.match(r'^(.*?)(?::(.*?))?$', value)
-        if m is None:
-            self.fail('Invalid profiler expression: %s' % value)
-        profiler_key, timer_key = m.groups()
-        return self.make(profiler_key, timer_key)
-
-    def make(self, profiler_key, timer_key=None):
-        """Makes a profiler factory."""
-        try:
-            profiler_class = import_(*self.profilers[profiler_key])
-        except KeyError:
-            self.fail('No such profiler: %s' % profiler_key)
-        if not hasattr(profiler_class, 'timer'):
-            # doesn't require timer.
-            return profiler_class
-        try:
-            timer_class = import_(*self.timers[timer_key])
-        except KeyError:
-            self.fail('No such timer: %s' % timer_key)
-        timer = timer_class()
-        return partial(profiler_class, timer)
-
-    def get_metavar(self, param):
-        return 'PROFILER[:TIMER]'
 
 
 class Address(click.ParamType):
@@ -279,16 +265,38 @@ class Params(object):
         return type(self)(self.params + params)
 
 
+def profiler_options(f):
+    @click.option('-T', '--tracing', 'import_profiler_class',
+                  flag_value=importer('.tracing', 'TracingProfiler'),
+                  help='Use tracing profiler. (default)', default=True)
+    @click.option('-S', '--sampling', 'import_profiler_class',
+                  flag_value=importer('.sampling', 'SamplingProfiler'),
+                  help='Use sampling profiler.')
+    @click.option('--timer', 'timer_class', type=TimerClass(),
+                  help='Choose CPU timer for tracing profiler.')
+    @click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
+                  help='Pickle protocol to dump profiling result.')
+    @wraps(f)
+    def wrapped(import_profiler_class, timer_class, **kwargs):
+        profiler_class = import_profiler_class()
+        assert issubclass(profiler_class, Profiler)
+        if hasattr(profiler_class, 'timer'):
+            # profiler requires timer.
+            if timer_class is None:
+                timer_class = TimerClass()('default')
+            timer = timer_class()
+            profiler_factory = partial(profiler_class, timer)
+        elif timer_class is not None:
+            # timer is specified but not required.
+            message = '%s does not require --timer' % profiler_class.__name__
+            raise click.BadOptionUsage('--timer', message)
+        else:
+            profiler_factory = profiler_class
+        return f(profiler_factory=profiler_factory, **kwargs)
+    return wrapped
 profiler_arguments = Params([
     click.argument('script', type=Script()),
     click.argument('argv', nargs=-1),
-])
-profiler_options = Params([
-    click.option('-p', '--profiler', 'profiler_factory',
-                 type=ProfilerFactory(), default=ProfilerFactory.default,
-                 help='Choose profiler.'),
-    click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
-                 help='Pickle protocol to dump profiling result.'),
 ])
 viewer_options = Params([
     click.option('--mono', is_flag=True, help='Disable coloring.'),
@@ -302,8 +310,10 @@ live_profiler_options = Params([
     click.option('-i', '--interval', type=float, default=INTERVAL,
                  help='How often update the profiling result.'),
     click.option('--spawn', type=click.Choice(spawn.modes),
-                 callback=lambda c, p, v: partial(spawn, v)),
-    click.option('--signum', type=SignalNumber(), default=SIGNUM),
+                 callback=lambda c, p, v: partial(spawn, v),
+                 help='How to spawn profiler server in background.'),
+    click.option('--signum', type=SignalNumber(), default=SIGNUM,
+                 help='For communication between server and application.')
 ])
 
 
@@ -503,7 +513,7 @@ def timeit_profile(stmt, number, repeat, setup,
     exec_(setup, globals_)
     if number is None:
         # determine number so that 0.2 <= total time < 2.0 like timeit.
-        dummy_profiler = Profiler()
+        dummy_profiler = profiler_factory()
         dummy_profiler.start()
         for x in range(1, 10):
             number = 10 ** x
