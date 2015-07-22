@@ -40,7 +40,7 @@ class Profiler(object):
 
     def result(self):
         """Gets the frozen statistics to serialize by Pickle."""
-        return FrozenStatistics(self.stats, profiler_class=type(self))
+        return FrozenStatistics(self.stats)
 
     def clear(self):
         """Clears or initializes the recording statistics."""

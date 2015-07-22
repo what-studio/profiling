@@ -737,15 +737,19 @@ class StatisticsViewer(object):
         loop = urwid.MainLoop(self.widget, self.palette, *args, **kwargs)
         return loop
 
-    def set_stats(self, stats, title=None, time=None):
-        if issubclass(stats.profiler_class, SamplingProfiler):
-            if not isinstance(self.table, SamplingStatisticsTable):
-                self.table = SamplingStatisticsTable()
-        elif issubclass(stats.profiler_class, TracingProfiler):
-            if not isinstance(self.table, TracingStatisticsTable):
-                self.table = TracingStatisticsTable()
-        self.table.set_stats(stats, title, time)
+    def set_profiler_class(self, profiler_class):
+        if issubclass(profiler_class, TracingProfiler):
+            if isinstance(self.table, TracingStatisticsTable):
+                return
+            self.table = TracingStatisticsTable()
+        elif issubclass(profiler_class, SamplingProfiler):
+            if isinstance(self.table, SamplingStatisticsTable):
+                return
+            self.table = SamplingStatisticsTable()
         self.widget.original_widget = self.table
+
+    def set_stats(self, stats, title=None, time=None):
+        self.table.set_stats(stats, title, time)
 
     def activate(self):
         return self.table.activate()

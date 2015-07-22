@@ -19,11 +19,11 @@ import socket
 import struct
 
 from .errnos import EBADF, EPIPE, ECONNRESET
-from ..profiler import Profiler
+from .. import __version__
 
 
 __all__ = ['LOGGER', 'LOG', 'INTERVAL', 'PICKLE_PROTOCOL',
-           'SIZE_STRUCT_FORMAT', 'pack_stats', 'recv_stats', 'fmt_connected',
+           'SIZE_STRUCT_FORMAT', 'pack_stats', 'recv_msg', 'fmt_connected',
            'fmt_disconnected', 'fmt_profiler_started', 'fmt_profiler_stopped',
            'BaseProfilingServer']
 
@@ -40,17 +40,32 @@ INTERVAL = 5
 #: The default Pickle protocol.
 PICKLE_PROTOCOL = getattr(pickle, 'DEFAULT_PROTOCOL', pickle.HIGHEST_PROTOCOL)
 
-#: The struct format to pack packet size. (uint32)
+#: The struct format to pack message size. (uint32)
 SIZE_STRUCT_FORMAT = '!I'
+
+#: The struct format to pack method. (uint8)
+METHOD_STRUCT_FORMAT = '!B'
+
+
+# methods
+WELCOME = 0x10
+PROFILER = 0x11
+STATS = 0x12
+
+
+def pack_msg(method, msg, pickle_protocol=PICKLE_PROTOCOL):
+    """Packs a method and message."""
+    dump = io.BytesIO()
+    pickle.dump(msg, dump, pickle_protocol)
+    size = dump.tell()
+    return (struct.pack(METHOD_STRUCT_FORMAT, method) +
+            struct.pack(SIZE_STRUCT_FORMAT, size) + dump.getvalue())
 
 
 def pack_stats(profiler, pickle_protocol=PICKLE_PROTOCOL):
     """Packs statistics from the profiler by Pickle with size as a header."""
-    dump = io.BytesIO()
     stats = profiler.result()
-    pickle.dump(stats, dump, pickle_protocol)
-    size = dump.tell()
-    return struct.pack(SIZE_STRUCT_FORMAT, size) + dump.getvalue()
+    return pack_msg(stats, pickle_protocol=pickle_protocol)
 
 
 def recv(sock, size):
@@ -61,14 +76,17 @@ def recv(sock, size):
     return data
 
 
-def recv_stats(sock):
-    """Receives statistics from the socket.  This function blocks the thread.
+def recv_msg(sock):
+    """Receives a method and message from the socket.  This function blocks the
+    current thread.
     """
+    data = recv(sock, struct.calcsize(METHOD_STRUCT_FORMAT))
+    method, = struct.unpack(METHOD_STRUCT_FORMAT, data)
     data = recv(sock, struct.calcsize(SIZE_STRUCT_FORMAT))
     size, = struct.unpack(SIZE_STRUCT_FORMAT, data)
     data = recv(sock, size)
-    stats = pickle.loads(data)
-    return stats
+    msg = pickle.loads(data)
+    return method, msg
 
 
 def fmt_connected(addr, num_clients):
@@ -109,12 +127,10 @@ class BaseProfilingServer(object):
     methods and call :meth:`connected` when a client connected.
     """
 
-    _latest_data = None
+    _latest_stats_data = None
 
-    def __init__(self, profiler=None, interval=INTERVAL,
+    def __init__(self, profiler, interval=INTERVAL,
                  log=LOG, pickle_protocol=PICKLE_PROTOCOL):
-        if profiler is None:
-            profiler = Profiler()
         self.profiler = profiler
         self.interval = interval
         self.log = log
@@ -161,8 +177,9 @@ class BaseProfilingServer(object):
             # should sleep
             yield
             self.profiler.stop()
-            data = pack_stats(self.profiler, self.pickle_protocol)
-            self._latest_data = data
+            stats = self.profiler.result()
+            data = pack_msg(STATS, stats, pickle_protocol=self.pickle_protocol)
+            self._latest_stats_data = data
             self.profiler.clear()
             # broadcast
             closed_clients = []
@@ -180,14 +197,29 @@ class BaseProfilingServer(object):
                 self.disconnected(client)
         self._log_profiler_stopped()
 
+    def send_msg(self, client, method, msg, pickle_protocol=None):
+        if pickle_protocol is None:
+            pickle_protocol = self.pickle_protocol
+        data = pack_msg(method, msg, pickle_protocol=pickle_protocol)
+        self._send(client, data)
+
     def connected(self, client):
         """Call this method when a client connected."""
         self.clients.add(client)
         self._log_connected(client)
         self._start_watching(client)
-        if self._latest_data is not None:
+        self.send_msg(client, WELCOME, (self.pickle_protocol, __version__),
+                      pickle_protocol=0)
+        profiler = self.profiler
+        while True:
             try:
-                self._send(client, self._latest_data)
+                profiler = profiler.profiler
+            except AttributeError:
+                break
+        self.send_msg(client, PROFILER, type(profiler))
+        if self._latest_stats_data is not None:
+            try:
+                self._send(client, self._latest_stats_data)
             except socket.error as err:
                 if err.errno in (EBADF, EPIPE):
                     self.disconnected(client)
