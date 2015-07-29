@@ -417,10 +417,11 @@ def live_profile(script, argv, profiler_factory, interval, spawn, signum,
         try:
             loop.run()
         except KeyboardInterrupt:
-            pass
+            os.kill(pid, signal.SIGINT)
+        else:
+            os.kill(pid, signal.SIGTERM)
         finally:
             parent_sock.close()
-            os.kill(pid, signal.SIGINT)
 
 
 @cli.command('remote-profile', cls=ProfilingCommand)
