@@ -12,7 +12,7 @@ except ImportError:
     speedup = False
 
 
-__all__ = ['frame_stack']
+__all__ = ['frame_stack', 'repr_frame']
 
 
 if speedup:
@@ -29,3 +29,7 @@ else:
                 break
             frame = frame.f_back
         return frames
+
+
+def repr_frame(frame):
+    return '%s:%d' % (frame.f_code.co_filename, frame.f_lineno)
