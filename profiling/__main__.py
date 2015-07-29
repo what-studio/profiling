@@ -31,7 +31,8 @@ import click
 from six import PY2, exec_
 
 from .profiler import Profiler
-from .remote import INTERVAL, PICKLE_PROTOCOL, PROFILER, STATS, recv_msg
+from .remote import (
+    INTERVAL, PICKLE_PROTOCOL, PROFILER, STATS, WELCOME, recv_msg)
 from .remote.background import SIGNUM, BackgroundProfiler
 from .remote.errnos import ENOENT, ECONNREFUSED, EINPROGRESS
 from .remote.select import SelectProfilingServer
@@ -560,9 +561,9 @@ class ProfilingClient(object):
         except socket.error as exc:
             self.erred(exc.errno)
             return
-        # if method == WELCOME:
-        #     pass
-        if method == PROFILER:
+        if method == WELCOME:
+            pass
+        elif method == PROFILER:
             self.viewer.set_profiler_class(msg)
         elif method == STATS:
             self.set_stats(msg)

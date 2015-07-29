@@ -376,7 +376,7 @@ class StatisticsTable(urwid.WidgetWrap):
 
     #: The column declarations.  Define it with a list of (name, align, width,
     #: order) tuples.
-    columns = NotImplemented
+    columns = []
 
     #: The initial order.
     order = NotImplemented
@@ -688,6 +688,13 @@ class SamplingStatisticsTable(StatisticsTable):
         ])
 
 
+table_classes = {
+    None: StatisticsTable,
+    TracingProfiler: TracingStatisticsTable,
+    SamplingProfiler: SamplingStatisticsTable,
+}
+
+
 class StatisticsViewer(object):
 
     weak_color = 'light green'
@@ -729,7 +736,7 @@ class StatisticsViewer(object):
             raise urwid.ExitMainLoop()
 
     def __init__(self):
-        self.table = SamplingStatisticsTable()
+        self.table = table_classes[None]()
         self.widget = urwid.Padding(self.table, right=1)
 
     def loop(self, *args, **kwargs):
@@ -738,14 +745,13 @@ class StatisticsViewer(object):
         return loop
 
     def set_profiler_class(self, profiler_class):
-        if issubclass(profiler_class, TracingProfiler):
-            if isinstance(self.table, TracingStatisticsTable):
-                return
-            self.table = TracingStatisticsTable()
-        elif issubclass(profiler_class, SamplingProfiler):
-            if isinstance(self.table, SamplingStatisticsTable):
-                return
-            self.table = SamplingStatisticsTable()
+        try:
+            table_class = table_classes[profiler_class]
+        except KeyError:
+            table_class = table_classes[None]
+        if type(self.table) is table_class:  # don't use isinstance().
+            return
+        self.table = table_class()
         self.widget.original_widget = self.table
 
     def set_stats(self, stats, title=None, time=None):
