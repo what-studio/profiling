@@ -31,10 +31,9 @@ import click
 from six import PY2, exec_
 
 from .profiler import Profiler
-from .remote import (
-    INTERVAL, PICKLE_PROTOCOL, PROFILER, STATS, WELCOME, recv_msg)
+from .remote import INTERVAL, PICKLE_PROTOCOL
 from .remote.background import SIGNUM, BackgroundProfiler
-from .remote.errnos import ENOENT, ECONNREFUSED, EINPROGRESS
+from .remote.client import FailoverProfilingClient, ProfilingClient
 from .remote.select import SelectProfilingServer
 from .viewer import StatisticsViewer
 
@@ -419,6 +418,9 @@ def live_profile(script, argv, profiler_factory, interval, spawn, signum,
             loop.run()
         except KeyboardInterrupt:
             os.kill(pid, signal.SIGINT)
+        except:
+            os.kill(pid, signal.SIGTERM)
+            raise
         else:
             os.kill(pid, signal.SIGTERM)
         finally:
@@ -531,99 +533,6 @@ def timeit_profile(stmt, number, repeat, setup,
     __profile__(stmt, code, globals_, profiler_factory,
                 pickle_protocol=pickle_protocol, dump_filename=dump_filename,
                 mono=mono)
-
-
-# profiling clients for urwid
-
-
-class ProfilingClient(object):
-    """A client of profiling server which is running behind the `Urwid`_ event
-    loop.
-
-    .. _Urwid: http://urwid.org/
-
-    """
-
-    def __init__(self, viewer, event_loop, sock, title=None):
-        self.viewer = viewer
-        self.event_loop = event_loop
-        self.sock = sock
-        self.title = title
-
-    def start(self):
-        self.viewer.activate()
-        self.event_loop.watch_file(self.sock.fileno(), self.handle)
-
-    def handle(self):
-        self.viewer.activate()
-        try:
-            method, msg = recv_msg(self.sock)
-        except socket.error as exc:
-            self.erred(exc.errno)
-            return
-        if method == WELCOME:
-            pass
-        elif method == PROFILER:
-            self.viewer.set_profiler_class(msg)
-        elif method == STATS:
-            self.set_stats(msg)
-
-    def erred(self, errno):
-        self.viewer.inactivate()
-
-    def set_stats(self, stats):
-        self.viewer.set_stats(stats, self.title, datetime.now())
-
-
-class FailoverProfilingClient(ProfilingClient):
-    """A profiling client but it tries to reconnect constantly."""
-
-    failover_interval = 1
-
-    def __init__(self, viewer, event_loop, addr=None, family=socket.AF_INET,
-                 title=None):
-        self.addr = addr
-        self.family = family
-        base = super(FailoverProfilingClient, self)
-        base.__init__(viewer, event_loop, None, title)
-
-    def connect(self):
-        while True:
-            errno = self.sock.connect_ex(self.addr)
-            if errno == 0:
-                break
-        if not errno:
-            # connected immediately.
-            pass
-        elif errno == EINPROGRESS:
-            # will be connected.
-            pass
-        elif errno == ENOENT:
-            # no such socket file.
-            self.create_connection(self.failover_interval)
-            return
-        else:
-            raise ValueError('Unexpected socket errno: %d' % errno)
-        self.event_loop.watch_file(self.sock.fileno(), self.handle)
-
-    def disconnect(self, errno):
-        self.event_loop.remove_watch_file(self.sock.fileno())
-        self.sock.close()
-        # try to reconnect.
-        delay = self.failover_interval if errno == ECONNREFUSED else 0
-        self.create_connection(delay)
-
-    def create_connection(self, delay=0):
-        self.sock = socket.socket(self.family)
-        self.sock.setblocking(0)
-        self.event_loop.alarm(delay, self.connect)
-
-    def start(self):
-        self.create_connection()
-
-    def erred(self, errno):
-        super(FailoverProfilingClient, self).erred(errno)
-        self.disconnect(errno)
 
 
 # Deprecated.
