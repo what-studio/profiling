@@ -49,7 +49,16 @@ class SelectProfilingServer(BaseProfilingServer):
             return self.clients.union([self.listener])
 
     def select(self, timeout=None):
-        ready, __, __ = select.select(self.sockets(), (), (), timeout)
+        try:
+            ready, __, __ = select.select(self.sockets(), (), (), timeout)
+        except ValueError:
+            # there's fd=0 socket.
+            return
+        except select.error as exc:
+            if exc.args[0] == 4:
+                # Interrupted system call
+                return
+            raise
         for sock in ready:
             if sock is self.listener:
                 listener = sock
