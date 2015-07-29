@@ -381,17 +381,11 @@ class StatisticsTable(urwid.WidgetWrap):
     #: The initial order.
     order = NotImplemented
 
-    #: Whether the viewer is active.
-    active = False
-
-    #: Whether the viewer is paused.
-    paused = False
-
     title = None
     stats = None
     time = None
 
-    def __init__(self):
+    def __init__(self, viewer):
         cls = type(self)
         self._expanded_stat_hashes = set()
         self.walker = StatisticsWalker(NullStatisticNode())
@@ -404,6 +398,7 @@ class StatisticsTable(urwid.WidgetWrap):
         header = urwid.Columns([])
         widget = urwid.Frame(tbody, urwid.Pile([header, thead]))
         super(StatisticsTable, self).__init__(widget)
+        self.viewer = viewer
         self.update_frame()
 
     @classmethod
@@ -484,8 +479,7 @@ class StatisticsTable(urwid.WidgetWrap):
         self.stats = stats
         self.title = title
         self.time = time
-        if not self.paused:
-            self.activate()
+        if not self.viewer.paused:
             self.refresh()
 
     def sort_stats(self, order=sortkeys.by_all_time):
@@ -499,28 +493,6 @@ class StatisticsTable(urwid.WidgetWrap):
         order = orders[(x + delta) % len(orders)]
         self.sort_stats(order)
 
-    def pause(self):
-        self.paused = True
-        self.update_frame()
-
-    def resume(self):
-        self.paused = False
-        try:
-            stats, title, time = self._pending
-        except AttributeError:
-            self.activate()
-        else:
-            del self._pending
-            self.set_stats(stats, title, time)
-
-    def activate(self):
-        self.active = True
-        self.update_frame()
-
-    def inactivate(self):
-        self.active = False
-        self.update_frame()
-
     def refresh(self):
         stats = self.get_stats()
         node = StatisticNode(stats, table=self)
@@ -530,9 +502,9 @@ class StatisticsTable(urwid.WidgetWrap):
 
     def update_frame(self, focus=None):
         # set thead attr
-        if self.paused:
+        if self.viewer.paused:
             thead_attr = 'thead.paused'
-        elif not self.active:
+        elif not self.viewer.active:
             thead_attr = 'thead.inactive'
         else:
             thead_attr = 'thead'
@@ -543,7 +515,7 @@ class StatisticsTable(urwid.WidgetWrap):
             widget = self.thead.base_widget.contents[x][0]
             text, __ = widget.get_text()
             widget.set_text((attr, text))
-        if self.paused:
+        if self.viewer.paused:
             return
         # update header
         stats = self.get_stats()
@@ -617,10 +589,10 @@ class StatisticsTable(urwid.WidgetWrap):
                     self.tbody.change_focus(size, parent_node)
                 return True
         elif command == self._command_map[' ']:
-            if self.paused:
-                self.resume()
+            if self.viewer.paused:
+                self.viewer.resume()
             else:
-                self.pause()
+                self.viewer.pause()
             return True
         return base.keypress(size, key)
 
@@ -689,7 +661,6 @@ class SamplingStatisticsTable(StatisticsTable):
 
 
 table_classes = {
-    None: StatisticsTable,
     TracingProfiler: TracingStatisticsTable,
     SamplingProfiler: SamplingStatisticsTable,
 }
@@ -731,12 +702,18 @@ class StatisticsViewer(object):
     focus_map = {None: 'focus'}
     focus_map.update((x[0], 'focus') for x in palette)
 
+    #: Whether the viewer is active.
+    active = False
+
+    #: Whether the viewer is paused.
+    paused = False
+
     def unhandled_input(self, key):
         if key in ('q', 'Q'):
             raise urwid.ExitMainLoop()
 
     def __init__(self):
-        self.table = table_classes[None]()
+        self.table = StatisticsTable(self)
         self.widget = urwid.Padding(self.table, right=1)
 
     def loop(self, *args, **kwargs):
@@ -745,23 +722,40 @@ class StatisticsViewer(object):
         return loop
 
     def set_profiler_class(self, profiler_class):
-        try:
-            table_class = table_classes[profiler_class]
-        except KeyError:
-            table_class = table_classes[None]
+        table_class = table_classes.get(profiler_class, StatisticsTable)
         if type(self.table) is table_class:  # don't use isinstance().
             return
-        self.table = table_class()
+        self.table = table_class(self)
         self.widget.original_widget = self.table
 
     def set_stats(self, stats, title=None, time=None):
-        self.table.set_stats(stats, title, time)
+        if self.paused:
+            self._pending = (stats, title, time)
+        else:
+            self.table.set_stats(stats, title, time)
 
     def activate(self):
-        return self.table.activate()
+        self.active = True
+        self.table.update_frame()
 
     def inactivate(self):
-        return self.table.inactivate()
+        self.active = False
+        self.table.update_frame()
+
+    def pause(self):
+        self.paused = True
+        self.table.update_frame()
+
+    def resume(self):
+        self.active = True
+        self.paused = False
+        try:
+            stats, title, time = self._pending
+        except AttributeError:
+            self.table.update_frame()
+        else:
+            del self._pending
+            self.table.set_stats(stats, title, time)
 
     def use_vim_command_map(self):
         urwid.command_map['h'] = urwid.command_map['left']
