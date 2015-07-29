@@ -6,8 +6,11 @@
 from __future__ import absolute_import
 import os
 import signal
-import threading
+import sys
+import multiprocessing
 import time
+
+import six.moves._thread as _thread
 
 from .profiler import Profiler
 from .stats import RecordingStatistic, RecordingStatistics
@@ -17,37 +20,23 @@ from .utils import frame_stack
 __all__ = ['SamplingProfiler']
 
 
-class SignalThread(threading.Thread):
-
-    def __init__(self, signum=signal.SIGALRM, interval=0.01):
-        threading.Thread.__init__(self)
-        self.signum = signum
-        self.interval = interval
-        self.pid = os.getpid()
-        self.stopper = threading.Event()
-        self.daemon = True
-
-    def send_signal(self):
-        if os is not None:
-            os.kill(self.pid, self.signum)
-
-    def run(self):
-        while not self.stopper.wait(self.interval):
-            self.send_signal()
-            if self.stopper.wait is None:
-                break
-
-    def stop(self):
-        self.stopper.set()
-
-
 class SamplingProfiler(Profiler):
 
     stats_class = RecordingStatistics
 
     signum = signal.SIGALRM
 
+    main_thread_id = _thread.get_ident()
+
     def handle_signal(self, signum, frame):
+        frames = sys._current_frames()
+        # replace frame of the main thread with the interrupted frame.
+        frames[self.main_thread_id] = frame
+        for frame_ in frames.values():
+            self.sample(frame_)
+
+    def sample(self, frame):
+        """Samples the given frame."""
         frames = frame_stack(frame, self.top_frame, self.top_code)
         frames.pop()
         if not frames:
@@ -64,12 +53,26 @@ class SamplingProfiler(Profiler):
             parent_stat.add_child(code, stat)
         stat.record_call()
 
+    def sampler(self, pid, interval=0.01):
+        """Activates :meth:`sample` of the process periodically by signal.  It
+        would be run on a subprocess.
+        """
+        while True:
+            time.sleep(interval)
+            try:
+                os.kill(pid, self.signum)
+            except OSError:
+                break
+
     def run(self):
-        self.prev_handler = signal.signal(self.signum, self.handle_signal)
-        self.signal_thread = SignalThread(self.signum)
-        self.signal_thread.start()
+        prev_handler = signal.signal(self.signum, self.handle_signal)
+        # spawn a sampling process.
+        sampling = multiprocessing.Process(target=self.sampler,
+                                           args=(os.getpid(),))
+        sampling.daemon = True
+        sampling.start()
         self.stats.record_starting(time.clock())
         yield
         self.stats.record_stopping(time.clock())
-        signal.signal(signal.SIGALRM, self.prev_handler)
-        self.signal_thread.stop()
+        sampling.terminate()
+        signal.signal(signal.SIGALRM, prev_handler)
