@@ -644,8 +644,10 @@ class SamplingStatisticsTable(StatisticsTable):
 
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('OWN%', 'right', (4,), sortkeys.by_own_calls),
-        ('ALL%', 'right', (4,), sortkeys.by_all_calls),
+        ('OWN', 'right', (6,), sortkeys.by_own_calls),
+        ('%', 'left', (4,), sortkeys.by_own_calls),
+        ('ALL', 'right', (6,), sortkeys.by_all_calls),
+        ('%', 'left', (4,), sortkeys.by_all_calls),
     ]
 
     order = sortkeys.by_all_calls
@@ -655,7 +657,9 @@ class SamplingStatisticsTable(StatisticsTable):
         stats = node.get_root().get_value()
         return self.make_columns([
             fmt.make_stat_text(stat),
+            fmt.make_int_or_na_text(stat.own_calls),
             fmt.make_percent_text(stat.own_calls, stats.all_calls, False),
+            fmt.make_int_or_na_text(stat.all_calls),
             fmt.make_percent_text(stat.all_calls, stats.all_calls, False),
         ])
 
