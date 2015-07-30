@@ -24,9 +24,17 @@ class SamplingProfiler(Profiler):
 
     stats_class = RecordingStatistics
 
+    rate = 100
     signum = signal.SIGALRM
 
     main_thread_id = _thread.get_ident()
+
+    def __init__(self, top_frame=None, top_code=None, rate=None, signum=None):
+        super(SamplingProfiler, self).__init__(top_frame, top_code)
+        if rate is not None:
+            self.rate = rate
+        if signum is not None:
+            self.signum = signum
 
     def handle_signal(self, signum, frame):
         frames = sys._current_frames()
@@ -53,10 +61,11 @@ class SamplingProfiler(Profiler):
             parent_stat.add_child(code, stat)
         stat.record_call()
 
-    def sampler(self, pid, interval=0.01):
+    def sampler(self, pid):
         """Activates :meth:`sample` of the process periodically by signal.  It
         would be run on a subprocess.
         """
+        interval = 1. / self.rate
         while True:
             time.sleep(interval)
             try:

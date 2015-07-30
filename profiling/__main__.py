@@ -32,9 +32,11 @@ from six import PY2, exec_
 
 from .profiler import Profiler
 from .remote import INTERVAL, PICKLE_PROTOCOL
-from .remote.background import SIGNUM, BackgroundProfiler
+from .remote.background import BackgroundProfiler
 from .remote.client import FailoverProfilingClient, ProfilingClient
 from .remote.select import SelectProfilingServer
+from .sampling import SamplingProfiler
+from .tracing import TracingProfiler
 from .viewer import StatisticsViewer
 
 
@@ -266,32 +268,43 @@ class Params(object):
 
 
 def profiler_options(f):
+    # tracing profiler options
     @click.option('-T', '--tracing', 'import_profiler_class',
                   flag_value=importer('.tracing', 'TracingProfiler'),
                   help='Use tracing profiler. (default)', default=True)
+    @click.option('--tracing-timer', '--timer', 'tracing_timer_class',
+                  type=TimerClass(),
+                  help='Choose CPU timer for tracing profiler.')
+    # sampling profiler options
     @click.option('-S', '--sampling', 'import_profiler_class',
                   flag_value=importer('.sampling', 'SamplingProfiler'),
                   help='Use sampling profiler.')
-    @click.option('--timer', 'timer_class', type=TimerClass(),
-                  help='Choose CPU timer for tracing profiler.')
+    @click.option('--sampling-rate', type=float, default=SamplingProfiler.rate,
+                  help='How many times sample per second.')
+    @click.option('--sampling-signum', type=SignalNumber(),
+                  default=SamplingProfiler.signum,
+                  help='To sample running frames in application.')
+    # etc
     @click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
                   help='Pickle protocol to dump profiling result.')
     @wraps(f)
-    def wrapped(import_profiler_class, timer_class, **kwargs):
+    def wrapped(import_profiler_class, tracing_timer_class,
+                sampling_rate, sampling_signum, **kwargs):
         profiler_class = import_profiler_class()
         assert issubclass(profiler_class, Profiler)
-        if hasattr(profiler_class, 'timer'):
+        if issubclass(profiler_class, TracingProfiler):
             # profiler requires timer.
-            if timer_class is None:
-                timer_class = TimerClass()('default')
-            timer = timer_class()
-            profiler_factory = partial(profiler_class, timer)
-        elif timer_class is not None:
-            # timer is specified but not required.
-            message = '%s does not require --timer' % profiler_class.__name__
-            raise click.BadOptionUsage('--timer', message)
+            if tracing_timer_class is None:
+                timer = None
+            else:
+                timer = tracing_timer_class()
+            profiler_kwargs = {'timer': timer}
+        elif issubclass(profiler_class, SamplingProfiler):
+            profiler_kwargs = {'rate': sampling_rate,
+                               'signum': sampling_signum}
         else:
-            profiler_factory = profiler_class
+            profiler_kwargs = {}
+        profiler_factory = partial(profiler_class, **profiler_kwargs)
         return f(profiler_factory=profiler_factory, **kwargs)
     return wrapped
 profiler_arguments = Params([
@@ -312,7 +325,8 @@ live_profiler_options = Params([
     click.option('--spawn', type=click.Choice(spawn.modes),
                  callback=lambda c, p, v: partial(spawn, v),
                  help='How to spawn profiler server in background.'),
-    click.option('--signum', type=SignalNumber(), default=SIGNUM,
+    click.option('--signum', type=SignalNumber(),
+                 default=BackgroundProfiler.signum,
                  help='For communication between server and application.')
 ])
 

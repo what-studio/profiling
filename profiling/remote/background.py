@@ -14,17 +14,17 @@ import threading
 from ..profiler import ProfilerWrapper
 
 
-__all__ = ['SIGNUM', 'BackgroundProfiler']
-
-
-SIGNUM = signal.SIGUSR2
+__all__ = ['BackgroundProfiler']
 
 
 class BackgroundProfiler(ProfilerWrapper):
 
-    def __init__(self, profiler, signum=SIGNUM):
+    signum = signal.SIGUSR2
+
+    def __init__(self, profiler, signum=None):
         super(BackgroundProfiler, self).__init__(profiler)
-        self.signum = signum
+        if signum is not None:
+            self.signum = signum
         self.event = threading.Event()
 
     def prepare(self):
