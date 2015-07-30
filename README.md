@@ -147,6 +147,7 @@ Viewer key commands
 Licensing
 ---------
 
-This project is licensed under the [BSD 3-Clause] license.
+Written by [Heungsub Lee](http://subl.ee/) at What! Studio in Nexon, and
+distributed under the [BSD 3-Clause] license.
 
 [BSD 3-Clause]: http://opensource.org/licenses/BSD-3-Clause
