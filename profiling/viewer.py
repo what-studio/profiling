@@ -616,10 +616,10 @@ class TracingStatisticsTable(StatisticsTable):
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
         ('OWN', 'right', (10,), sortkeys.by_own_time),
         ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
+        ('%', 'left', (4,), None),
         ('ALL', 'right', (10,), sortkeys.by_all_time),
         ('/CALL', 'right', (6,), sortkeys.by_all_time_per_call),
-        ('OWN%', 'right', (4,), None),
-        ('ALL%', 'right', (4,), None),
+        ('%', 'left', (4,), None),
         ('CALLS', 'right', (6,), sortkeys.by_all_calls),
     ]
 
@@ -632,9 +632,9 @@ class TracingStatisticsTable(StatisticsTable):
             fmt.make_stat_text(stat),
             fmt.make_time_text(stat.own_time),
             fmt.make_time_text(stat.own_time_per_call),
+            fmt.make_percent_text(stat.own_time, stats.cpu_time, False),
             fmt.make_time_text(stat.all_time),
             fmt.make_time_text(stat.all_time_per_call),
-            fmt.make_percent_text(stat.own_time, stats.cpu_time, False),
             fmt.make_percent_text(stat.all_time, stats.cpu_time, False),
             fmt.make_int_or_na_text(stat.all_calls),
         ])
