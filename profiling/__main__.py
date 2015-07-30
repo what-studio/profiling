@@ -286,7 +286,7 @@ def profiler_options(f):
                   help='To sample running frames in application.')
     # etc
     @click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
-                  help='Pickle protocol to dump profiling result.')
+                  help='Pickle protocol to dump result.')
     @wraps(f)
     def wrapped(import_profiler_class, tracing_timer_class,
                 sampling_rate, sampling_signum, **kwargs):

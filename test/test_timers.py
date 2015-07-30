@@ -45,7 +45,8 @@ def _test_contextual_timer(timer, sleep, spawn, join=lambda x: x.join()):
     # using the given timer.
     # light() ends later than heavy() like the above case.  but the total time
     # doesn't include heavy's.  each contexts should have isolated cpu time.
-    contextual_profiler = TracingProfiler(timer, top_frame=sys._getframe())
+    contextual_profiler = TracingProfiler(top_frame=sys._getframe(),
+                                          timer=timer)
     stat1, stat2 = profile(contextual_profiler)
     assert stat1.all_time < stat2.all_time
 
