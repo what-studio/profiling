@@ -16,13 +16,13 @@ from gevent.lock import Semaphore
 from gevent.server import StreamServer
 from gevent.util import wrap_errors
 
-from . import INTERVAL, LOG, PICKLE_PROTOCOL, BaseProfilingServer
+from . import INTERVAL, LOG, PICKLE_PROTOCOL, ProfilingServer
 
 
 __all__ = ['GeventProfilingServer']
 
 
-class GeventProfilingServer(StreamServer, BaseProfilingServer):
+class GeventProfilingServer(StreamServer, ProfilingServer):
     """A profiling server implementation based on `gevent`_.  When you choose
     it, you should set a :class:`profiling.timers.greenlet.GreenletTimer` for
     the profiler's timer::
@@ -43,8 +43,8 @@ class GeventProfilingServer(StreamServer, BaseProfilingServer):
     def __init__(self, listener, profiler=None, interval=INTERVAL,
                  log=LOG, pickle_protocol=PICKLE_PROTOCOL, **server_kwargs):
         StreamServer.__init__(self, listener, **server_kwargs)
-        BaseProfilingServer.__init__(self, profiler, interval,
-                                     log, pickle_protocol)
+        ProfilingServer.__init__(self, profiler, interval,
+                                 log, pickle_protocol)
         self.lock = Semaphore()
 
     def _send(self, sock, data):

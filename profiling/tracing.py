@@ -26,9 +26,6 @@ class TracingProfiler(Profiler):
     #: Timer`.
     timer = None
 
-    top_frame = None
-    top_code = None
-
     def __init__(self, top_frame=None, top_code=None, timer=None):
         super(TracingProfiler, self).__init__(top_frame, top_code)
         if timer is None:

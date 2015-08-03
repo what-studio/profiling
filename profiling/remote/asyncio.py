@@ -12,13 +12,13 @@
 from __future__ import absolute_import
 import asyncio
 
-from . import BaseProfilingServer
+from . import ProfilingServer
 
 
 __all__ = ['AsyncIOProfilingServer']
 
 
-class AsyncIOProfilingServer(BaseProfilingServer):
+class AsyncIOProfilingServer(ProfilingServer):
     """A profiling server implementation based on `asyncio`_.  Launch a server
     by ``asyncio.start_server`` or ``asyncio.start_unix_server``::
 

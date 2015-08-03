@@ -25,7 +25,7 @@ from .. import __version__
 __all__ = ['LOGGER', 'LOG', 'INTERVAL', 'PICKLE_PROTOCOL',
            'SIZE_STRUCT_FORMAT', 'pack_stats', 'recv_msg', 'fmt_connected',
            'fmt_disconnected', 'fmt_profiler_started', 'fmt_profiler_stopped',
-           'BaseProfilingServer']
+           'ProfilingServer']
 
 
 #: The standard logger.
@@ -122,7 +122,7 @@ def abstract(message):
     return decorator
 
 
-class BaseProfilingServer(object):
+class ProfilingServer(object):
     """The base class for profiling server implementations.  Implement abstract
     methods and call :meth:`connected` when a client connected.
     """

@@ -340,7 +340,7 @@ class FrozenStatistic(Statistic):
         super(FrozenStatistic, self).__init__(stat)
         self.own_calls = stat.own_calls
         self.all_time = stat.all_time
-        self.children = type(self)._freeze_children(stat)
+        self.children = self._freeze_children(stat)
 
     @classmethod
     def _freeze_children(cls, stat):
@@ -399,7 +399,7 @@ class FlatStatistics(Statistics):
         Statistic.__init__(self)
         self.cpu_time = stats.cpu_time
         self.wall_time = stats.wall_time
-        self.children = type(self)._flatten_stats(stats)
+        self.children = self._flatten_stats(stats)
 
     def __iter__(self):
         return iter(self.children)

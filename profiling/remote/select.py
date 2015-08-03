@@ -11,13 +11,13 @@
 from __future__ import absolute_import
 import select
 
-from . import BaseProfilingServer
+from . import ProfilingServer
 
 
 __all__ = ['SelectProfilingServer']
 
 
-class SelectProfilingServer(BaseProfilingServer):
+class SelectProfilingServer(ProfilingServer):
 
     def __init__(self, listener, *args, **kwargs):
         super(SelectProfilingServer, self).__init__(*args, **kwargs)
