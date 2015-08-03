@@ -386,12 +386,11 @@ class StatisticsTable(urwid.WidgetWrap):
     time = None
 
     def __init__(self, viewer):
-        cls = type(self)
         self._expanded_stat_hashes = set()
         self.walker = StatisticsWalker(NullStatisticNode())
         on(self.walker, 'focus_changed', self._walker_focus_changed)
         tbody = StatisticsListBox(self.walker)
-        thead = urwid.AttrMap(cls.make_columns([
+        thead = urwid.AttrMap(self.make_columns([
             urwid.Text(name, align, 'clip')
             for name, align, __, __ in self.columns
         ]), None)

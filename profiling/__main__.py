@@ -87,13 +87,13 @@ def get_title(src_name, src_type=None):
     return os.path.basename(src_name)
 
 
-def make_viewer(mono=False):
+def make_viewer(mono=False, *loop_args, **loop_kwargs):
     """Makes a :class:`profiling.viewer.StatisticsViewer` with common options.
     """
     viewer = StatisticsViewer()
     viewer.use_vim_command_map()
     viewer.use_game_command_map()
-    loop = viewer.loop()
+    loop = viewer.loop(*loop_args, **loop_kwargs)
     if mono:
         loop.screen.set_terminal_properties(1)
     return (viewer, loop)
@@ -425,6 +425,7 @@ def live_profile(script, argv, profiler_factory, interval, spawn, signum,
     else:
         # parent
         viewer, loop = make_viewer(mono)
+        # loop.screen._term_output_file = open(os.devnull, 'w')
         title = get_title(filename)
         client = ProfilingClient(viewer, loop.event_loop, parent_sock, title)
         client.start()
