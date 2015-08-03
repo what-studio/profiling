@@ -35,8 +35,15 @@ class Profiler(object):
         self.start()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, *exc_info):
         self.stop()
+
+    def exclude_code(self, code):
+        """Excludes statistics of the given code."""
+        try:
+            self.stats.remove_child(code)
+        except KeyError:
+            pass
 
     def result(self):
         """Gets the frozen statistics to serialize by Pickle."""

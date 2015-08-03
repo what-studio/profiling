@@ -17,9 +17,11 @@ except ImportError:
     import pickle
 import socket
 import struct
+import sys
 
 from .errnos import EBADF, EPIPE, ECONNRESET
 from .. import __version__
+from ..utils import frame_stack
 
 
 __all__ = ['LOGGER', 'LOG', 'INTERVAL', 'PICKLE_PROTOCOL',
@@ -172,11 +174,14 @@ class ProfilingServer(object):
 
         """
         self._log_profiler_started()
+        # to exclude statistics of profiler server thread.
+        excluding_code = frame_stack(sys._getframe())[0].f_code
         while self.clients:
             self.profiler.start()
             # should sleep
             yield
             self.profiler.stop()
+            self.profiler.exclude_code(excluding_code)
             stats = self.profiler.result()
             data = pack_msg(STATS, stats, pickle_protocol=self.pickle_protocol)
             self._latest_stats_data = data
