@@ -22,14 +22,14 @@ class SamplingProfiler(Profiler):
 
     stats_class = RecordingStatistics
 
-    rate = 100
+    interval = 0.01
 
     main_thread_id = _thread.get_ident()
 
-    def __init__(self, top_frame=None, top_code=None, rate=None):
+    def __init__(self, top_frame=None, top_code=None, interval=None):
         super(SamplingProfiler, self).__init__(top_frame, top_code)
-        if rate is not None:
-            self.rate = rate
+        if interval is not None:
+            self.interval = interval
 
     def handle_signal(self, signum, frame):
         frames = sys._current_frames()
@@ -57,9 +57,9 @@ class SamplingProfiler(Profiler):
         stat.record_call()
 
     def run(self):
-        interval = 1. / self.rate
         prev_handler = signal.signal(signal.SIGPROF, self.handle_signal)
-        prev_itimer = signal.setitimer(signal.ITIMER_PROF, interval, interval)
+        prev_itimer = signal.setitimer(signal.ITIMER_PROF,
+                                       self.interval, self.interval)
         try:
             if prev_itimer != (0.0, 0.0):
                 raise RuntimeError('Another SIGPROF interval timer exists')

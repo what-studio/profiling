@@ -279,13 +279,14 @@ def profiler_options(f):
     @click.option('-S', '--sampling', 'import_profiler_class',
                   flag_value=importer('.sampling', 'SamplingProfiler'),
                   help='Use sampling profiler.')
-    @click.option('--sampling-rate', type=float, default=SamplingProfiler.rate,
-                  help='How many times sample per second.')
+    @click.option('--sampling-interval', type=float,
+                  default=SamplingProfiler.interval,
+                  help='Interval of each sampling. (unit: CPU second)')
     # etc
     @click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
                   help='Pickle protocol to dump result.')
     @wraps(f)
-    def wrapped(import_profiler_class, tracing_timer_class, sampling_rate,
+    def wrapped(import_profiler_class, tracing_timer_class, sampling_interval,
                 **kwargs):
         profiler_class = import_profiler_class()
         assert issubclass(profiler_class, Profiler)
@@ -297,7 +298,7 @@ def profiler_options(f):
                 timer = tracing_timer_class()
             profiler_kwargs = {'timer': timer}
         elif issubclass(profiler_class, SamplingProfiler):
-            profiler_kwargs = {'rate': sampling_rate}
+            profiler_kwargs = {'interval': sampling_interval}
         else:
             profiler_kwargs = {}
         profiler_factory = partial(profiler_class, **profiler_kwargs)
