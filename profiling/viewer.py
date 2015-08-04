@@ -750,7 +750,6 @@ class StatisticsViewer(object):
         self.table.update_frame()
 
     def resume(self):
-        self.active = True
         self.paused = False
         try:
             stats, title, time = self._pending

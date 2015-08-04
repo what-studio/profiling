@@ -23,8 +23,8 @@ def protocol(method, msg, client):
 
 
 @protocol.register(WELCOME)
-def handle_welcome(*_):
-    pass
+def handle_welcome(_, __, client):
+    client.viewer.activate()
 
 
 @protocol.register(PROFILER)
@@ -54,11 +54,9 @@ class ProfilingClient(object):
         self.protocol = protocol
 
     def start(self):
-        self.viewer.activate()
         self.event_loop.watch_file(self.sock.fileno(), self.handle)
 
     def handle(self):
-        self.viewer.activate()
         try:
             method, msg = recv_msg(self.sock)
         except socket.error as exc:
@@ -67,6 +65,7 @@ class ProfilingClient(object):
         self.protocol(method, msg, self)
 
     def erred(self, errno):
+        self.event_loop.remove_watch_file(self.sock.fileno())
         self.viewer.inactivate()
 
 
@@ -85,24 +84,21 @@ class FailoverProfilingClient(ProfilingClient):
     def connect(self):
         while True:
             errno = self.sock.connect_ex(self.addr)
-            if errno == 0:
+            if not errno:
+                # connected immediately.
                 break
-        if not errno:
-            # connected immediately.
-            pass
-        elif errno == EINPROGRESS:
-            # will be connected.
-            pass
-        elif errno == ENOENT:
-            # no such socket file.
-            self.create_connection(self.failover_interval)
-            return
-        else:
-            raise ValueError('Unexpected socket errno: %d' % errno)
+            elif errno == EINPROGRESS:
+                # will be connected.
+                break
+            elif errno == ENOENT:
+                # no such socket file.
+                self.create_connection(self.failover_interval)
+                return
+            else:
+                raise ValueError('Unexpected socket errno: %d' % errno)
         self.event_loop.watch_file(self.sock.fileno(), self.handle)
 
     def disconnect(self, errno):
-        self.event_loop.remove_watch_file(self.sock.fileno())
         self.sock.close()
         # try to reconnect.
         delay = self.failover_interval if errno == ECONNREFUSED else 0

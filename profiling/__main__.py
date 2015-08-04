@@ -401,12 +401,48 @@ def live_profile(script, argv, profiler_factory, interval, spawn, signum,
     filename, code, globals_ = script
     sys.argv[:] = [filename] + list(argv)
     parent_sock, child_sock = socket.socketpair()
+    stderr_r_fd, stderr_w_fd = os.pipe()
     pid = os.fork()
-    if pid == 0:
+    if pid:
+        # parent
+        os.close(stderr_w_fd)
+        viewer, loop = make_viewer(mono)
+        # loop.screen._term_output_file = open(os.devnull, 'w')
+        title = get_title(filename)
+        client = ProfilingClient(viewer, loop.event_loop, parent_sock, title)
+        client.start()
+        try:
+            loop.run()
+        except KeyboardInterrupt:
+            os.kill(pid, signal.SIGINT)
+        except:
+            # unexpected profiler error.
+            os.kill(pid, signal.SIGTERM)
+            raise
+        finally:
+            parent_sock.close()
+        # get exit code of child.
+        w_pid, status = os.waitpid(pid, os.WNOHANG)
+        if w_pid == 0:
+            os.kill(pid, signal.SIGTERM)
+        exit_code = os.WEXITSTATUS(status)
+        # print stderr of child.
+        with os.fdopen(stderr_r_fd, 'r') as f:
+            child_stderr = f.read()
+        if child_stderr:
+            sys.stdout.flush()
+            sys.stderr.write(child_stderr)
+        # exit with exit code of child.
+        sys.exit(exit_code)
+    else:
         # child
+        os.close(stderr_r_fd)
+        # mute stdin, stdout.
         devnull = os.open(os.devnull, os.O_RDWR)
-        for f in [sys.stdin, sys.stdout, sys.stderr]:
+        for f in [sys.stdin, sys.stdout]:
             os.dup2(devnull, f.fileno())
+        # redirect stderr to parent.
+        os.dup2(stderr_w_fd, sys.stderr.fileno())
         frame = sys._getframe()
         profiler = profiler_factory(top_frame=frame, top_code=code)
         profiler_trigger = BackgroundProfiler(profiler, signum)
@@ -418,25 +454,8 @@ def live_profile(script, argv, profiler_factory, interval, spawn, signum,
         try:
             exec_(code, globals_)
         finally:
-            child_sock.close()
-    else:
-        # parent
-        viewer, loop = make_viewer(mono)
-        # loop.screen._term_output_file = open(os.devnull, 'w')
-        title = get_title(filename)
-        client = ProfilingClient(viewer, loop.event_loop, parent_sock, title)
-        client.start()
-        try:
-            loop.run()
-        except KeyboardInterrupt:
-            os.kill(pid, signal.SIGINT)
-        except:
-            os.kill(pid, signal.SIGTERM)
-            raise
-        else:
-            os.kill(pid, signal.SIGTERM)
-        finally:
-            parent_sock.close()
+            os.close(stderr_w_fd)
+            child_sock.shutdown(socket.SHUT_WR)
 
 
 @cli.command('remote-profile', cls=ProfilingCommand)
