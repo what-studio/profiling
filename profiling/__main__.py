@@ -281,15 +281,12 @@ def profiler_options(f):
                   help='Use sampling profiler.')
     @click.option('--sampling-rate', type=float, default=SamplingProfiler.rate,
                   help='How many times sample per second.')
-    @click.option('--sampling-signum', type=SignalNumber(),
-                  default=SamplingProfiler.signum,
-                  help='To sample running frames in application.')
     # etc
     @click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
                   help='Pickle protocol to dump result.')
     @wraps(f)
-    def wrapped(import_profiler_class, tracing_timer_class,
-                sampling_rate, sampling_signum, **kwargs):
+    def wrapped(import_profiler_class, tracing_timer_class, sampling_rate,
+                **kwargs):
         profiler_class = import_profiler_class()
         assert issubclass(profiler_class, Profiler)
         if issubclass(profiler_class, TracingProfiler):
@@ -300,8 +297,7 @@ def profiler_options(f):
                 timer = tracing_timer_class()
             profiler_kwargs = {'timer': timer}
         elif issubclass(profiler_class, SamplingProfiler):
-            profiler_kwargs = {'rate': sampling_rate,
-                               'signum': sampling_signum}
+            profiler_kwargs = {'rate': sampling_rate}
         else:
             profiler_kwargs = {}
         profiler_factory = partial(profiler_class, **profiler_kwargs)
@@ -408,7 +404,7 @@ def live_profile(script, argv, profiler_factory, interval, spawn, signum,
     if pid == 0:
         # child
         devnull = os.open(os.devnull, os.O_RDWR)
-        for f in [sys.stdin, sys.stdout]:
+        for f in [sys.stdin, sys.stdout, sys.stderr]:
             os.dup2(devnull, f.fileno())
         frame = sys._getframe()
         profiler = profiler_factory(top_frame=frame, top_code=code)

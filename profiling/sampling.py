@@ -4,10 +4,8 @@
     ~~~~~~~~~~~~~~~~~~
 """
 from __future__ import absolute_import
-import os
 import signal
 import sys
-import multiprocessing
 import time
 
 import six.moves._thread as _thread
@@ -25,16 +23,13 @@ class SamplingProfiler(Profiler):
     stats_class = RecordingStatistics
 
     rate = 100
-    signum = signal.SIGALRM
 
     main_thread_id = _thread.get_ident()
 
-    def __init__(self, top_frame=None, top_code=None, rate=None, signum=None):
+    def __init__(self, top_frame=None, top_code=None, rate=None):
         super(SamplingProfiler, self).__init__(top_frame, top_code)
         if rate is not None:
             self.rate = rate
-        if signum is not None:
-            self.signum = signum
 
     def handle_signal(self, signum, frame):
         frames = sys._current_frames()
@@ -61,27 +56,16 @@ class SamplingProfiler(Profiler):
             parent_stat.add_child(code, stat)
         stat.record_call()
 
-    def sampler(self, pid):
-        """Activates :meth:`sample` of the process periodically by signal.  It
-        would be run on a subprocess.
-        """
-        interval = 1. / self.rate
-        while True:
-            time.sleep(interval)
-            try:
-                os.kill(pid, self.signum)
-            except OSError:
-                break
-
     def run(self):
-        prev_handler = signal.signal(self.signum, self.handle_signal)
-        # spawn a sampling process.
-        sampling = multiprocessing.Process(target=self.sampler,
-                                           args=(os.getpid(),))
-        sampling.daemon = True
-        sampling.start()
-        self.stats.record_starting(time.clock())
-        yield
-        self.stats.record_stopping(time.clock())
-        sampling.terminate()
-        signal.signal(signal.SIGALRM, prev_handler)
+        interval = 1. / self.rate
+        prev_handler = signal.signal(signal.SIGPROF, self.handle_signal)
+        prev_itimer = signal.setitimer(signal.ITIMER_PROF, interval, interval)
+        try:
+            if prev_itimer != (0.0, 0.0):
+                raise RuntimeError('Another SIGPROF interval timer exists')
+            self.stats.record_starting(time.clock())
+            yield
+            self.stats.record_stopping(time.clock())
+        finally:
+            signal.setitimer(signal.ITIMER_PROF, *prev_itimer)
+            signal.signal(signal.SIGPROF, prev_handler)
