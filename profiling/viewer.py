@@ -644,9 +644,9 @@ class SamplingStatisticsTable(StatisticsTable):
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
         ('OWN', 'right', (6,), sortkeys.by_own_calls),
-        ('%', 'left', (4,), sortkeys.by_own_calls),
+        ('%', 'left', (4,), None),
         ('ALL', 'right', (6,), sortkeys.by_all_calls),
-        ('%', 'left', (4,), sortkeys.by_all_calls),
+        ('%', 'left', (4,), None),
     ]
 
     order = sortkeys.by_all_calls
