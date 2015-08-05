@@ -53,6 +53,11 @@ class Formatter(object):
     # percent
 
     def format_percent(self, ratio, denom=1, unit=True):
+        # width: 4~5
+        # examples:
+        # 0.01: 1.00%
+        # 0.1: 10.0%
+        # 1: 100%
         try:
             ratio /= float(denom)
         except ZeroDivisionError:
@@ -92,6 +97,13 @@ class Formatter(object):
     # int
 
     def format_int(self, num):
+        # width: 1~
+        # examples:
+        # 0: 0
+        # 1: 1
+        # 10: 10
+        # 100: 100
+        # -10: -11
         return '{:.0f}'.format(num)
 
     def attr_int(self, num):
@@ -103,6 +115,13 @@ class Formatter(object):
     # int or n/a
 
     def format_int_or_na(self, num):
+        # width: 1~
+        # examples:
+        # 0: n/a
+        # 1: 1
+        # 10: 10
+        # 100: 100
+        # -10: -11
         if not num:
             return 'n/a'
         return self.format_int(num)
@@ -113,6 +132,14 @@ class Formatter(object):
     # time
 
     def format_time(self, sec):
+        # width: 1~
+        # examples:
+        # 0: 0
+        # 0.000001: 1
+        # 0.000123: 123
+        # 0.012345: 12.345
+        # 1.234567: 1.23s
+        # 12.34567: 12.35s
         if sec == 0:
             return '0'
         elif sec < 1:
