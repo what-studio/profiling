@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from contextlib import contextmanager
 from textwrap import dedent
+import time
 
 
-__all__ = ['profiling', 'find_stats', 'find_stat', 'factorial',
+__all__ = ['profiling', 'find_stats', 'find_stat', 'factorial', 'spin',
            'mock_code_names']
 
 
@@ -41,6 +42,14 @@ def factorial(n):
         f *= n
         n -= 1
     return f
+
+
+def spin(seconds):
+    t = time.time()
+    x = 0
+    while time.time() - t < seconds:
+        x += 1
+    return x
 
 
 foo = None  # placeheolder
