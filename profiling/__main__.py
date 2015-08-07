@@ -481,7 +481,7 @@ def remote_profile(script, argv, profiler_factory, interval, spawn, signum,
     listener.listen(1)
     # be verbose or quiet.
     if verbose:
-        log = lambda x: click.echo(click.style(' > ', fg='cyan') + x)
+        log = lambda x: click.echo(click.style('> ', fg='cyan') + x)
         bound_addr = listener.getsockname()
         log('Listening on {0}:{1} for profiling...'.format(*bound_addr))
     else:
