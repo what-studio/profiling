@@ -345,12 +345,13 @@ def __profile__(filename, code, globals_, profiler_factory,
         traceback.print_exc()
     else:
         profiler.stop()
-    if PY2:
+    if PY2 and isinstance(profiler, TracingProfiler):
         # in Python 2, exec's cpu time is duplicated with actual cpu time.
         stat = profiler.stats.get_child(frame.f_code)
         stat.remove_child(exec_.func_code)
     if dump_filename is None:
         viewer, loop = make_viewer(mono)
+        viewer.set_profiler_class(type(profiler))
         viewer.set_stats(profiler.stats, get_title(filename))
         try:
             loop.run()
