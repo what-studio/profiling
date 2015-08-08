@@ -53,7 +53,7 @@ class Formatter(object):
     # percent
 
     def format_percent(self, ratio, denom=1, unit=True):
-        # width: 4~5
+        # width: 4~5 (with unit)
         # examples:
         # 0.01: 1.00%
         # 0.1: 10.0%
@@ -96,15 +96,31 @@ class Formatter(object):
 
     # int
 
-    def format_int(self, num):
-        # width: 1~
+    def format_int(self, num, units='KMGTPEZY'):
+        # width: 1~6
         # examples:
         # 0: 0
         # 1: 1
         # 10: 10
         # 100: 100
+        # 1000: 1.0K
+        # 10000: 10.0K
+        # 100000: 100.0K
+        # 1000000: 1.0M
         # -10: -11
-        return '{:.0f}'.format(num)
+        unit = None
+        unit_iter = iter(units)
+        while abs(round(num, 1)) >= 1e3:
+            num /= 1e3
+            try:
+                unit = next(unit_iter)
+            except StopIteration:
+                # overflow or underflow.
+                return 'o/f' if num > 0 else 'u/f'
+        if unit is None:
+            return '{:.0f}'.format(num)
+        else:
+            return '{:.1f}{}'.format(num, unit)
 
     def attr_int(self, num):
         return None if num else 'zero'
@@ -115,16 +131,21 @@ class Formatter(object):
     # int or n/a
 
     def format_int_or_na(self, num):
-        # width: 1~
+        # width: 1~6
         # examples:
         # 0: n/a
         # 1: 1
         # 10: 10
         # 100: 100
+        # 1000: 1.0K
+        # 10000: 10.0K
+        # 100000: 100.0K
+        # 1000000: 1.0M
         # -10: -11
-        if not num:
+        if num == 0:
             return 'n/a'
-        return self.format_int(num)
+        else:
+            return self.format_int(num)
 
     markup_int_or_na = _markup(format_int_or_na, attr_int)
     make_int_or_na_text = _make_text(markup_int_or_na, **_numeric)
@@ -132,28 +153,38 @@ class Formatter(object):
     # time
 
     def format_time(self, sec):
-        # width: 1~
+        # width: 1~6 (most cases)
         # examples:
         # 0: 0
-        # 0.000001: 1
-        # 0.000123: 123
-        # 0.012345: 12.345
-        # 1.234567: 1.23s
-        # 12.34567: 12.35s
+        # 0.000001: 1us
+        # 0.000123: 123us
+        # 0.012345: 12.3ms
+        # 0.123456: 123.5ms
+        # 1.234567: 1.2sec
+        # 12.34567: 12.3sec
+        # 123.4567: 2min3s
         if sec == 0:
             return '0'
+        elif sec < 1e-3:
+            return '{:.0f}us'.format(sec * 1e6)
         elif sec < 1:
-            return '{:,.0f}'.format(sec * 1e6).replace(',', '.')
+            return '{:.1f}ms'.format(sec * 1e3)
+        elif sec < 60:
+            return '{:.1f}sec'.format(sec)
         else:
-            return '{:.2f}s'.format(sec)
+            return '{:.0f}min{:.0f}s'.format(sec // 60, sec % 60)
 
     def attr_time(self, sec):
         if sec == 0:
             return 'zero'
-        elif sec < 1:
+        elif sec < 1e-3:
             return 'usec'
-        else:
+        elif sec < 1:
+            return 'msec'
+        elif sec < 60:
             return 'sec'
+        else:
+            return 'min'
 
     markup_time = _markup(format_time, attr_time)
     make_time_text = _make_text(markup_time, **_numeric)
@@ -640,10 +671,10 @@ class TracingStatisticsTable(StatisticsTable):
 
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('OWN', 'right', (10,), sortkeys.by_own_time),
+        ('OWN', 'right', (6,), sortkeys.by_own_time),
         ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
         ('%', 'left', (4,), None),
-        ('ALL', 'right', (10,), sortkeys.by_all_time),
+        ('ALL', 'right', (6,), sortkeys.by_all_time),
         ('/CALL', 'right', (6,), sortkeys.by_all_time_per_call),
         ('%', 'left', (4,), None),
         ('CALLS', 'right', (6,), sortkeys.by_all_calls),
@@ -658,10 +689,10 @@ class TracingStatisticsTable(StatisticsTable):
             fmt.make_stat_text(stat),
             fmt.make_time_text(stat.own_time),
             fmt.make_time_text(stat.own_time_per_call),
-            fmt.make_percent_text(stat.own_time, stats.cpu_time, False),
+            fmt.make_percent_text(stat.own_time, stats.cpu_time, unit=False),
             fmt.make_time_text(stat.all_time),
             fmt.make_time_text(stat.all_time_per_call),
-            fmt.make_percent_text(stat.all_time, stats.cpu_time, False),
+            fmt.make_percent_text(stat.all_time, stats.cpu_time, unit=False),
             fmt.make_int_or_na_text(stat.all_calls),
         ])
 
@@ -684,9 +715,9 @@ class SamplingStatisticsTable(StatisticsTable):
         return self.make_columns([
             fmt.make_stat_text(stat),
             fmt.make_int_or_na_text(stat.own_calls),
-            fmt.make_percent_text(stat.own_calls, stats.all_calls, False),
+            fmt.make_percent_text(stat.own_calls, stats.all_calls, unit=False),
             fmt.make_int_or_na_text(stat.all_calls),
-            fmt.make_percent_text(stat.all_calls, stats.all_calls, False),
+            fmt.make_percent_text(stat.all_calls, stats.all_calls, unit=False),
         ])
 
 
@@ -713,9 +744,10 @@ class StatisticsViewer(object):
         ('warning', 'brown', '', 'blink'),
         ('notice', 'dark green', '', 'blink'),
         # clock
+        ('min', 'dark red', ''),
         ('sec', 'brown', ''),
-        ('msec', 'dark green', ''),
-        ('usec', '', ''),
+        ('msec', '', ''),
+        ('usec', weak_color, ''),
         # etc
         ('zero', weak_color, ''),
         ('name', 'bold', ''),
