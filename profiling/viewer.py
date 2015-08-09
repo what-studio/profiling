@@ -158,21 +158,28 @@ class Formatter(object):
         # 0: 0
         # 0.000001: 1us
         # 0.000123: 123us
-        # 0.012345: 12.3ms
-        # 0.123456: 123.5ms
+        # 0.012345: 12ms
+        # 0.123456: 123ms
         # 1.234567: 1.2sec
         # 12.34567: 12.3sec
         # 123.4567: 2min3s
+        # 6120: 102min
         if sec == 0:
             return '0'
         elif sec < 1e-3:
+            # 1us ~ 999us
             return '{:.0f}us'.format(sec * 1e6)
         elif sec < 1:
-            return '{:.1f}ms'.format(sec * 1e3)
+            # 1ms ~ 999ms
+            return '{:.0f}ms'.format(sec * 1e3)
         elif sec < 60:
+            # 1.0sec ~ 59.9sec
             return '{:.1f}sec'.format(sec)
-        else:
+        elif sec < 600:
+            # 1min0s ~ 9min59s
             return '{:.0f}min{:.0f}s'.format(sec // 60, sec % 60)
+        else:
+            return '{:.0f}min'.format(sec // 60)
 
     def attr_time(self, sec):
         if sec == 0:

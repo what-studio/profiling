@@ -15,7 +15,7 @@ def test_fmt():
     assert fmt.markup_int_or_na(1.234) == (None, '1')
     assert fmt.markup_int_or_na(0) == ('zero', 'n/a')
     assert fmt.markup_time(0) == ('zero', '0')
-    assert fmt.markup_time(0.123456) == ('msec', '123.5ms')
+    assert fmt.markup_time(0.123456) == ('msec', '123ms')
     assert fmt.markup_time(12.34567) == ('sec', '12.3sec')
 
 
@@ -41,9 +41,9 @@ def test_format_time():
     assert fmt.format_time(0) == '0'
     assert fmt.format_time(0.000001) == '1us'
     assert fmt.format_time(0.000123) == '123us'
-    assert fmt.format_time(0.012345) == '12.3ms'
-    assert fmt.format_time(0.123456) == '123.5ms'
+    assert fmt.format_time(0.012345) == '12ms'
+    assert fmt.format_time(0.123456) == '123ms'
     assert fmt.format_time(1.234567) == '1.2sec'
     assert fmt.format_time(12.34567) == '12.3sec'
     assert fmt.format_time(123.4567) == '2min3s'
-    assert fmt.format_time(6120.000) == '01:42'
+    assert fmt.format_time(6120.000) == '102min'
