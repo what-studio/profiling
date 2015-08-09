@@ -19,6 +19,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import pkgutil
 import signal
 import socket
 from stat import S_ISREG, S_ISSOCK
@@ -190,13 +191,29 @@ class Script(click.File):
         with super(Script, self).convert(value, param, ctx) as f:
             filename = f.name
             code = compile(f.read(), filename, 'exec')
-            globals_ = {'__file__': filename,
-                        '__name__': '__main__',
-                        '__package__': None}
+            globals_ = {'__file__': filename, '__name__': '__main__',
+                        '__package__': None, '__doc__': None}
         return (filename, code, globals_)
 
     def get_metavar(self, param):
         return 'PYTHON'
+
+
+class Module(click.ParamType):
+
+    def convert(self, value, param, ctx):
+        # inspired by @htch's fork.
+        loader = pkgutil.get_loader(value)
+        if loader is None:
+            ctx.fail('No module named %s' % value)
+        mod = loader.load_module(value)
+        globals_ = {'__file__': loader.filename, '__name__': '__main__',
+                    '__package__': mod.__package__, '__doc__': None,
+                    '__loader__': loader}
+        return (loader.filename, loader.get_code(), globals_)
+
+    def get_metavar(self, param):
+        return 'PYTHON-MODULE'
 
 
 class Address(click.ParamType):
@@ -304,10 +321,22 @@ def profiler_options(f):
         profiler_factory = partial(profiler_class, **profiler_kwargs)
         return f(profiler_factory=profiler_factory, **kwargs)
     return wrapped
-profiler_arguments = Params([
-    click.argument('script', type=Script()),
-    click.argument('argv', nargs=-1),
-])
+
+
+def profiler_arguments(f):
+    @click.argument('argv', nargs=-1)
+    @click.option('-m', 'module', type=Module())
+    @wraps(f)
+    def wrapped(argv, module, **kwargs):
+        script = module
+        if script is None:
+            script, argv = argv[0], argv[1:]
+            script = Script().convert(script, None, None)
+        if script is None:
+            raise click.UsageError('Script not specified')
+        kwargs.update(script=script, argv=argv)
+        return f(**kwargs)
+    return wrapped
 viewer_options = Params([
     click.option('--mono', is_flag=True, help='Disable coloring.'),
 ])
@@ -373,6 +402,7 @@ class ProfilingCommand(click.Command):
         """Prepend "[--]" before "[ARGV]..."."""
         pieces = super(ProfilingCommand, self).collect_usage_pieces(ctx)
         assert pieces[-1] == '[ARGV]...'
+        pieces.insert(-1, 'SCRIPT')
         pieces.insert(-1, '[--]')
         return pieces
 
