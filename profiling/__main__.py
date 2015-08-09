@@ -328,12 +328,14 @@ def profiler_arguments(f):
     @click.option('-m', 'module', type=Module())
     @wraps(f)
     def wrapped(argv, module, **kwargs):
-        script = module
-        if script is None:
-            script, argv = argv[0], argv[1:]
-            script = Script().convert(script, None, None)
-        if script is None:
-            raise click.UsageError('Script not specified')
+        if module is None:
+            try:
+                script_filename, argv = argv[0], argv[1:]
+            except IndexError:
+                raise click.UsageError('Script not specified')
+            script = Script().convert(script_filename, None, None)
+        else:
+            script = module
         kwargs.update(script=script, argv=argv)
         return f(**kwargs)
     return wrapped
