@@ -353,6 +353,7 @@ def __profile__(filename, code, globals_, profiler_factory,
         viewer, loop = make_viewer(mono)
         viewer.set_profiler_class(type(profiler))
         viewer.set_stats(profiler.stats, get_title(filename))
+        viewer.activate()
         try:
             loop.run()
         except KeyboardInterrupt:
