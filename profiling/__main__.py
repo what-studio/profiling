@@ -19,7 +19,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import pkgutil
+import runpy
 import signal
 import socket
 from stat import S_ISREG, S_ISSOCK
@@ -203,14 +203,17 @@ class Module(click.ParamType):
 
     def convert(self, value, param, ctx):
         # inspired by @htch's fork.
-        loader = pkgutil.get_loader(value)
-        if loader is None:
-            ctx.fail('No module named %s' % value)
-        mod = loader.load_module(value)
-        globals_ = {'__file__': loader.filename, '__name__': '__main__',
-                    '__package__': mod.__package__, '__doc__': None,
-                    '__loader__': loader}
-        return (loader.filename, loader.get_code(), globals_)
+        # https://github.com/htch/profiling/commit/4a4eb6e
+        try:
+            mod_name, loader, code, filename = runpy._get_module_details(value)
+        except ImportError as exc:
+            ctx.fail(str(exc))
+        # follow runpy's behavior.
+        pkg_name = mod_name.rpartition('.')[0]
+        globals_ = sys.modules['__main__'].__dict__.copy()
+        globals_.update(__name__='__main__', __file__=filename,
+                        __loader__=loader, __package__=pkg_name)
+        return (filename, code, globals_)
 
     def get_metavar(self, param):
         return 'PYTHON-MODULE'
