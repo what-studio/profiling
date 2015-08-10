@@ -6,7 +6,7 @@
 from __future__ import absolute_import
 
 
-__all__ = ['by_name', 'by_module', 'by_all_calls', 'by_own_calls',
+__all__ = ['by_name', 'by_module', 'by_all_count', 'by_own_count',
            'by_all_time', 'by_own_time', 'by_all_time_per_call',
            'by_own_time_per_call']
 
@@ -26,11 +26,11 @@ class SortKey(object):
 
 
 def _by_all_time_per_call(stat):
-    return -stat.all_time_per_call if stat.all_calls else -stat.all_time
+    return -stat.all_time_per_call if stat.all_count else -stat.all_time
 
 
 def _by_own_time_per_call(stat):
-    return (-stat.own_time_per_call if stat.own_calls else -stat.own_time,
+    return (-stat.own_time_per_call if stat.own_count else -stat.own_time,
             _by_all_time_per_call(stat))
 
 
@@ -43,11 +43,11 @@ by_module = SortKey(lambda stat: stat.module)
 #: Sorting by module and name in ascending order.
 by_function = SortKey(lambda stat: (stat.module, stat.name))
 
-#: Sorting by number of inclusive calls in descending order.
-by_all_calls = SortKey(lambda stat: -stat.all_calls)
+#: Sorting by number of inclusive count in descending order.
+by_all_count = SortKey(lambda stat: -stat.all_count)
 
-#: Sorting by number of exclusive calls in descending order.
-by_own_calls = SortKey(lambda stat: -stat.own_calls)
+#: Sorting by number of exclusive count in descending order.
+by_own_count = SortKey(lambda stat: -stat.own_count)
 
 #: Sorting by inclusive elapsed time in descending order.
 by_all_time = SortKey(lambda stat: -stat.all_time)

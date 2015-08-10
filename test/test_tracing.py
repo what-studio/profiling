@@ -35,12 +35,12 @@ def test_profile():
     stat1 = find_stat(profiler.stats, 'foo')
     stat2 = find_stat(profiler.stats, 'bar')
     stat3 = find_stat(profiler.stats, 'baz')
-    assert stat1.own_calls == 0
-    assert stat2.own_calls == 0
-    assert stat3.own_calls == 1
-    assert stat1.all_calls == 1
-    assert stat2.all_calls == 1
-    assert stat3.all_calls == 1
+    assert stat1.own_count == 0
+    assert stat2.own_count == 0
+    assert stat3.own_count == 1
+    assert stat1.all_count == 1
+    assert stat2.all_count == 1
+    assert stat3.all_count == 1
 
 
 def test_profiler():
@@ -58,6 +58,6 @@ def test_profiler():
     assert stat1.all_time == stat1.own_time
     assert stat1.own_time > stat2.own_time
     assert stat1.own_time > stat3.own_time
-    assert stat1.own_calls == 2
-    assert stat2.own_calls == 0  # entering to __enter__() wasn't profiled.
-    assert stat3.own_calls == 1
+    assert stat1.own_count == 2
+    assert stat2.own_count == 0  # entering to __enter__() wasn't profiled.
+    assert stat3.own_count == 1

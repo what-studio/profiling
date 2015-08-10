@@ -684,7 +684,7 @@ class TracingStatisticsTable(StatisticsTable):
         ('ALL', 'right', (6,), sortkeys.by_all_time),
         ('/CALL', 'right', (6,), sortkeys.by_all_time_per_call),
         ('%', 'left', (4,), None),
-        ('CALLS', 'right', (6,), sortkeys.by_all_calls),
+        ('CALLS', 'right', (6,), sortkeys.by_all_count),
     ]
 
     order = sortkeys.by_all_time
@@ -700,7 +700,7 @@ class TracingStatisticsTable(StatisticsTable):
             fmt.make_time_text(stat.all_time),
             fmt.make_time_text(stat.all_time_per_call),
             fmt.make_percent_text(stat.all_time, stats.cpu_time, unit=False),
-            fmt.make_int_or_na_text(stat.all_calls),
+            fmt.make_int_or_na_text(stat.all_count),
         ])
 
 
@@ -708,23 +708,23 @@ class SamplingStatisticsTable(StatisticsTable):
 
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('OWN', 'right', (6,), sortkeys.by_own_calls),
+        ('OWN', 'right', (6,), sortkeys.by_own_count),
         ('%', 'left', (4,), None),
-        ('ALL', 'right', (6,), sortkeys.by_all_calls),
+        ('ALL', 'right', (6,), sortkeys.by_all_count),
         ('%', 'left', (4,), None),
     ]
 
-    order = sortkeys.by_all_calls
+    order = sortkeys.by_all_count
 
     def make_row(self, node):
         stat = node.get_value()
         stats = node.get_root().get_value()
         return self.make_columns([
             fmt.make_stat_text(stat),
-            fmt.make_int_or_na_text(stat.own_calls),
-            fmt.make_percent_text(stat.own_calls, stats.all_calls, unit=False),
-            fmt.make_int_or_na_text(stat.all_calls),
-            fmt.make_percent_text(stat.all_calls, stats.all_calls, unit=False),
+            fmt.make_int_or_na_text(stat.own_count),
+            fmt.make_percent_text(stat.own_count, stats.all_count, unit=False),
+            fmt.make_int_or_na_text(stat.all_count),
+            fmt.make_percent_text(stat.all_count, stats.all_count, unit=False),
         ])
 
 

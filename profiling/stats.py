@@ -40,13 +40,13 @@ class Statistic(object):
     """A statistic."""
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'own_calls', 'all_time']
+                    'own_count', 'all_time']
 
     name = None
     filename = None
     lineno = None
     module = None
-    own_calls = 0
+    own_count = 0
     all_time = 0.0
 
     def __init__(self, stat=None, name=None, filename=None, lineno=None,
@@ -77,8 +77,8 @@ class Statistic(object):
         return name or module
 
     @property
-    def all_calls(self):
-        return self.own_calls + sum(stat.all_calls for stat in self)
+    def all_count(self):
+        return self.own_count + sum(stat.all_count for stat in self)
 
     @property
     def own_time(self):
@@ -88,14 +88,14 @@ class Statistic(object):
     @property
     def all_time_per_call(self):
         try:
-            return self.all_time / self.all_calls
+            return self.all_time / self.all_count
         except ZeroDivisionError:
             return 0.0
 
     @property
     def own_time_per_call(self):
         try:
-            return self.own_time / self.own_calls
+            return self.own_time / self.own_count
         except ZeroDivisionError:
             return 0.0
 
@@ -121,18 +121,18 @@ class Statistic(object):
         # format name
         regular_name = self.regular_name
         name_string = '' if regular_name else "'{0}'".format(regular_name)
-        # format calls
-        all_calls = self.all_calls
-        if self.own_calls == all_calls:
-            calls_string = str(self.own_calls)
+        # format count
+        all_count = self.all_count
+        if self.own_count == all_count:
+            count_string = str(self.own_count)
         else:
-            calls_string = '{0}/{1}'.format(self.own_calls, all_calls)
+            count_string = '{0}/{1}'.format(self.own_count, all_count)
         # format time
         time_string = '{0:.6f}/{1:.6f}'.format(self.own_time, self.all_time)
         # join all
         class_name = type(self).__name__
-        return ('<{0} {1}calls={2} time={3}>'
-                ''.format(class_name, name_string, calls_string, time_string))
+        return ('<{0} {1}count={2} time={3}>'
+                ''.format(class_name, name_string, count_string, time_string))
 
 
 class Statistics(Statistic):
@@ -174,7 +174,7 @@ class Statistics(Statistic):
     def clear(self):
         self.children.clear()
         cls = type(self)
-        self.own_calls = cls.own_calls
+        self.own_count = cls.own_count
         self.cpu_time = cls.cpu_time
         self.wall_time = cls.wall_time
         try:
@@ -231,7 +231,7 @@ class RecordingStatistic(Statistic):
 
     def record_call(self):
         with self.lock:
-            self.own_calls += 1
+            self.own_count += 1
 
     def record_entering(self, time, frame_key=None):
         with self.lock:
@@ -249,7 +249,7 @@ class RecordingStatistic(Statistic):
             self.code = None
             self.children.clear()
             cls = type(self)
-            self.own_calls = cls.own_calls
+            self.own_count = cls.own_count
             self.all_time = cls.all_time
             self._times_entered.clear()
 
@@ -307,7 +307,7 @@ class RecordingStatistics(RecordingStatistic, Statistics):
             self.wall_time = max(0, self.wall() - self._wall_time_started)
         except AttributeError:
             raise RuntimeError('Starting does not recorded.')
-        self.own_calls = 1
+        self.own_count = 1
         del self._cpu_time_started
         del self._wall_time_started
 
@@ -334,11 +334,11 @@ class FrozenStatistic(Statistic):
     """Frozen :class:`Statistic` to serialize by Pickle."""
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'own_calls', 'all_time', 'children']
+                    'own_count', 'all_time', 'children']
 
     def __init__(self, stat):
         super(FrozenStatistic, self).__init__(stat)
-        self.own_calls = stat.own_calls
+        self.own_count = stat.own_count
         self.all_time = stat.all_time
         self.children = self._freeze_children(stat)
 
@@ -369,7 +369,7 @@ class FrozenStatistics(FrozenStatistic, Statistics):
 class FlatStatistic(Statistic):
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'own_calls', 'all_time', 'own_time']
+                    'own_count', 'all_time', 'own_time']
 
     own_time = 0.0
 
@@ -389,7 +389,7 @@ class FlatStatistics(Statistics):
             except KeyError:
                 flatten_stat = FlatStatistic(stat)
                 registry[stat.regular_name] = flatten_stat
-            for attr in ['own_calls', 'all_time', 'own_time']:
+            for attr in ['own_count', 'all_time', 'own_time']:
                 value = getattr(flatten_stat, attr) + getattr(stat, attr)
                 setattr(flatten_stat, attr, value)
             cls._flatten_stats(stat, registry=registry)

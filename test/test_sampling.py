@@ -24,5 +24,5 @@ def test_profiler():
         spin_500ms()
     stat1 = find_stat(profiler.stats, 'spin_100ms')
     stat2 = find_stat(profiler.stats, 'spin_500ms')
-    ratio = stat1.all_calls / stat2.all_calls
+    ratio = stat1.all_count / stat2.all_count
     assert 0.8 <= ratio * 5 <= 1.2  # 1:5 expaected, but tolerate (0.8~1.2):5
