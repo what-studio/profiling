@@ -49,6 +49,7 @@ class TracingProfiler(Profiler):
     def _profile(self, frame, event, arg):
         """The callback function to register by :func:`sys.setprofile`."""
         time = self.timer()
+        # c = event.startswith('c_')
         if event.startswith('c_'):
             return
         frames = frame_stack(frame, self.top_frame, self.top_code)
@@ -66,10 +67,10 @@ class TracingProfiler(Profiler):
         #     code = mock_code(arg.__name__)
         #     frame_key = id(arg)
         # record
-        if event in ('call',):
+        if event == 'call':
             time = self.timer()
             self._entered(time, code, frame_key, parent_stat)
-        elif event in ('return', 'exception'):
+        elif event == 'return':
             self._left(time, code, frame_key, parent_stat)
 
     def _entered(self, time, code, frame_key, parent_stat):
