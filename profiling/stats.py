@@ -308,7 +308,6 @@ class RecordingStatistics(RecordingStatistic, Statistics):
             self.wall_time = max(0, self.wall() - self._wall_time_started)
         except AttributeError:
             raise RuntimeError('Starting does not recorded.')
-        self.own_count = 1
         del self._cpu_time_started
         del self._wall_time_started
 
