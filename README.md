@@ -94,6 +94,19 @@ Then run a client with `view` command:
 $ python -m profiling view 127.0.0.1:8912
 ```
 
+Sampling Profiler
+-----------------
+
+`TracingProfiler`, the default profiler makes heavy overhead.  It can pollute
+your profiling result or can make your application to be slow.  Choose
+`SamplingProfiler`, which implements a statistical profiling, by `-S` or
+`--sampling` option.
+
+```sh
+$ python -m profiling live-profile --sampling webserver.py
+                                   ^^^^^^^^^^
+```
+
 Timeit then Profiling
 ---------------------
 
@@ -148,6 +161,29 @@ Viewer key commands
 - <tt>></tt> - Go to the hotspot.
 - <tt>esc</tt> - Defocus.
 - <tt>[</tt> and <tt>]</tt> - Change sorting column.
+
+Columns
+-------
+
+### `TracingProfiler`
+
+- `OWN` (Exclusive Time) - Total spent time in the function excluding sub
+-                          calls.
+- `OWN/CALL` - Exclusive time per call.
+- `OWN%` - Exclusive time per total spent time.
+- `ALL` (Inclusive Time) - Total spent time in the function.
+- `ALL/CALL` - Inclusive time per call.
+- `ALL%` - Inclusive time per total spent time.
+- `CALLS` - Total call count of the function.
+
+### `SamplingProfiler`
+
+- `OWN` (Exclusive Samples) - Number of samples which are collected during the
+-                             direct execution of the function.
+- `OWN%` - Exclusive samples per number of the total samples.
+- `ALL` (Inclusive Samples) - Number of samples which are collected during the
+                              excution of the function.
+- `ALL%` - Inclusive samples per number of the total samples.
 
 Licensing
 ---------
