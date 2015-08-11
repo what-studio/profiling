@@ -11,7 +11,8 @@ import time
 import six.moves._thread as _thread
 
 from .profiler import Profiler
-from .stats import RecordingStatistic, RecordingStatistics
+from .stats import (
+    RecordingStatistic, RecordingStatistics, VoidRecordingStatistic)
 from .utils import frame_stack
 
 
@@ -48,13 +49,9 @@ class SamplingProfiler(Profiler):
         parent_stat = self.stats
         for f in frames:
             parent_stat = \
-                parent_stat.ensure_child(f.f_code, RecordingStatistic)
+                parent_stat.ensure_child(f.f_code, VoidRecordingStatistic)
         code = frame.f_code
-        try:
-            stat = parent_stat.get_child(code)
-        except KeyError:
-            stat = RecordingStatistic(code)
-            parent_stat.add_child(code, stat)
+        stat = parent_stat.ensure_child(code, RecordingStatistic)
         stat.record_call()
 
     def run(self):

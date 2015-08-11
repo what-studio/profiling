@@ -74,11 +74,7 @@ class TracingProfiler(Profiler):
 
     def _entered(self, time, code, frame_key, parent_stat):
         """Entered to a function call."""
-        try:
-            stat = parent_stat.get_child(code)
-        except KeyError:
-            stat = RecordingStatistic(code)
-            parent_stat.add_child(code, stat)
+        stat = parent_stat.ensure_child(code, RecordingStatistic)
         stat.record_entering(time, frame_key)
 
     def _left(self, time, code, frame_key, parent_stat):
