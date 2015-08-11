@@ -342,15 +342,16 @@ def profiler_options(f):
 def profiler_arguments(f):
     @click.argument('argv', nargs=-1)
     @click.option('-m', 'module', type=Module(),
-                  help='Run library module as a script')
+                  help='Run library module as a script.')
     @click.option('-c', 'command', type=Command(),
-                  help='Program passed in as string')
+                  help='Program passed in as string.')
     @wraps(f)
     def wrapped(argv, module, command, **kwargs):
         if module is not None and command is not None:
-            raise click.UsageError('Exclusive options: -m and -c')
+            raise click.UsageError('Option -m and -c are exclusive')
         script = module or command
         if script is None:
+            # -m and -c not passed.
             try:
                 script_filename, argv = argv[0], argv[1:]
             except IndexError:
