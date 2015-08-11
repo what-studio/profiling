@@ -9,7 +9,8 @@ import threading
 import time
 
 from .profiler import Profiler
-from .stats import RecordingStatistic, RecordingStatistics
+from .stats import (
+    RecordingStatistic, RecordingStatistics, VoidRecordingStatistic)
 from .timers import Timer
 from .utils import frame_stack
 
@@ -56,7 +57,8 @@ class TracingProfiler(Profiler):
             return
         parent_stat = self.stats
         for f in frames:
-            parent_stat = parent_stat.ensure_child(f.f_code)
+            parent_stat = \
+                parent_stat.ensure_child(f.f_code, VoidRecordingStatistic)
         code = frame.f_code
         frame_key = id(frame)
         # if c:

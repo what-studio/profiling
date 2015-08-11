@@ -47,7 +47,8 @@ class SamplingProfiler(Profiler):
         # count function call.
         parent_stat = self.stats
         for f in frames:
-            parent_stat = parent_stat.ensure_child(f.f_code)
+            parent_stat = \
+                parent_stat.ensure_child(f.f_code, RecordingStatistic)
         code = frame.f_code
         try:
             stat = parent_stat.get_child(code)

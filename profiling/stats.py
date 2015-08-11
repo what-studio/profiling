@@ -265,12 +265,13 @@ class RecordingStatistic(Statistic):
         with self.lock:
             del self.children[code]
 
-    def ensure_child(self, code):
+    def ensure_child(self, code, adding_stat_class=None):
         with self.lock:
             try:
                 return self.get_child(code)
             except KeyError:
-                stat = VoidRecordingStatistic(code)
+                stat_class = adding_stat_class or type(self)
+                stat = stat_class(code)
                 self.add_child(code, stat)
                 return stat
 

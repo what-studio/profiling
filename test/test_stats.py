@@ -74,7 +74,7 @@ def test_recording():
     assert len(stat) == 0
     with pytest.raises(TypeError):
         pickle.dumps(stat)
-    stat3 = stat.ensure_child(mock_code('baz'))
+    stat3 = stat.ensure_child(mock_code('baz'), VoidRecordingStatistic)
     assert isinstance(stat3, VoidRecordingStatistic)
     stats.wall = lambda: 2000
     stats.record_stopping(400)
