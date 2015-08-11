@@ -2,6 +2,9 @@
 """
     profiling.tracing
     ~~~~~~~~~~~~~~~~~
+
+    Profiles deterministically by :func:`sys.setprofile`.
+
 """
 from __future__ import absolute_import
 import sys

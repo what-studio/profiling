@@ -2,6 +2,9 @@
 """
     profiling.sampling
     ~~~~~~~~~~~~~~~~~~
+
+    Profiles statistically by ``signal.ITIMER_PROF``.
+
 """
 from __future__ import absolute_import
 import signal
@@ -23,7 +26,7 @@ class SamplingProfiler(Profiler):
 
     stats_class = RecordingStatistics
 
-    interval = 0.01
+    interval = 1e-3
 
     main_thread_id = _thread.get_ident()
 
