@@ -168,7 +168,7 @@ Columns
 ### Tracing Profiler
 
 - `OWN` (Exclusive Time) - Total spent time in the function excluding sub
--                          calls.
+                           calls.
 - `OWN/CALL` - Exclusive time per call.
 - `OWN%` - Exclusive time per total spent time.
 - `ALL` (Inclusive Time) - Total spent time in the function.
