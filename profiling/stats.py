@@ -265,6 +265,10 @@ class RecordingStatistic(Statistic):
         with self.lock:
             del self.children[code]
 
+    def discard_child(self, code):
+        with self.lock:
+            self.children.pop(code, None)
+
     def ensure_child(self, code, adding_stat_class=None):
         with self.lock:
             try:
