@@ -219,6 +219,19 @@ class Module(click.ParamType):
         return 'PYTHON-MODULE'
 
 
+class Command(click.ParamType):
+
+    def convert(self, value, param, ctx):
+        filename = '<string>'
+        code = compile(value, filename, 'exec')
+        globals_ = {'__name__': '__main__',
+                    '__package__': None, '__doc__': None}
+        return (filename, code, globals_)
+
+    def get_metavar(self, param):
+        return 'PYTHON-COMMAND'
+
+
 class Address(click.ParamType):
     """A parameter type for IP address."""
 
@@ -328,17 +341,21 @@ def profiler_options(f):
 
 def profiler_arguments(f):
     @click.argument('argv', nargs=-1)
-    @click.option('-m', 'module', type=Module())
+    @click.option('-m', 'module', type=Module(),
+                  help='Run library module as a script')
+    @click.option('-c', 'command', type=Command(),
+                  help='Program passed in as string')
     @wraps(f)
-    def wrapped(argv, module, **kwargs):
-        if module is None:
+    def wrapped(argv, module, command, **kwargs):
+        if module is not None and command is not None:
+            raise click.UsageError('Exclusive options: -m and -c')
+        script = module or command
+        if script is None:
             try:
                 script_filename, argv = argv[0], argv[1:]
             except IndexError:
                 raise click.UsageError('Script not specified')
             script = Script().convert(script_filename, None, None)
-        else:
-            script = module
         kwargs.update(script=script, argv=argv)
         return f(**kwargs)
     return wrapped
