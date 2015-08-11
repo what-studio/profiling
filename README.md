@@ -12,10 +12,10 @@ The profiling package is an interactive Python profiler.  It is inspired from
 - Currently supports only Linux.
 
 [![Build Status]
-(https://travis-ci.org/what-studio/profiling.svg?branch=master)]
+(https://travis-ci.org/what-studio/profiling.svg?branch=sampling)]
 (https://travis-ci.org/what-studio/profiling)
 [![Coverage Status]
-(https://coveralls.io/repos/what-studio/profiling/badge.svg?branch=master)]
+(https://coveralls.io/repos/what-studio/profiling/badge.svg?branch=sampling)]
 (https://coveralls.io/r/what-studio/profiling)
 
 [Unity 3D]: http://unity3d.com/
