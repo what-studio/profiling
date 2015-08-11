@@ -35,7 +35,7 @@ class TracingProfiler(Profiler):
 
     def run(self):
         if sys.getprofile() is not None:
-            raise RuntimeError('Another profiler already registered.')
+            raise RuntimeError('Another profiler already registered')
         sys.setprofile(self._profile)
         threading.setprofile(self._profile)
         self.timer.start()

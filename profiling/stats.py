@@ -285,7 +285,7 @@ class RecordingStatistic(Statistic):
         return code in self.children
 
     def __getstate__(self):
-        raise TypeError('Cannot dump recording statistic.')
+        raise TypeError('Cannot dump recording statistic')
 
 
 class RecordingStatistics(RecordingStatistic, Statistics):
@@ -307,7 +307,7 @@ class RecordingStatistics(RecordingStatistic, Statistics):
             self.cpu_time = max(0, time - self._cpu_time_started)
             self.wall_time = max(0, self.wall() - self._wall_time_started)
         except AttributeError:
-            raise RuntimeError('Starting does not recorded.')
+            raise RuntimeError('Starting does not recorded')
         del self._cpu_time_started
         del self._wall_time_started
 

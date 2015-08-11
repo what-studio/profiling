@@ -18,7 +18,8 @@ class ThreadTimer(Timer):
 
     def __init__(self):
         if sys.version_info < (3, 3):
-            raise RuntimeError('Python 3.3 or later required.')
+            raise RuntimeError('Python 3.3 or later required.  '
+                               'Use YappiTimer instead.')
         super(ThreadTimer, self).__init__()
 
     def __call__(self):

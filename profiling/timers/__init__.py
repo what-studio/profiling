@@ -49,4 +49,4 @@ class ContextualTimer(Timer):
         self.contextual_times[context] = (paused_at, self.clock())
 
     def detect_context(self, context=None):
-        raise NotImplementedError('detect_context() should be implemented.')
+        raise NotImplementedError('detect_context() should be implemented')
