@@ -150,7 +150,7 @@ loop = viewer.loop()
 loop.run()
 ```
 
-Viewer key commands
+Viewer Key Commands
 -------------------
 
 - <tt>q</tt> - Quit.
@@ -165,7 +165,7 @@ Viewer key commands
 Columns
 -------
 
-### `TracingProfiler`
+### Tracing Profiler
 
 - `OWN` (Exclusive Time) - Total spent time in the function excluding sub
 -                          calls.
@@ -176,14 +176,20 @@ Columns
 - `ALL%` - Inclusive time per total spent time.
 - `CALLS` - Total call count of the function.
 
-### `SamplingProfiler`
+### Sampling Profiler
 
 - `OWN` (Exclusive Samples) - Number of samples which are collected during the
--                             direct execution of the function.
+                              direct execution of the function.
 - `OWN%` - Exclusive samples per number of the total samples.
 - `ALL` (Inclusive Samples) - Number of samples which are collected during the
                               excution of the function.
 - `ALL%` - Inclusive samples per number of the total samples.
+
+Thanks to
+---------
+
+- [Seungmyeong Yang](https://github.com/sequoiayang) who suggested this project.
+- [Pavel](https://github.com/htch) who inspired to implement ``-m`` option.
 
 Licensing
 ---------
