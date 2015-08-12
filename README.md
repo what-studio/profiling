@@ -125,6 +125,10 @@ profiler.start()
 ...  # run your program.
 profiler.stop()
 
+# or using context manager
+with Profiler() as profiler:
+    ...  # run your program.
+
 # view statistics.
 viewer = StatisticsViewer()
 viewer.set_stats(profiler.stats)
