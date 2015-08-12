@@ -11,17 +11,46 @@ import sys
 import threading
 import time
 
+from . import sortkeys
 from .profiler import Profiler
 from .stats import RecordingStatistic, VoidRecordingStatistic
 from .timers import Timer
 from .utils import frame_stack
+from .viewer import StatisticsTable, fmt
 
 
-__all__ = ['TracingProfiler']
+__all__ = ['TracingProfiler', 'TracingStatisticsTable']
+
+
+class TracingStatisticsTable(StatisticsTable):
+
+    columns = [
+        ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
+        ('CALLS', 'right', (6,), sortkeys.by_deep_count),
+        ('SELF', 'right', (6,), sortkeys.by_self_time),
+        ('/CALL', 'right', (6,), sortkeys.by_self_time_per_call),
+        ('%', 'left', (4,), None),
+        ('DEEP', 'right', (6,), sortkeys.by_deep_time),
+        ('/CALL', 'right', (6,), sortkeys.by_deep_time_per_call),
+        ('%', 'left', (4,), None),
+    ]
+    order = sortkeys.by_deep_time
+
+    def make_cells(self, node, stat, stats):
+        yield fmt.make_stat_text(stat)
+        yield fmt.make_int_or_na_text(stat.deep_count)
+        yield fmt.make_time_text(stat.self_time)
+        yield fmt.make_time_text(stat.self_time_per_call)
+        yield fmt.make_percent_text(stat.self_time, stats.cpu_time)
+        yield fmt.make_time_text(stat.deep_time)
+        yield fmt.make_time_text(stat.deep_time_per_call)
+        yield fmt.make_percent_text(stat.deep_time, stats.cpu_time)
 
 
 class TracingProfiler(Profiler):
     """The tracing profiler."""
+
+    table_class = TracingStatisticsTable
 
     #: The CPU timer.  Usually it is an instance of :class:`profiling.timers.
     #: Timer`.

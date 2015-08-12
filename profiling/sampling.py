@@ -13,18 +13,43 @@ import time
 
 import six.moves._thread as _thread
 
+from . import sortkeys
 from .profiler import Profiler
 from .stats import RecordingStatistic, VoidRecordingStatistic
 from .utils import frame_stack
+from .viewer import StatisticsTable, fmt
 
 
-__all__ = ['SamplingProfiler']
+__all__ = ['SamplingProfiler', 'SamplingStatisticsTable']
+
+
+class SamplingStatisticsTable(StatisticsTable):
+
+    columns = [
+        ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
+        ('SELF', 'right', (6,), sortkeys.by_self_count),
+        ('%', 'left', (4,), None),
+        ('DEEP', 'right', (6,), sortkeys.by_deep_count),
+        ('%', 'left', (4,), None),
+    ]
+    order = sortkeys.by_deep_count
+
+    def make_cells(self, node, stat, stats):
+        yield fmt.make_stat_text(stat)
+        yield fmt.make_int_or_na_text(stat.self_count)
+        yield fmt.make_percent_text(stat.self_count, stats.deep_count)
+        yield fmt.make_int_or_na_text(stat.deep_count)
+        yield fmt.make_percent_text(stat.deep_count, stats.deep_count)
 
 
 class SamplingProfiler(Profiler):
 
+    table_class = SamplingStatisticsTable
+
+    #: Sampling interval.  (1ms)
     interval = 1e-3
 
+    # keep the Id of the math thread.
     main_thread_id = _thread.get_ident()
 
     def __init__(self, top_frame=None, top_code=None, interval=None):

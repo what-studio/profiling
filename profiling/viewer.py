@@ -24,11 +24,9 @@ import urwid
 from urwid import connect_signal as on
 
 from . import sortkeys
-from .sampling import SamplingProfiler
-from .tracing import TracingProfiler
 
 
-__all__ = ['StatisticsTable', 'StatisticsViewer']
+__all__ = ['StatisticsTable', 'StatisticsViewer', 'fmt']
 
 
 class Formatter(object):
@@ -52,7 +50,7 @@ class Formatter(object):
 
     # percent
 
-    def format_percent(self, ratio, denom=1, unit=True):
+    def format_percent(self, ratio, denom=1, unit=False):
         # width: 4~5 (with unit)
         # examples:
         # 0.01: 1.00%
@@ -441,10 +439,10 @@ class StatisticsTable(urwid.WidgetWrap):
 
     #: The column declarations.  Define it with a list of (name, align, width,
     #: order) tuples.
-    columns = []
+    columns = [('FUNCTION', 'left', ('weight', 1), sortkeys.by_function)]
 
     #: The initial order.
-    order = NotImplemented
+    order = sortkeys.by_function
 
     title = None
     stats = None
@@ -464,6 +462,14 @@ class StatisticsTable(urwid.WidgetWrap):
         super(StatisticsTable, self).__init__(widget)
         self.viewer = viewer
         self.update_frame()
+
+    def make_row(self, node):
+        stat = node.get_value()
+        stats = node.get_root().get_value()
+        return self.make_columns(self.make_cells(node, stat, stats))
+
+    def make_cells(self, node, stat, stats):
+        yield fmt.make_stat_text(stat)
 
     @classmethod
     def make_columns(cls, column_widgets):
@@ -674,66 +680,6 @@ class StatisticsTable(urwid.WidgetWrap):
         self._expanded_stat_hashes.discard(hash(stat))
 
 
-class TracingStatisticsTable(StatisticsTable):
-
-    columns = [
-        ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('CALLS', 'right', (6,), sortkeys.by_deep_count),
-        ('SELF', 'right', (6,), sortkeys.by_self_time),
-        ('/CALL', 'right', (6,), sortkeys.by_self_time_per_call),
-        ('%', 'left', (4,), None),
-        ('DEEP', 'right', (6,), sortkeys.by_deep_time),
-        ('/CALL', 'right', (6,), sortkeys.by_deep_time_per_call),
-        ('%', 'left', (4,), None),
-    ]
-
-    order = sortkeys.by_deep_time
-
-    def make_row(self, node):
-        stat = node.get_value()
-        stats = node.get_root().get_value()
-        return self.make_columns([
-            fmt.make_stat_text(stat),
-            fmt.make_int_or_na_text(stat.deep_count),
-            fmt.make_time_text(stat.self_time),
-            fmt.make_time_text(stat.self_time_per_call),
-            fmt.make_percent_text(stat.self_time, stats.cpu_time),
-            fmt.make_time_text(stat.deep_time),
-            fmt.make_time_text(stat.deep_time_per_call),
-            fmt.make_percent_text(stat.deep_time, stats.cpu_time),
-        ])
-
-
-class SamplingStatisticsTable(StatisticsTable):
-
-    columns = [
-        ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('SELF', 'right', (6,), sortkeys.by_self_count),
-        ('%', 'left', (4,), None),
-        ('DEEP', 'right', (6,), sortkeys.by_deep_count),
-        ('%', 'left', (4,), None),
-    ]
-
-    order = sortkeys.by_deep_count
-
-    def make_row(self, node):
-        stat = node.get_value()
-        stats = node.get_root().get_value()
-        return self.make_columns([
-            fmt.make_stat_text(stat),
-            fmt.make_int_or_na_text(stat.self_count),
-            fmt.make_percent_text(stat.self_count, stats.deep_count),
-            fmt.make_int_or_na_text(stat.deep_count),
-            fmt.make_percent_text(stat.deep_count, stats.deep_count),
-        ])
-
-
-table_classes = {
-    TracingProfiler: TracingStatisticsTable,
-    SamplingProfiler: SamplingStatisticsTable,
-}
-
-
 class StatisticsViewer(object):
 
     weak_color = 'light green'
@@ -791,7 +737,7 @@ class StatisticsViewer(object):
         return loop
 
     def set_profiler_class(self, profiler_class):
-        table_class = table_classes.get(profiler_class, StatisticsTable)
+        table_class = profiler_class.table_class
         if type(self.table) is table_class:  # don't use isinstance().
             return
         self.table = table_class(self)

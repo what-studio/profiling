@@ -6,6 +6,7 @@
 from __future__ import absolute_import
 
 from .stats import FrozenStatistics, RecordingStatistics
+from .viewer import StatisticsTable
 
 
 __all__ = ['Profiler']
@@ -13,6 +14,9 @@ __all__ = ['Profiler']
 
 class Profiler(object):
     """The base class for profiler."""
+
+    #: A widget class which extends :class:`profiling.viewer.StatisticsTable`.
+    table_class = StatisticsTable
 
     #: The root recording statistics.
     stats = None
@@ -109,7 +113,7 @@ class Profiler(object):
 
 class ProfilerWrapper(Profiler):
 
-    for attr in ['stats', 'top_frame', 'top_code',
+    for attr in ['table_class', 'stats', 'top_frame', 'top_code',
                  'result', 'clear', 'is_running']:
         f = lambda self, attr=attr: getattr(self.profiler, attr)
         locals()[attr] = property(f)
