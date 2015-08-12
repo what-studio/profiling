@@ -170,9 +170,9 @@ Columns
 
 ### Common
 
-- `FUNCTION` - The function name with the code location (e.g. `my_func
-               (my_code.py:42)`, `my_func (my_module)`) or just the location.
-               (e.g. `my_code.py`, `my_module`)
+- `FUNCTION`
+  1. The function name with the code location.  (e.g. `my_func (my_code.py:42)`, `my_func (my_module:42)`)
+  2. Only the location without line number.  (e.g. `my_code.py`, `my_module`)
 
 ### Tracing Profiler
 
