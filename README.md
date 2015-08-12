@@ -97,14 +97,16 @@ $ python -m profiling view 127.0.0.1:8912
 Sampling Profiler
 -----------------
 
-`TracingProfiler`, the default profiler makes heavy overhead.  It can pollute
-your profiling result or can make your application to be slow.  Choose
-`SamplingProfiler`, which implements a statistical profiling, by `-S` or
-`--sampling` option.
+`TracingProfiler`, the default profiler, implements a deterministic profiler
+for deep call graph.  Of course, it has heavy overhead.  The overhead can
+pollute your profiling result or can make your application to be slow.
+
+In contrast, `SamplingProfiler` implements a statistical profiler.  You can
+choose it by just `--sampling` (shortly `-S`) option:
 
 ```sh
-$ python -m profiling live-profile --sampling webserver.py
-                                   ^^^^^^^^^^
+$ python -m profiling live-profile --statistical webserver.py
+                                   ^^^^^^^^^^^^^
 ```
 
 Timeit then Profiling
@@ -165,8 +167,15 @@ Viewer Key Commands
 Columns
 -------
 
+### Common
+
+- `FUNCTION` - The function name with the code location (e.g. `my_func
+               (my_code.py:42)`, `my_func (my_module)`) or just the location.
+               (e.g. `my_code.py`, `my_module`)
+
 ### Tracing Profiler
 
+- `CALLS` - Total call count of the function.
 - `SELF` (Exclusive Time) - Total spent time in the function excluding sub
                             calls.
 - `/CALL` after `SELF` - Exclusive time per call.
@@ -174,7 +183,6 @@ Columns
 - `DEEP` (Inclusive Time) - Total spent time in the function.
 - `/CALL` after `DEEP` - Inclusive time per call.
 - `%` after `DEEP` - Inclusive time per total spent time.
-- `CALLS` - Total call count of the function.
 
 ### Sampling Profiler
 
