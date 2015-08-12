@@ -29,7 +29,7 @@ import time
 import traceback
 
 import click
-from six import PY2, exec_
+from six import exec_
 
 from .profiler import Profiler
 from .remote import INTERVAL, PICKLE_PROTOCOL
