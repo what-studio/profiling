@@ -101,8 +101,9 @@ Sampling Profiler
 for deep call graph.  Of course, it has heavy overhead.  The overhead can
 pollute your profiling result or can make your application to be slow.
 
-In contrast, `SamplingProfiler` implements a statistical profiler.  You can
-choose it by just `--sampling` (shortly `-S`) option:
+In contrast, `SamplingProfiler` implements a statistical profiler.  Like other
+statistical profilers, it also has only very cheap overhead.  When you profile
+you can choose it by just `--sampling` (shortly `-S`) option:
 
 ```sh
 $ python -m profiling live-profile --statistical webserver.py
