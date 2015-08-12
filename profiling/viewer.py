@@ -678,13 +678,13 @@ class TracingStatisticsTable(StatisticsTable):
 
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
+        ('CALLS', 'right', (6,), sortkeys.by_deep_count),
         ('SELF', 'right', (6,), sortkeys.by_self_time),
         ('/CALL', 'right', (6,), sortkeys.by_self_time_per_call),
         ('%', 'left', (4,), None),
         ('DEEP', 'right', (6,), sortkeys.by_deep_time),
         ('/CALL', 'right', (6,), sortkeys.by_deep_time_per_call),
         ('%', 'left', (4,), None),
-        ('CALLS', 'right', (6,), sortkeys.by_deep_count),
     ]
 
     order = sortkeys.by_deep_time
@@ -694,13 +694,13 @@ class TracingStatisticsTable(StatisticsTable):
         stats = node.get_root().get_value()
         return self.make_columns([
             fmt.make_stat_text(stat),
+            fmt.make_int_or_na_text(stat.deep_count),
             fmt.make_time_text(stat.self_time),
             fmt.make_time_text(stat.self_time_per_call),
             fmt.make_percent_text(stat.self_time, stats.cpu_time),
             fmt.make_time_text(stat.deep_time),
             fmt.make_time_text(stat.deep_time_per_call),
             fmt.make_percent_text(stat.deep_time, stats.cpu_time),
-            fmt.make_int_or_na_text(stat.deep_count),
         ])
 
 
