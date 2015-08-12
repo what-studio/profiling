@@ -167,23 +167,23 @@ Columns
 
 ### Tracing Profiler
 
-- `OWN` (Exclusive Time) - Total spent time in the function excluding sub
-                           calls.
-- `OWN/CALL` - Exclusive time per call.
-- `OWN%` - Exclusive time per total spent time.
-- `ALL` (Inclusive Time) - Total spent time in the function.
-- `ALL/CALL` - Inclusive time per call.
-- `ALL%` - Inclusive time per total spent time.
+- `SELF` (Exclusive Time) - Total spent time in the function excluding sub
+                            calls.
+- `/CALL` after `SELF` - Exclusive time per call.
+- `%` after `SELF` - Exclusive time per total spent time.
+- `DEEP` (Inclusive Time) - Total spent time in the function.
+- `/CALL` after `DEEP` - Inclusive time per call.
+- `%` after `DEEP` - Inclusive time per total spent time.
 - `CALLS` - Total call count of the function.
 
 ### Sampling Profiler
 
-- `OWN` (Exclusive Samples) - Number of samples which are collected during the
-                              direct execution of the function.
-- `OWN%` - Exclusive samples per number of the total samples.
-- `ALL` (Inclusive Samples) - Number of samples which are collected during the
-                              excution of the function.
-- `ALL%` - Inclusive samples per number of the total samples.
+- `SELF` (Exclusive Samples) - Number of samples which are collected during the
+                               direct execution of the function.
+- `%` after `SELF` - Exclusive samples per number of the total samples.
+- `DEEP` (Inclusive Samples) - Number of samples which are collected during the
+                               excution of the function.
+- `%` after `DEEP` - Inclusive samples per number of the total samples.
 
 Thanks to
 ---------

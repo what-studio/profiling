@@ -5,7 +5,7 @@ from types import CodeType
 import pytest
 from six import PY3
 
-from profiling.sortkeys import by_name, by_own_count, by_all_time_per_call
+from profiling.sortkeys import by_name, by_self_count, by_deep_time_per_call
 from profiling.stats import (
     FrozenStatistic, RecordingStatistic, RecordingStatistics, Statistic,
     VoidRecordingStatistic)
@@ -25,10 +25,10 @@ def test_stat():
     assert stat.regular_name == 'foo'
     stat.module = 'baz'
     assert stat.regular_name == 'baz:foo'
-    assert stat.all_time_per_call == 0
-    stat.all_time = 128
-    stat.own_count = 4
-    assert stat.all_time_per_call == 32
+    assert stat.deep_time_per_call == 0
+    stat.deep_time = 128
+    stat.self_count = 4
+    assert stat.deep_time_per_call == 32
     assert len(stat) == 0
     assert not list(stat)
 
@@ -44,16 +44,16 @@ def test_recording():
     code = mock_code('foo')
     stat = RecordingStatistic(code)
     assert stat.name == 'foo'
-    assert stat.own_count == 0
-    assert stat.all_time == 0
+    assert stat.self_count == 0
+    assert stat.deep_time == 0
     stat.record_entering(100)
     stat.record_leaving(200)
-    assert stat.own_count == 1
-    assert stat.all_time == 100
+    assert stat.self_count == 1
+    assert stat.deep_time == 100
     stat.record_entering(200)
     stat.record_leaving(400)
-    assert stat.own_count == 2
-    assert stat.all_time == 300
+    assert stat.self_count == 2
+    assert stat.deep_time == 300
     code2 = mock_code('bar')
     stat2 = RecordingStatistic(code2)
     assert code2 not in stat
@@ -62,14 +62,14 @@ def test_recording():
     assert stat.get_child(code2) is stat2
     assert len(stat) == 1
     assert list(stat) == [stat2]
-    assert stat.all_time == 300
-    assert stat.own_time == 300
+    assert stat.deep_time == 300
+    assert stat.self_time == 300
     stat2.record_entering(1000)
     stat2.record_leaving(1004)
-    assert stat2.all_time == 4
-    assert stat2.own_time == 4
-    assert stat.all_time == 300
-    assert stat.own_time == 296
+    assert stat2.deep_time == 4
+    assert stat2.self_time == 4
+    assert stat.deep_time == 300
+    assert stat.self_time == 296
     stat.clear()
     assert len(stat) == 0
     with pytest.raises(TypeError):
@@ -79,7 +79,7 @@ def test_recording():
     stats.wall = lambda: 2000
     stats.record_stopping(400)
     assert stats.cpu_time == 400
-    assert stats.wall_time == 1990
+    assert stats.wdeep_time == 1990
     assert stats.cpu_usage == 400 / 1990.
 
 
@@ -89,15 +89,15 @@ def test_frozen():
     stat.record_entering(0)
     stat.record_leaving(10)
     assert stat.name == 'foo'
-    assert stat.all_time == 10
+    assert stat.deep_time == 10
     frozen_stat = FrozenStatistic(stat)
     with pytest.raises(AttributeError):
         frozen_stat.record_entering(0)
     assert frozen_stat.name == 'foo'
-    assert frozen_stat.all_time == 10
+    assert frozen_stat.deep_time == 10
     restored_frozen_stat = pickle.loads(pickle.dumps(frozen_stat))
     assert restored_frozen_stat.name == 'foo'
-    assert restored_frozen_stat.all_time == 10
+    assert restored_frozen_stat.deep_time == 10
 
 
 def test_sorting():
@@ -108,14 +108,14 @@ def test_sorting():
     stat.add_child(stat1.code, stat1)
     stat.add_child(stat2.code, stat2)
     stat.add_child(stat3.code, stat3)
-    stat.all_time = 100
-    stat1.all_time = 20
-    stat1.own_count = 3
-    stat2.all_time = 30
-    stat2.own_count = 2
-    stat3.all_time = 40
-    stat3.own_count = 4
+    stat.deep_time = 100
+    stat1.deep_time = 20
+    stat1.self_count = 3
+    stat2.deep_time = 30
+    stat2.self_count = 2
+    stat3.deep_time = 40
+    stat3.self_count = 4
     assert stat.sorted() == [stat3, stat2, stat1]
-    assert stat.sorted(by_own_count) == [stat3, stat1, stat2]
-    assert stat.sorted(by_all_time_per_call) == [stat2, stat3, stat1]
+    assert stat.sorted(by_self_count) == [stat3, stat1, stat2]
+    assert stat.sorted(by_deep_time_per_call) == [stat2, stat3, stat1]
     assert stat.sorted(by_name) == [stat1, stat2, stat3]

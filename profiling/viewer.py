@@ -75,7 +75,7 @@ class Formatter(object):
         else:
             return string
 
-    def attr_ratio(self, ratio, denom=1, unit=True):
+    def attr_ratio(self, ratio, denom=1, unit=False):
         try:
             ratio /= float(denom)
         except ZeroDivisionError:
@@ -377,11 +377,11 @@ class LeafStatisticNode(StatisticNodeBase):
 
 class StatisticNode(StatisticNodeBase, urwid.ParentNode):
 
-    def all_usage(self):
+    def deep_usage(self):
         stat = self.get_value()
         stats = self.get_root().get_value()
         try:
-            return stat.all_time / stats.cpu_time
+            return stat.deep_time / stats.cpu_time
         except AttributeError:
             return 0.0
 
@@ -546,7 +546,7 @@ class StatisticsTable(urwid.WidgetWrap):
         if not self.viewer.paused:
             self.refresh()
 
-    def sort_stats(self, order=sortkeys.by_all_time):
+    def sort_stats(self, order=sortkeys.by_deep_time):
         assert callable(order)
         self.order = order
         self.refresh()
@@ -601,7 +601,7 @@ class StatisticsTable(urwid.WidgetWrap):
             meta_info = None
         fraction_string = '({0}/{1})'.format(
             fmt.format_time(stats.cpu_time),
-            fmt.format_time(stats.wall_time))
+            fmt.format_time(stats.wdeep_time))
         cpu_info = urwid.Text([
             'CPU ', fmt.markup_percent(stats.cpu_usage),
             ' ', ('weak', fraction_string)])
@@ -678,29 +678,29 @@ class TracingStatisticsTable(StatisticsTable):
 
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('OWN', 'right', (6,), sortkeys.by_own_time),
-        ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
+        ('SELF', 'right', (6,), sortkeys.by_self_time),
+        ('/CALL', 'right', (6,), sortkeys.by_self_time_per_call),
         ('%', 'left', (4,), None),
-        ('ALL', 'right', (6,), sortkeys.by_all_time),
-        ('/CALL', 'right', (6,), sortkeys.by_all_time_per_call),
+        ('DEEP', 'right', (6,), sortkeys.by_deep_time),
+        ('/CALL', 'right', (6,), sortkeys.by_deep_time_per_call),
         ('%', 'left', (4,), None),
-        ('CALLS', 'right', (6,), sortkeys.by_all_count),
+        ('CALLS', 'right', (6,), sortkeys.by_deep_count),
     ]
 
-    order = sortkeys.by_all_time
+    order = sortkeys.by_deep_time
 
     def make_row(self, node):
         stat = node.get_value()
         stats = node.get_root().get_value()
         return self.make_columns([
             fmt.make_stat_text(stat),
-            fmt.make_time_text(stat.own_time),
-            fmt.make_time_text(stat.own_time_per_call),
-            fmt.make_percent_text(stat.own_time, stats.cpu_time, unit=False),
-            fmt.make_time_text(stat.all_time),
-            fmt.make_time_text(stat.all_time_per_call),
-            fmt.make_percent_text(stat.all_time, stats.cpu_time, unit=False),
-            fmt.make_int_or_na_text(stat.all_count),
+            fmt.make_time_text(stat.self_time),
+            fmt.make_time_text(stat.self_time_per_call),
+            fmt.make_percent_text(stat.self_time, stats.cpu_time),
+            fmt.make_time_text(stat.deep_time),
+            fmt.make_time_text(stat.deep_time_per_call),
+            fmt.make_percent_text(stat.deep_time, stats.cpu_time),
+            fmt.make_int_or_na_text(stat.deep_count),
         ])
 
 
@@ -708,23 +708,23 @@ class SamplingStatisticsTable(StatisticsTable):
 
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('OWN', 'right', (6,), sortkeys.by_own_count),
+        ('SELF', 'right', (6,), sortkeys.by_self_count),
         ('%', 'left', (4,), None),
-        ('ALL', 'right', (6,), sortkeys.by_all_count),
+        ('DEEP', 'right', (6,), sortkeys.by_deep_count),
         ('%', 'left', (4,), None),
     ]
 
-    order = sortkeys.by_all_count
+    order = sortkeys.by_deep_count
 
     def make_row(self, node):
         stat = node.get_value()
         stats = node.get_root().get_value()
         return self.make_columns([
             fmt.make_stat_text(stat),
-            fmt.make_int_or_na_text(stat.own_count),
-            fmt.make_percent_text(stat.own_count, stats.all_count, unit=False),
-            fmt.make_int_or_na_text(stat.all_count),
-            fmt.make_percent_text(stat.all_count, stats.all_count, unit=False),
+            fmt.make_int_or_na_text(stat.self_count),
+            fmt.make_percent_text(stat.self_count, stats.deep_count),
+            fmt.make_int_or_na_text(stat.deep_count),
+            fmt.make_percent_text(stat.deep_count, stats.deep_count),
         ])
 
 
