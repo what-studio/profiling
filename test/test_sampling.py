@@ -5,7 +5,7 @@ import sys
 import pytest
 
 from profiling.sampling import SamplingProfiler
-from utils import find_stat, profiling, spin
+from utils import find_stat, spin
 
 
 def spin_100ms():
@@ -19,7 +19,7 @@ def spin_500ms():
 @pytest.mark.flaky(reruns=5)
 def test_profiler():
     profiler = SamplingProfiler(top_frame=sys._getframe(), interval=0.0001)
-    with profiling(profiler):
+    with profiler:
         spin_100ms()
         spin_500ms()
     stat1 = find_stat(profiler.stats, 'spin_100ms')

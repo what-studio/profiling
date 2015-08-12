@@ -6,7 +6,7 @@ import six
 
 from profiling.stats import FrozenStatistics, RecordingStatistics
 from profiling.tracing import TracingProfiler
-from utils import factorial, find_stat, foo, profiling
+from utils import factorial, find_stat, foo
 
 
 if six.PY3:
@@ -16,9 +16,8 @@ if six.PY3:
 def test_setprofile():
     profiler = TracingProfiler()
     assert sys.getprofile() is None
-    profiler.start()
-    assert sys.getprofile() == profiler._profile
-    profiler.stop()
+    with profiler:
+        assert sys.getprofile() == profiler._profile
     assert sys.getprofile() is None
     sys.setprofile(lambda *x: x)
     with pytest.raises(RuntimeError):
@@ -48,7 +47,7 @@ def test_profiler():
     assert isinstance(profiler.stats, RecordingStatistics)
     assert isinstance(profiler.result(), FrozenStatistics)
     assert len(profiler.stats) == 0
-    with profiling(profiler):
+    with profiler:
         factorial(1000)
         factorial(10000)
     stat1 = find_stat(profiler.stats, 'factorial')

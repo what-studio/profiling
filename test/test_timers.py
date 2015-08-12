@@ -8,7 +8,7 @@ from profiling.__main__ import spawn_thread
 from profiling.timers.greenlet import GreenletTimer
 from profiling.timers.thread import ThreadTimer, YappiTimer
 from profiling.tracing import TracingProfiler
-from utils import factorial, find_stat, profiling
+from utils import factorial, find_stat
 
 
 # is it running on pypy?
@@ -29,7 +29,7 @@ def _test_contextual_timer(timer, sleep, spawn, join=lambda x: x.join()):
     def heavy():
         factorial(10000)
     def profile(profiler):
-        with profiling(profiler):
+        with profiler:
             c1 = spawn(light)
             c2 = spawn(heavy)
             for c in [c1, c2]:

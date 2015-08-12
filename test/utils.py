@@ -1,21 +1,10 @@
 # -*- coding: utf-8 -*-
-from contextlib import contextmanager
 from textwrap import dedent
 import time
 
 
-__all__ = ['profiling', 'find_stats', 'find_stat', 'factorial', 'spin',
+__all__ = ['find_stats', 'find_stat', 'factorial', 'spin',
            'mock_code_names']
-
-
-@contextmanager
-def profiling(profiler):
-    try:
-        profiler.start()
-        yield
-    finally:
-        if profiler.is_running():
-            profiler.stop()
 
 
 def find_stats(stats, name, _found=None, _on_found=None):
