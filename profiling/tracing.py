@@ -12,8 +12,7 @@ import threading
 import time
 
 from .profiler import Profiler
-from .stats import (
-    RecordingStatistic, RecordingStatistics, VoidRecordingStatistic)
+from .stats import RecordingStatistic, VoidRecordingStatistic
 from .timers import Timer
 from .utils import frame_stack
 
@@ -23,8 +22,6 @@ __all__ = ['TracingProfiler']
 
 class TracingProfiler(Profiler):
     """The tracing profiler."""
-
-    stats_class = RecordingStatistics
 
     #: The CPU timer.  Usually it is an instance of :class:`profiling.timers.
     #: Timer`.

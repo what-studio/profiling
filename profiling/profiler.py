@@ -5,7 +5,7 @@
 """
 from __future__ import absolute_import
 
-from .stats import FrozenStatistics
+from .stats import FrozenStatistics, RecordingStatistics
 
 
 __all__ = ['Profiler']
@@ -16,9 +16,6 @@ class Profiler(object):
 
     #: The root recording statistics.
     stats = None
-
-    #: The class of the root recording statistics.
-    stats_class = NotImplemented
 
     top_frame = None
     top_code = None
@@ -52,7 +49,7 @@ class Profiler(object):
     def clear(self):
         """Clears or initializes the recording statistics."""
         if self.stats is None:
-            self.stats = self.stats_class()
+            self.stats = RecordingStatistics()
         else:
             self.stats.clear()
 
@@ -112,7 +109,7 @@ class Profiler(object):
 
 class ProfilerWrapper(Profiler):
 
-    for attr in ['stats', 'stats_class', 'top_frame', 'top_code',
+    for attr in ['stats', 'top_frame', 'top_code',
                  'result', 'clear', 'is_running']:
         f = lambda self, attr=attr: getattr(self.profiler, attr)
         locals()[attr] = property(f)

@@ -14,8 +14,7 @@ import time
 import six.moves._thread as _thread
 
 from .profiler import Profiler
-from .stats import (
-    RecordingStatistic, RecordingStatistics, VoidRecordingStatistic)
+from .stats import RecordingStatistic, VoidRecordingStatistic
 from .utils import frame_stack
 
 
@@ -23,8 +22,6 @@ __all__ = ['SamplingProfiler']
 
 
 class SamplingProfiler(Profiler):
-
-    stats_class = RecordingStatistics
 
     interval = 1e-3
 
