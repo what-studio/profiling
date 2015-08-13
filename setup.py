@@ -8,7 +8,7 @@ An interactive profilier.
 """
 from __future__ import with_statement
 import ast
-from setuptools import setup
+from setuptools import find_packages, setup
 from setuptools.command.install import install
 from setuptools.command.test import test
 from setuptools.extension import Extension
@@ -84,7 +84,7 @@ setup(
     maintainer='Heungsub Lee',
     maintainer_email='sub@nexon.co.kr',
     platforms='linux',
-    packages=['profiling', 'profiling.remote', 'profiling.timers'],
+    packages=find_packages(),
     ext_modules=ext_modules,
     classifiers=[
         'Development Status :: 1 - Planning',
