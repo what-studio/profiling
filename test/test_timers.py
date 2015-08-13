@@ -5,9 +5,8 @@ import time
 import pytest
 
 from profiling.__main__ import spawn_thread
-from profiling.timers.greenlet import GreenletTimer
-from profiling.timers.thread import ThreadTimer, YappiTimer
 from profiling.tracing import TracingProfiler
+from profiling.tracing.timers import ThreadTimer, YappiTimer, GreenletTimer
 from utils import factorial, find_stat
 
 

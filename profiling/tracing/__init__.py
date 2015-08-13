@@ -11,15 +11,18 @@ import sys
 import threading
 import time
 
-from . import sortkeys
-from .profiler import Profiler
-from .stats import RecordingStatistic, VoidRecordingStatistic
+from .. import sortkeys
+from ..profiler import Profiler
+from ..stats import RecordingStatistic, VoidRecordingStatistic
+from ..utils import frame_stack
+from ..viewer import StatisticsTable, fmt
 from .timers import Timer
-from .utils import frame_stack
-from .viewer import StatisticsTable, fmt
 
 
 __all__ = ['TracingProfiler', 'TracingStatisticsTable']
+
+
+DEFAULT_TIMER_CLASS = Timer
 
 
 class TracingStatisticsTable(StatisticsTable):
@@ -52,28 +55,16 @@ class TracingProfiler(Profiler):
 
     table_class = TracingStatisticsTable
 
-    #: The CPU timer.  Usually it is an instance of :class:`profiling.timers.
-    #: Timer`.
+    #: The CPU timer.  Usually it is an instance of :class:`profiling.tracing.
+    #: timers.Timer`.
     timer = None
 
     def __init__(self, top_frame=None, top_code=None, timer=None):
+        timer = timer or DEFAULT_TIMER_CLASS()
+        if not isinstance(timer, Timer):
+            raise TypeError('Not a timer instance')
         super(TracingProfiler, self).__init__(top_frame, top_code)
-        if timer is None:
-            timer = Timer()
         self.timer = timer
-
-    def run(self):
-        if sys.getprofile() is not None:
-            raise RuntimeError('Another profiler already registered')
-        sys.setprofile(self._profile)
-        threading.setprofile(self._profile)
-        self.timer.start()
-        self.stats.record_starting(time.clock())
-        yield
-        self.stats.record_stopping(time.clock())
-        self.timer.stop()
-        threading.setprofile(None)
-        sys.setprofile(None)
 
     def _profile(self, frame, event, arg):
         """The callback function to register by :func:`sys.setprofile`."""
@@ -114,3 +105,16 @@ class TracingProfiler(Profiler):
             stat.record_leaving(time, frame_key)
         except KeyError:
             pass
+
+    def run(self):
+        if sys.getprofile() is not None:
+            raise RuntimeError('Another profiler already registered')
+        sys.setprofile(self._profile)
+        threading.setprofile(self._profile)
+        self.timer.start(self)
+        self.stats.record_starting(time.clock())
+        yield
+        self.stats.record_stopping(time.clock())
+        self.timer.stop()
+        threading.setprofile(None)
+        sys.setprofile(None)

@@ -3,24 +3,24 @@
     profiling.sampling
     ~~~~~~~~~~~~~~~~~~
 
-    Profiles statistically by ``signal.ITIMER_PROF``.
+    Profiles statistically by ``signal.ITIMER_REAL``.
 
 """
 from __future__ import absolute_import
-import signal
-import sys
 import time
 
-import six.moves._thread as _thread
-
-from . import sortkeys
-from .profiler import Profiler
-from .stats import RecordingStatistic, VoidRecordingStatistic
-from .utils import frame_stack
-from .viewer import StatisticsTable, fmt
+from .. import sortkeys
+from ..profiler import Profiler
+from ..stats import RecordingStatistic, VoidRecordingStatistic
+from ..utils import frame_stack
+from ..viewer import StatisticsTable, fmt
+from .samplers import Sampler, ItimerSampler
 
 
 __all__ = ['SamplingProfiler', 'SamplingStatisticsTable']
+
+
+DEFAULT_SAMPLER_CLASS = ItimerSampler
 
 
 class SamplingStatisticsTable(StatisticsTable):
@@ -46,23 +46,16 @@ class SamplingProfiler(Profiler):
 
     table_class = SamplingStatisticsTable
 
-    #: Sampling interval.  (1ms)
-    interval = 1e-3
+    #: The frames sampler.  Usually it is an instance of :class:`profiling.
+    #: sampling.samplers.Sampler`.
+    sampler = None
 
-    # keep the Id of the math thread.
-    main_thread_id = _thread.get_ident()
-
-    def __init__(self, top_frame=None, top_code=None, interval=None):
+    def __init__(self, top_frame=None, top_code=None, sampler=None):
+        sampler = sampler or DEFAULT_SAMPLER_CLASS()
+        if not isinstance(sampler, Sampler):
+            raise TypeError('Not a sampler instance')
         super(SamplingProfiler, self).__init__(top_frame, top_code)
-        if interval is not None:
-            self.interval = interval
-
-    def handle_signal(self, signum, frame):
-        frames = sys._current_frames()
-        # replace frame of the main thread with the interrupted frame.
-        frames[self.main_thread_id] = frame
-        for frame_ in frames.values():
-            self.sample(frame_)
+        self.sampler = sampler
 
     def sample(self, frame):
         """Samples the given frame."""
@@ -80,15 +73,8 @@ class SamplingProfiler(Profiler):
         stat.record_call()
 
     def run(self):
-        prev_handler = signal.signal(signal.SIGPROF, self.handle_signal)
-        prev_itimer = signal.setitimer(signal.ITIMER_PROF,
-                                       self.interval, self.interval)
-        try:
-            if prev_itimer != (0.0, 0.0):
-                raise RuntimeError('Another SIGPROF interval timer exists')
-            self.stats.record_starting(time.clock())
-            yield
-            self.stats.record_stopping(time.clock())
-        finally:
-            signal.setitimer(signal.ITIMER_PROF, *prev_itimer)
-            signal.signal(signal.SIGPROF, prev_handler)
+        self.sampler.start(self)
+        self.stats.record_starting(time.clock())
+        yield
+        self.stats.record_stopping(time.clock())
+        self.sampler.stop()

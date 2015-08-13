@@ -36,8 +36,8 @@ from .remote import INTERVAL, PICKLE_PROTOCOL
 from .remote.background import BackgroundProfiler
 from .remote.client import FailoverProfilingClient, ProfilingClient
 from .remote.select import SelectProfilingServer
-from .sampling import SamplingProfiler
-from .tracing import TracingProfiler
+from .sampling import SamplingProfiler, samplers
+from .tracing import TracingProfiler, timers
 from .viewer import StatisticsViewer
 
 
@@ -159,26 +159,31 @@ importer = lambda module_name, name: partial(import_, module_name, name)
 # custom parameter types
 
 
-class TimerClass(click.ParamType):
-    """A parameter type to choose profiling timer."""
+class Class(click.ParamType):
 
-    timers = {
-        # timer name: (timer module name, timer class name)
-        'default': ('.timers', 'Timer'),
-        'thread': ('.timers.thread', 'ThreadTimer'),
-        'yappi': ('.timers.thread', 'YappiTimer'),
-        'greenlet': ('.timers.greenlet', 'GreenletTimer'),
-    }
+    def __init__(self, base, modules, postfix=True):
+        self.base = base
+        self.modules = modules
+        self.postfix = postfix
 
     def convert(self, value, param, ctx):
-        try:
-            return import_(*self.timers[value])
-        except KeyError:
-            self.fail('No such timer: %s' % value)
+        name = value.title()
+        if self.postfix:
+            name += self.base.__name__.title()
+        for mod in self.modules:
+            try:
+                cls = getattr(mod, name)
+            except AttributeError:
+                continue
+            if not isinstance(cls, type):
+                continue
+            elif not issubclass(cls, self.base):
+                continue
+            return cls
+        self.fail('%s not found' % name)
 
     def get_metavar(self, param):
-        # return '[' + '|'.join(self.timers.keys()) + ']'
-        return 'TIMER'
+        return self.base.__name__.upper()
 
 
 class Script(click.File):
@@ -305,33 +310,37 @@ def profiler_options(f):
     @click.option('-T', '--tracing', 'import_profiler_class',
                   flag_value=importer('.tracing', 'TracingProfiler'),
                   help='Use tracing profiler. (default)', default=True)
-    @click.option('--tracing-timer', '--timer', 'tracing_timer_class',
-                  type=TimerClass(),
+    @click.option('--timer', 'timer_class',
+                  type=Class(timers.Timer, [timers], 'Timer'),
                   help='Choose CPU timer for tracing profiler.')
     # sampling profiler options
     @click.option('-S', '--sampling', 'import_profiler_class',
                   flag_value=importer('.sampling', 'SamplingProfiler'),
                   help='Use sampling profiler.')
+    @click.option('--sampler', 'sampler_class',
+                  type=Class(samplers.Sampler, [samplers], 'Sampler'),
+                  help='Choose frames sampler for sampling profiler.')
     @click.option('--sampling-interval', type=float,
-                  default=SamplingProfiler.interval,
-                  help='Interval of each sampling. (unit: CPU second)')
+                  default=samplers.DEFAULT_INTERVAL,
+                  help='Interval of each sampling.')
     # etc
     @click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
                   help='Pickle protocol to dump result.')
     @wraps(f)
-    def wrapped(import_profiler_class, tracing_timer_class, sampling_interval,
-                **kwargs):
+    def wrapped(import_profiler_class, timer_class, sampler_class,
+                sampling_interval, **kwargs):
         profiler_class = import_profiler_class()
         assert issubclass(profiler_class, Profiler)
         if issubclass(profiler_class, TracingProfiler):
             # profiler requires timer.
-            if tracing_timer_class is None:
-                timer = None
-            else:
-                timer = tracing_timer_class()
+            timer = None if timer_class is None else timer_class()
             profiler_kwargs = {'timer': timer}
         elif issubclass(profiler_class, SamplingProfiler):
-            profiler_kwargs = {'interval': sampling_interval}
+            if sampler_class is None:
+                sampler = None
+            else:
+                sampler = sampler_class(sampling_interval)
+            profiler_kwargs = {'sampler': sampler}
         else:
             profiler_kwargs = {}
         profiler_factory = partial(profiler_class, **profiler_kwargs)

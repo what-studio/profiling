@@ -5,6 +5,7 @@ import sys
 import pytest
 
 from profiling.sampling import SamplingProfiler
+from profiling.sampling.samplers import ItimerSampler
 from utils import find_stat, spin
 
 
@@ -18,7 +19,8 @@ def spin_500ms():
 
 @pytest.mark.flaky(reruns=5)
 def test_profiler():
-    profiler = SamplingProfiler(top_frame=sys._getframe(), interval=0.0001)
+    profiler = SamplingProfiler(top_frame=sys._getframe(),
+                                sampler=ItimerSampler(0.0001))
     with profiler:
         spin_100ms()
         spin_500ms()
