@@ -6,9 +6,9 @@
 from __future__ import absolute_import
 
 
-__all__ = ['by_name', 'by_module', 'by_deep_count', 'by_self_count',
-           'by_deep_time', 'by_self_time', 'by_deep_time_per_call',
-           'by_self_time_per_call']
+__all__ = ['by_name', 'by_module', 'by_deep_count', 'by_own_count',
+           'by_deep_time', 'by_own_time', 'by_deep_time_per_call',
+           'by_own_time_per_call']
 
 
 class SortKey(object):
@@ -29,8 +29,8 @@ def _by_deep_time_per_call(stat):
     return -stat.deep_time_per_call if stat.deep_count else -stat.deep_time
 
 
-def _by_self_time_per_call(stat):
-    return (-stat.self_time_per_call if stat.self_count else -stat.self_time,
+def _by_own_time_per_call(stat):
+    return (-stat.own_time_per_call if stat.own_count else -stat.own_time,
             _by_deep_time_per_call(stat))
 
 
@@ -47,16 +47,16 @@ by_function = SortKey(lambda stat: (stat.module, stat.name))
 by_deep_count = SortKey(lambda stat: -stat.deep_count)
 
 #: Sorting by number of exclusive count in descending order.
-by_self_count = SortKey(lambda stat: -stat.self_count)
+by_own_count = SortKey(lambda stat: -stat.own_count)
 
 #: Sorting by inclusive elapsed time in descending order.
 by_deep_time = SortKey(lambda stat: -stat.deep_time)
 
 #: Sorting by exclusive elapsed time in descending order.
-by_self_time = SortKey(lambda stat: (-stat.self_time, -stat.deep_time))
+by_own_time = SortKey(lambda stat: (-stat.own_time, -stat.deep_time))
 
 #: Sorting by inclusive elapsed time per call in descending order.
 by_deep_time_per_call = SortKey(_by_deep_time_per_call)
 
 #: Sorting by exclusive elapsed time per call in descending order.
-by_self_time_per_call = SortKey(_by_self_time_per_call)
+by_own_time_per_call = SortKey(_by_own_time_per_call)

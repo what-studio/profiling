@@ -34,9 +34,9 @@ def test_profile():
     stat1 = find_stat(profiler.stats, 'foo')
     stat2 = find_stat(profiler.stats, 'bar')
     stat3 = find_stat(profiler.stats, 'baz')
-    assert stat1.self_count == 0
-    assert stat2.self_count == 0
-    assert stat3.self_count == 1
+    assert stat1.own_count == 0
+    assert stat2.own_count == 0
+    assert stat3.own_count == 1
     assert stat1.deep_count == 1
     assert stat2.deep_count == 1
     assert stat3.deep_count == 1
@@ -54,9 +54,9 @@ def test_profiler():
     stat2 = find_stat(profiler.stats, '__enter__')
     stat3 = find_stat(profiler.stats, '__exit__')
     assert stat1.deep_time != 0
-    assert stat1.deep_time == stat1.self_time
-    assert stat1.self_time > stat2.self_time
-    assert stat1.self_time > stat3.self_time
-    assert stat1.self_count == 2
-    assert stat2.self_count == 0  # entering to __enter__() wasn't profiled.
-    assert stat3.self_count == 1
+    assert stat1.deep_time == stat1.own_time
+    assert stat1.own_time > stat2.own_time
+    assert stat1.own_time > stat3.own_time
+    assert stat1.own_count == 2
+    assert stat2.own_count == 0  # entering to __enter__() wasn't profiled.
+    assert stat3.own_count == 1

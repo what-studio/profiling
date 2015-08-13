@@ -171,25 +171,26 @@ Columns
 ### Common
 
 - `FUNCTION`
-  1. The function name with the code location.  (e.g. `my_func (my_code.py:42)`, `my_func (my_module:42)`)
-  2. Only the location without line number.  (e.g. `my_code.py`, `my_module`)
+  1. The function name with the code location.
+     (e.g. `my_func (my_code.py:42)`, `my_func (my_module:42)`)
+  1. Only the location without line number.  (e.g. `my_code.py`, `my_module`)
 
 ### Tracing Profiler
 
 - `CALLS` - Total call count of the function.
-- `SELF` (Exclusive Time) - Total spent time in the function excluding sub
-                            calls.
-- `/CALL` after `SELF` - Exclusive time per call.
-- `%` after `SELF` - Exclusive time per total spent time.
+- `OWN` (Exclusive Time) - Total spent time in the function excluding sub
+                           calls.
+- `/CALL` after `OWN` - Exclusive time per call.
+- `%` after `OWN` - Exclusive time per total spent time.
 - `DEEP` (Inclusive Time) - Total spent time in the function.
 - `/CALL` after `DEEP` - Inclusive time per call.
 - `%` after `DEEP` - Inclusive time per total spent time.
 
 ### Sampling Profiler
 
-- `SELF` (Exclusive Samples) - Number of samples which are collected during the
-                               direct execution of the function.
-- `%` after `SELF` - Exclusive samples per number of the total samples.
+- `OWN` (Exclusive Samples) - Number of samples which are collected during the
+                              direct execution of the function.
+- `%` after `OWN` - Exclusive samples per number of the total samples.
 - `DEEP` (Inclusive Samples) - Number of samples which are collected during the
                                excution of the function.
 - `%` after `DEEP` - Inclusive samples per number of the total samples.

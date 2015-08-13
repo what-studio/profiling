@@ -5,7 +5,7 @@ from types import CodeType
 import pytest
 from six import PY3
 
-from profiling.sortkeys import by_name, by_self_count, by_deep_time_per_call
+from profiling.sortkeys import by_name, by_own_count, by_deep_time_per_call
 from profiling.stats import (
     FrozenStatistic, RecordingStatistic, RecordingStatistics, Statistic,
     VoidRecordingStatistic)
@@ -27,7 +27,7 @@ def test_stat():
     assert stat.regular_name == 'baz:foo'
     assert stat.deep_time_per_call == 0
     stat.deep_time = 128
-    stat.self_count = 4
+    stat.own_count = 4
     assert stat.deep_time_per_call == 32
     assert len(stat) == 0
     assert not list(stat)
@@ -44,15 +44,15 @@ def test_recording():
     code = mock_code('foo')
     stat = RecordingStatistic(code)
     assert stat.name == 'foo'
-    assert stat.self_count == 0
+    assert stat.own_count == 0
     assert stat.deep_time == 0
     stat.record_entering(100)
     stat.record_leaving(200)
-    assert stat.self_count == 1
+    assert stat.own_count == 1
     assert stat.deep_time == 100
     stat.record_entering(200)
     stat.record_leaving(400)
-    assert stat.self_count == 2
+    assert stat.own_count == 2
     assert stat.deep_time == 300
     code2 = mock_code('bar')
     stat2 = RecordingStatistic(code2)
@@ -63,13 +63,13 @@ def test_recording():
     assert len(stat) == 1
     assert list(stat) == [stat2]
     assert stat.deep_time == 300
-    assert stat.self_time == 300
+    assert stat.own_time == 300
     stat2.record_entering(1000)
     stat2.record_leaving(1004)
     assert stat2.deep_time == 4
-    assert stat2.self_time == 4
+    assert stat2.own_time == 4
     assert stat.deep_time == 300
-    assert stat.self_time == 296
+    assert stat.own_time == 296
     stat.clear()
     assert len(stat) == 0
     with pytest.raises(TypeError):
@@ -110,12 +110,12 @@ def test_sorting():
     stat.add_child(stat3.code, stat3)
     stat.deep_time = 100
     stat1.deep_time = 20
-    stat1.self_count = 3
+    stat1.own_count = 3
     stat2.deep_time = 30
-    stat2.self_count = 2
+    stat2.own_count = 2
     stat3.deep_time = 40
-    stat3.self_count = 4
+    stat3.own_count = 4
     assert stat.sorted() == [stat3, stat2, stat1]
-    assert stat.sorted(by_self_count) == [stat3, stat1, stat2]
+    assert stat.sorted(by_own_count) == [stat3, stat1, stat2]
     assert stat.sorted(by_deep_time_per_call) == [stat2, stat3, stat1]
     assert stat.sorted(by_name) == [stat1, stat2, stat3]

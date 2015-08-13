@@ -27,7 +27,7 @@ class SamplingStatisticsTable(StatisticsTable):
 
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('SELF', 'right', (6,), sortkeys.by_self_count),
+        ('OWN', 'right', (6,), sortkeys.by_own_count),
         ('%', 'left', (4,), None),
         ('DEEP', 'right', (6,), sortkeys.by_deep_count),
         ('%', 'left', (4,), None),
@@ -36,8 +36,8 @@ class SamplingStatisticsTable(StatisticsTable):
 
     def make_cells(self, node, stat, stats):
         yield fmt.make_stat_text(stat)
-        yield fmt.make_int_or_na_text(stat.self_count)
-        yield fmt.make_percent_text(stat.self_count, stats.deep_count)
+        yield fmt.make_int_or_na_text(stat.own_count)
+        yield fmt.make_percent_text(stat.own_count, stats.deep_count)
         yield fmt.make_int_or_na_text(stat.deep_count)
         yield fmt.make_percent_text(stat.deep_count, stats.deep_count)
 

@@ -40,13 +40,13 @@ class Statistic(object):
     """A statistic."""
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'self_count', 'deep_time']
+                    'own_count', 'deep_time']
 
     name = None
     filename = None
     lineno = None
     module = None
-    self_count = 0
+    own_count = 0
     deep_time = 0.0
 
     def __init__(self, stat=None, name=None, filename=None, lineno=None,
@@ -78,10 +78,10 @@ class Statistic(object):
 
     @property
     def deep_count(self):
-        return self.self_count + sum(stat.deep_count for stat in self)
+        return self.own_count + sum(stat.deep_count for stat in self)
 
     @property
-    def self_time(self):
+    def own_time(self):
         sub_time = sum(stat.deep_time for stat in self)
         return max(0., self.deep_time - sub_time)
 
@@ -93,9 +93,9 @@ class Statistic(object):
             return 0.0
 
     @property
-    def self_time_per_call(self):
+    def own_time_per_call(self):
         try:
-            return self.self_time / self.self_count
+            return self.own_time / self.own_count
         except ZeroDivisionError:
             return 0.0
 
@@ -123,12 +123,12 @@ class Statistic(object):
         name_string = '' if regular_name else "'{0}'".format(regular_name)
         # format count
         deep_count = self.deep_count
-        if self.self_count == deep_count:
-            count_string = str(self.self_count)
+        if self.own_count == deep_count:
+            count_string = str(self.own_count)
         else:
-            count_string = '{0}/{1}'.format(self.self_count, deep_count)
+            count_string = '{0}/{1}'.format(self.own_count, deep_count)
         # format time
-        time_string = '{0:.6f}/{1:.6f}'.format(self.self_time, self.deep_time)
+        time_string = '{0:.6f}/{1:.6f}'.format(self.own_time, self.deep_time)
         # join all
         class_name = type(self).__name__
         return ('<{0} {1}count={2} time={3}>'
@@ -164,17 +164,17 @@ class Statistics(Statistic):
         self.wdeep_time = wdeep_time
 
     @property
-    def self_time(self):
+    def own_time(self):
         return self.cpu_time
 
-    @self_time.setter
-    def self_time(self, cpu_time):
+    @own_time.setter
+    def own_time(self, cpu_time):
         self.cpu_time = cpu_time
 
     def clear(self):
         self.children.clear()
         cls = type(self)
-        self.self_count = cls.self_count
+        self.own_count = cls.own_count
         self.cpu_time = cls.cpu_time
         self.wdeep_time = cls.wdeep_time
         try:
@@ -231,7 +231,7 @@ class RecordingStatistic(Statistic):
 
     def record_call(self):
         with self.lock:
-            self.self_count += 1
+            self.own_count += 1
 
     def record_entering(self, time, frame_key=None):
         with self.lock:
@@ -249,7 +249,7 @@ class RecordingStatistic(Statistic):
             self.code = None
             self.children.clear()
             cls = type(self)
-            self.self_count = cls.self_count
+            self.own_count = cls.own_count
             self.deep_time = cls.deep_time
             self._times_entered.clear()
 
@@ -338,11 +338,11 @@ class FrozenStatistic(Statistic):
     """Frozen :class:`Statistic` to serialize by Pickle."""
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'self_count', 'deep_time', 'children']
+                    'own_count', 'deep_time', 'children']
 
     def __init__(self, stat):
         super(FrozenStatistic, self).__init__(stat)
-        self.self_count = stat.self_count
+        self.own_count = stat.own_count
         self.deep_time = stat.deep_time
         self.children = self._freeze_children(stat)
 
@@ -373,9 +373,9 @@ class FrozenStatistics(FrozenStatistic, Statistics):
 class FlatStatistic(Statistic):
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'self_count', 'deep_time', 'self_time']
+                    'own_count', 'deep_time', 'own_time']
 
-    self_time = 0.0
+    own_time = 0.0
 
 
 class FlatStatistics(Statistics):
@@ -393,7 +393,7 @@ class FlatStatistics(Statistics):
             except KeyError:
                 flatten_stat = FlatStatistic(stat)
                 registry[stat.regular_name] = flatten_stat
-            for attr in ['self_count', 'deep_time', 'self_time']:
+            for attr in ['own_count', 'deep_time', 'own_time']:
                 value = getattr(flatten_stat, attr) + getattr(stat, attr)
                 setattr(flatten_stat, attr, value)
             cls._flatten_stats(stat, registry=registry)
