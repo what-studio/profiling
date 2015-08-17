@@ -17,7 +17,7 @@ def spin_500ms():
     spin(0.5)
 
 
-@pytest.mark.flaky(reruns=5)
+@pytest.mark.flaky(reruns=10)
 def test_profiler():
     profiler = SamplingProfiler(top_frame=sys._getframe(),
                                 sampler=ItimerSampler(0.0001))
