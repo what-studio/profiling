@@ -109,12 +109,16 @@ class TracingProfiler(Profiler):
     def run(self):
         if sys.getprofile() is not None:
             raise RuntimeError('Another profiler already registered')
-        sys.setprofile(self._profile)
-        threading.setprofile(self._profile)
-        self.timer.start(self)
-        self.stats.record_starting(time.clock())
-        yield
-        self.stats.record_stopping(time.clock())
-        self.timer.stop()
-        threading.setprofile(None)
-        sys.setprofile(None)
+        try:
+            sys.setprofile(self._profile)
+            threading.setprofile(self._profile)
+            self.timer.start(self)
+            try:
+                self.stats.record_starting(time.clock())
+                yield
+            finally:
+                self.stats.record_stopping(time.clock())
+        finally:
+            self.timer.stop()
+            threading.setprofile(None)
+            sys.setprofile(None)
