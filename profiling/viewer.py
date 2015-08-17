@@ -606,7 +606,7 @@ class StatisticsTable(urwid.WidgetWrap):
             meta_info = None
         fraction_string = '({0}/{1})'.format(
             fmt.format_time(stats.cpu_time),
-            fmt.format_time(stats.wdeep_time))
+            fmt.format_time(stats.wall_time))
         cpu_info = urwid.Text([
             'CPU ', fmt.markup_percent(stats.cpu_usage),
             ' ', ('weak', fraction_string)])

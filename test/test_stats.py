@@ -79,7 +79,7 @@ def test_recording():
     stats.wall = lambda: 2000
     stats.record_stopping(400)
     assert stats.cpu_time == 400
-    assert stats.wdeep_time == 1990
+    assert stats.wall_time == 1990
     assert stats.cpu_usage == 400 / 1990.
 
 

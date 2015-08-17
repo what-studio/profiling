@@ -138,10 +138,10 @@ class Statistic(object):
 class Statistics(Statistic):
     """Thr root statistic of the statistics tree."""
 
-    _state_slots = ['cpu_time', 'wdeep_time']
+    _state_slots = ['cpu_time', 'wall_time']
 
     cpu_time = 0.0
-    wdeep_time = 0.0
+    wall_time = 0.0
 
     name = None
     filename = None
@@ -151,17 +151,17 @@ class Statistics(Statistic):
     @property
     def cpu_usage(self):
         try:
-            return self.cpu_time / self.wdeep_time
+            return self.cpu_time / self.wall_time
         except ZeroDivisionError:
             return 0.0
 
     @property
     def deep_time(self):
-        return self.wdeep_time
+        return self.wall_time
 
     @deep_time.setter
-    def deep_time(self, wdeep_time):
-        self.wdeep_time = wdeep_time
+    def deep_time(self, wall_time):
+        self.wall_time = wall_time
 
     @property
     def own_time(self):
@@ -176,13 +176,13 @@ class Statistics(Statistic):
         cls = type(self)
         self.own_count = cls.own_count
         self.cpu_time = cls.cpu_time
-        self.wdeep_time = cls.wdeep_time
+        self.wall_time = cls.wall_time
         try:
             del self._cpu_time_started
         except AttributeError:
             pass
         try:
-            del self._wdeep_time_started
+            del self._wall_time_started
         except AttributeError:
             pass
 
@@ -304,16 +304,16 @@ class RecordingStatistics(RecordingStatistic, Statistics):
 
     def record_starting(self, time):
         self._cpu_time_started = time
-        self._wdeep_time_started = self.wall()
+        self._wall_time_started = self.wall()
 
     def record_stopping(self, time):
         try:
             self.cpu_time = max(0, time - self._cpu_time_started)
-            self.wdeep_time = max(0, self.wall() - self._wdeep_time_started)
+            self.wall_time = max(0, self.wall() - self._wall_time_started)
         except AttributeError:
             raise RuntimeError('Starting does not recorded')
         del self._cpu_time_started
-        del self._wdeep_time_started
+        del self._wall_time_started
 
 
 class VoidRecordingStatistic(RecordingStatistic):
@@ -361,12 +361,12 @@ class FrozenStatistic(Statistic):
 class FrozenStatistics(FrozenStatistic, Statistics):
     """Frozen :class:`Statistics` to serialize by Pickle."""
 
-    _state_slots = ['cpu_time', 'wdeep_time', 'children']
+    _state_slots = ['cpu_time', 'wall_time', 'children']
 
     def __init__(self, stats):
         Statistic.__init__(self)
         self.cpu_time = stats.cpu_time
-        self.wdeep_time = stats.wdeep_time
+        self.wall_time = stats.wall_time
         self.children = FrozenStatistic._freeze_children(stats)
 
 
@@ -380,7 +380,7 @@ class FlatStatistic(Statistic):
 
 class FlatStatistics(Statistics):
 
-    _state_slots = ['cpu_time', 'wdeep_time', 'children']
+    _state_slots = ['cpu_time', 'wall_time', 'children']
 
     @classmethod
     def _flatten_stats(cls, stats, registry=None):
@@ -402,7 +402,7 @@ class FlatStatistics(Statistics):
     def __init__(self, stats):
         Statistic.__init__(self)
         self.cpu_time = stats.cpu_time
-        self.wdeep_time = stats.wdeep_time
+        self.wall_time = stats.wall_time
         self.children = self._flatten_stats(stats)
 
     def __iter__(self):
