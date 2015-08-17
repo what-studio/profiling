@@ -16,7 +16,7 @@ import six.moves._thread as _thread
 from ..utils import Runnable
 
 
-__all__ = ['Sampler', 'ItimerSampler', 'ThreadSampler']
+__all__ = ['Sampler', 'ItimerSampler', 'TracingSampler']
 
 
 DEFAULT_INTERVAL = 1e-3  # 1ms
@@ -58,20 +58,24 @@ class ItimerSampler(Sampler):
         signal.signal(signal.SIGPROF, prev_handler)
 
 
-class ThreadSampler(Sampler):
+class TracingSampler(Sampler):
 
-    def sample_periodically(self, profiler):
-        sampling_thread_id = _thread.get_ident()
-        while profiler.is_running():
-            time.sleep(self.interval)
-            frames = self.current_frames()
-            # remove here the sampling thread.
-            del frames[sampling_thread_id]
-            for frame in frames.values():
-                profiler.sample(frame)
+    sampled_at = 0
+
+    def _profile(self, profiler, frame, event, arg):
+        t = time.clock()
+        if t - self.sampled_at < self.interval:
+            return
+        self.sampled_at = t
+        frames = self.current_frames()
+        frames[_thread.get_ident()] = frame
+        for frame in frames.values():
+            profiler.sample(frame)
 
     def run(self, profiler):
-        t = threading.Thread(target=self.sample_periodically, args=(profiler,))
-        t.start()
+        profile = functools.partial(self._profile, profiler)
+        sys.setprofile(profile)
+        threading.setprofile(profile)
         yield
-        t.join()
+        threading.setprofile(None)
+        sys.setprofile(None)
