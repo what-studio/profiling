@@ -5,6 +5,7 @@
 """
 from __future__ import absolute_import
 from collections import deque
+from contextlib import contextmanager
 
 try:
     from . import speedup
@@ -12,7 +13,7 @@ except ImportError:
     speedup = False
 
 
-__all__ = ['Runnable', 'frame_stack', 'repr_frame', 'lazy_import']
+__all__ = ['Runnable', 'frame_stack', 'repr_frame', 'lazy_import', 'deferral']
 
 
 class Runnable(object):
@@ -118,3 +119,25 @@ class LazyImport(object):
 
 
 lazy_import = LazyImport
+
+
+@contextmanager
+def deferral():
+    """Defers a function call when it is being required like Go.
+
+    ::
+
+       with deferral() as defer:
+           sys.setprofile(f)
+           defer(sys.setprofile, None)
+           # do something.
+
+    """
+    deferred = []
+    defer = lambda f, *a, **k: deferred.append((f, a, k))
+    try:
+        yield defer
+    finally:
+        while deferred:
+            f, a, k = deferred.pop()
+            f(*a, **k)

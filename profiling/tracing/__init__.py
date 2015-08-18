@@ -14,7 +14,7 @@ import time
 from .. import sortkeys
 from ..profiler import Profiler
 from ..stats import RecordingStatistic, VoidRecordingStatistic
-from ..utils import frame_stack
+from ..utils import deferral, frame_stack
 from ..viewer import StatisticsTable, fmt
 from .timers import Timer
 
@@ -107,18 +107,15 @@ class TracingProfiler(Profiler):
             pass
 
     def run(self):
-        if sys.getprofile() is not None:
+        if sys.getprofile() is not None or threading.getprofile() is not None:
             raise RuntimeError('Another profiler already registered')
-        try:
+        with deferral() as defer:
             sys.setprofile(self._profile)
+            defer(sys.setprofile, None)
             threading.setprofile(self._profile)
+            defer(threading.setprofile, None)
             self.timer.start(self)
-            try:
-                self.stats.record_starting(time.clock())
-                yield
-            finally:
-                self.stats.record_stopping(time.clock())
-        finally:
-            self.timer.stop()
-            threading.setprofile(None)
-            sys.setprofile(None)
+            defer(self.timer.stop)
+            self.stats.record_starting(time.clock())
+            defer(lambda: self.stats.record_stopping(time.clock()))
+            yield
