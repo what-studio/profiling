@@ -9,7 +9,6 @@
 from __future__ import absolute_import
 import sys
 import threading
-import time
 
 from .. import sortkeys
 from ..profiler import Profiler
@@ -39,15 +38,15 @@ class TracingStatisticsTable(StatisticsTable):
     ]
     order = sortkeys.by_deep_time
 
-    def make_cells(self, node, stat, stats):
+    def make_cells(self, node, stat):
         yield fmt.make_stat_text(stat)
         yield fmt.make_int_or_na_text(stat.own_count)
         yield fmt.make_time_text(stat.own_time)
         yield fmt.make_time_text(stat.own_time_per_call)
-        yield fmt.make_percent_text(stat.own_time, stats.cpu_time)
+        yield fmt.make_percent_text(stat.own_time, self.cpu_time)
         yield fmt.make_time_text(stat.deep_time)
         yield fmt.make_time_text(stat.deep_time_per_call)
-        yield fmt.make_percent_text(stat.deep_time, stats.cpu_time)
+        yield fmt.make_percent_text(stat.deep_time, self.cpu_time)
 
 
 class TracingProfiler(Profiler):
@@ -65,6 +64,7 @@ class TracingProfiler(Profiler):
             raise TypeError('Not a timer instance')
         super(TracingProfiler, self).__init__(top_frame, top_code)
         self.timer = timer
+        self._times_entered = {}
 
     def _profile(self, frame, event, arg):
         """The callback function to register by :func:`sys.setprofile`."""
@@ -89,22 +89,27 @@ class TracingProfiler(Profiler):
         # record
         if event == 'call':
             time = self.timer()
-            self._entered(time, code, frame_key, parent_stat)
+            self.record_entering(time, code, frame_key, parent_stat)
         elif event == 'return':
-            self._left(time, code, frame_key, parent_stat)
+            self.record_leaving(time, code, frame_key, parent_stat)
 
-    def _entered(self, time, code, frame_key, parent_stat):
+    def record_entering(self, time, code, frame_key, parent_stat):
         """Entered to a function call."""
         stat = parent_stat.ensure_child(code, RecordingStatistic)
-        stat.record_entering(time, frame_key)
+        with stat.lock:
+            self._times_entered[(code, frame_key)] = time
+            stat.own_count += 1
 
-    def _left(self, time, code, frame_key, parent_stat):
+    def record_leaving(self, time, code, frame_key, parent_stat):
         """Left from a function call."""
         try:
             stat = parent_stat.get_child(code)
-            stat.record_leaving(time, frame_key)
+            time_entered = self._times_entered.pop((code, frame_key))
         except KeyError:
-            pass
+            return
+        with stat.lock:
+            time_elapsed = time - time_entered
+            stat.deep_time += max(0, time_elapsed)
 
     def run(self):
         if sys.getprofile() is not None:
@@ -119,6 +124,5 @@ class TracingProfiler(Profiler):
             defer(threading.setprofile, None)
             self.timer.start(self)
             defer(self.timer.stop)
-            self.stats.record_starting(time.clock())
-            defer(lambda: self.stats.record_stopping(time.clock()))
             yield
+            self._times_entered.clear()

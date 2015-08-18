@@ -376,9 +376,9 @@ class StatisticNode(StatisticNodeBase, urwid.ParentNode):
 
     def deep_usage(self):
         stat = self.get_value()
-        stats = self.get_root().get_value()
+        table = self.get_root()
         try:
-            return stat.deep_time / stats.cpu_time
+            return stat.deep_time / table.cpu_time
         except AttributeError:
             return 0.0
 
@@ -464,10 +464,9 @@ class StatisticsTable(urwid.WidgetWrap):
 
     def make_row(self, node):
         stat = node.get_value()
-        stats = node.get_root().get_value()
-        return self.make_columns(self.make_cells(node, stat, stats))
+        return self.make_columns(self.make_cells(node, stat))
 
-    def make_cells(self, node, stat, stats):
+    def make_cells(self, node, stat):
         yield fmt.make_stat_text(stat)
 
     @classmethod
@@ -544,10 +543,13 @@ class StatisticsTable(urwid.WidgetWrap):
     def get_stats(self):
         return self.stats
 
-    def set_stats(self, stats, title=None, time=None):
+    def set_result(self, stats, cpu_time=0.0, wall_time=0.0,
+                   title=None, at=None):
         self.stats = stats
+        self.cpu_time = cpu_time
+        self.wall_time = wall_time
         self.title = title
-        self.time = time
+        self.at = at
         if not self.viewer.paused:
             self.refresh()
 
@@ -605,10 +607,14 @@ class StatisticsTable(urwid.WidgetWrap):
         else:
             meta_info = None
         fraction_string = '({0}/{1})'.format(
-            fmt.format_time(stats.cpu_time),
-            fmt.format_time(stats.wall_time))
+            fmt.format_time(self.cpu_time),
+            fmt.format_time(self.wall_time))
+        try:
+            cpu_usage = self.cpu_time / self.wall_time
+        except ZeroDivisionError:
+            cpu_usage = 0.0
         cpu_info = urwid.Text([
-            'CPU ', fmt.markup_percent(stats.cpu_usage),
+            'CPU ', fmt.markup_percent(cpu_usage),
             ' ', ('weak', fraction_string)])
         # set header columns
         col_opts = ('weight', 1, False)
@@ -742,11 +748,12 @@ class StatisticsViewer(object):
         self.table = table_class(self)
         self.widget.original_widget = self.table
 
-    def set_stats(self, stats, title=None, time=None):
+    def set_result(self, stats, cpu_time=0.0, wall_time=0.0,
+                   title=None, at=None):
         if self.paused:
-            self._pending = (stats, title, time)
+            self._pending = (stats, cpu_time, wall_time, title, at)
         else:
-            self.table.set_stats(stats, title, time)
+            self.table.set_result(stats, cpu_time, wall_time, title, at)
 
     def activate(self):
         self.active = True
@@ -763,12 +770,12 @@ class StatisticsViewer(object):
     def resume(self):
         self.paused = False
         try:
-            stats, title, time = self._pending
+            stats, cpu_time, wall_time, title, at = self._pending
         except AttributeError:
             self.table.update_frame()
         else:
             del self._pending
-            self.table.set_stats(stats, title, time)
+            self.table.set_result(stats, cpu_time, wall_time, title, at)
 
     def use_vim_command_map(self):
         urwid.command_map['h'] = urwid.command_map['left']

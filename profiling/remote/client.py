@@ -10,7 +10,7 @@ import socket
 
 from valuedispatch import valuedispatch
 
-from . import PROFILER, STATS, WELCOME, recv_msg
+from . import PROFILER, RESULT, WELCOME, recv_msg
 from .errnos import ENOENT, ECONNREFUSED, EINPROGRESS
 
 
@@ -32,9 +32,11 @@ def handle_profiler(_, profiler_class, client):
     client.viewer.set_profiler_class(profiler_class)
 
 
-@protocol.register(STATS)
-def handle_stats(_, stats, client):
-    client.viewer.set_stats(stats, client.title, datetime.now())
+@protocol.register(RESULT)
+def handle_result(_, result, client):
+    stats, cpu_time, wall_time = result
+    client.viewer.set_result(stats, cpu_time, wall_time,
+                             client.title, datetime.now())
 
 
 class ProfilingClient(object):

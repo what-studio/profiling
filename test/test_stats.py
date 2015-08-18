@@ -2,13 +2,10 @@
 import pickle
 from types import CodeType
 
-import pytest
 from six import PY3
 
 from profiling.sortkeys import by_name, by_own_count, by_deep_time_per_call
-from profiling.stats import (
-    FrozenStatistic, RecordingStatistic, RecordingStatistics, Statistic,
-    VoidRecordingStatistic)
+from profiling.stats import FrozenStatistic, RecordingStatistic, Statistic
 
 
 def mock_code(name):
@@ -33,66 +30,56 @@ def test_stat():
     assert not list(stat)
 
 
-def test_recording():
-    stats = RecordingStatistics()
-    with pytest.raises(TypeError):
-        stats.record_entering()
-    with pytest.raises(TypeError):
-        stats.record_leaving()
-    stats.wall = lambda: 10
-    stats.record_starting(0)
-    code = mock_code('foo')
-    stat = RecordingStatistic(code)
-    assert stat.name == 'foo'
-    assert stat.own_count == 0
-    assert stat.deep_time == 0
-    stat.record_entering(100)
-    stat.record_leaving(200)
-    assert stat.own_count == 1
-    assert stat.deep_time == 100
-    stat.record_entering(200)
-    stat.record_leaving(400)
-    assert stat.own_count == 2
-    assert stat.deep_time == 300
-    code2 = mock_code('bar')
-    stat2 = RecordingStatistic(code2)
-    assert code2 not in stat
-    stat.add_child(code2, stat2)
-    assert code2 in stat
-    assert stat.get_child(code2) is stat2
-    assert len(stat) == 1
-    assert list(stat) == [stat2]
-    assert stat.deep_time == 300
-    assert stat.own_time == 300
-    stat2.record_entering(1000)
-    stat2.record_leaving(1004)
-    assert stat2.deep_time == 4
-    assert stat2.own_time == 4
-    assert stat.deep_time == 300
-    assert stat.own_time == 296
-    stat.clear()
-    assert len(stat) == 0
-    with pytest.raises(TypeError):
-        pickle.dumps(stat)
-    stat3 = stat.ensure_child(mock_code('baz'), VoidRecordingStatistic)
-    assert isinstance(stat3, VoidRecordingStatistic)
-    stats.wall = lambda: 2000
-    stats.record_stopping(400)
-    assert stats.cpu_time == 400
-    assert stats.wall_time == 1990
-    assert stats.cpu_usage == 400 / 1990.
+# def test_recording():
+#     stats.wall = lambda: 10
+#     stats.record_starting(0)
+#     code = mock_code('foo')
+#     stat = RecordingStatistic(code)
+#     assert stat.name == 'foo'
+#     assert stat.own_count == 0
+#     assert stat.deep_time == 0
+#     stat.record_entering(100)
+#     stat.record_leaving(200)
+#     assert stat.own_count == 1
+#     assert stat.deep_time == 100
+#     stat.record_entering(200)
+#     stat.record_leaving(400)
+#     assert stat.own_count == 2
+#     assert stat.deep_time == 300
+#     code2 = mock_code('bar')
+#     stat2 = RecordingStatistic(code2)
+#     assert code2 not in stat
+#     stat.add_child(code2, stat2)
+#     assert code2 in stat
+#     assert stat.get_child(code2) is stat2
+#     assert len(stat) == 1
+#     assert list(stat) == [stat2]
+#     assert stat.deep_time == 300
+#     assert stat.own_time == 300
+#     stat2.record_entering(1000)
+#     stat2.record_leaving(1004)
+#     assert stat2.deep_time == 4
+#     assert stat2.own_time == 4
+#     assert stat.deep_time == 300
+#     assert stat.own_time == 296
+#     stat.clear()
+#     assert len(stat) == 0
+#     with pytest.raises(TypeError):
+#         pickle.dumps(stat)
+#     stat3 = stat.ensure_child(mock_code('baz'), VoidRecordingStatistic)
+#     assert isinstance(stat3, VoidRecordingStatistic)
+#     stats.wall = lambda: 2000
+#     stats.record_stopping(400)
+#     assert stats.cpu_time == 400
+#     assert stats.wall_time == 1990
+#     assert stats.cpu_usage == 400 / 1990.
 
 
 def test_frozen():
     code = mock_code('foo')
     stat = RecordingStatistic(code)
-    stat.record_entering(0)
-    stat.record_leaving(10)
-    assert stat.name == 'foo'
-    assert stat.deep_time == 10
+    stat.deep_time = 10
     frozen_stat = FrozenStatistic(stat)
-    with pytest.raises(AttributeError):
-        frozen_stat.record_entering(0)
     assert frozen_stat.name == 'foo'
     assert frozen_stat.deep_time == 10
     restored_frozen_stat = pickle.loads(pickle.dumps(frozen_stat))

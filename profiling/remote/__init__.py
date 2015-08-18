@@ -25,7 +25,7 @@ from ..utils import frame_stack
 
 
 __all__ = ['LOGGER', 'LOG', 'INTERVAL', 'PICKLE_PROTOCOL',
-           'SIZE_STRUCT_FORMAT', 'pack_stats', 'recv_msg', 'fmt_connected',
+           'SIZE_STRUCT_FORMAT', 'pack_result', 'recv_msg', 'fmt_connected',
            'fmt_disconnected', 'fmt_profiler_started', 'fmt_profiler_stopped',
            'ProfilingServer']
 
@@ -52,7 +52,7 @@ METHOD_STRUCT_FORMAT = '!B'
 # methods
 WELCOME = 0x10
 PROFILER = 0x11
-STATS = 0x12
+RESULT = 0x12
 
 
 def pack_msg(method, msg, pickle_protocol=PICKLE_PROTOCOL):
@@ -62,12 +62,6 @@ def pack_msg(method, msg, pickle_protocol=PICKLE_PROTOCOL):
     size = dump.tell()
     return (struct.pack(METHOD_STRUCT_FORMAT, method) +
             struct.pack(SIZE_STRUCT_FORMAT, size) + dump.getvalue())
-
-
-def pack_stats(profiler, pickle_protocol=PICKLE_PROTOCOL):
-    """Packs statistics from the profiler by Pickle with size as a header."""
-    stats = profiler.result()
-    return pack_msg(stats, pickle_protocol=pickle_protocol)
 
 
 def recv(sock, size):
@@ -129,7 +123,7 @@ class ProfilingServer(object):
     methods and call :meth:`connected` when a client connected.
     """
 
-    _latest_stats_data = None
+    _latest_result_data = None
 
     def __init__(self, profiler, interval=INTERVAL,
                  log=LOG, pickle_protocol=PICKLE_PROTOCOL):
@@ -182,9 +176,10 @@ class ProfilingServer(object):
             yield
             self.profiler.stop()
             self.profiler.exclude_code(excluding_code)
-            stats = self.profiler.result()
-            data = pack_msg(STATS, stats, pickle_protocol=self.pickle_protocol)
-            self._latest_stats_data = data
+            result = self.profiler.result()
+            data = pack_msg(RESULT, result,
+                            pickle_protocol=self.pickle_protocol)
+            self._latest_result_data = data
             self.profiler.clear()
             # broadcast
             closed_clients = []
@@ -222,9 +217,9 @@ class ProfilingServer(object):
             except AttributeError:
                 break
         self.send_msg(client, PROFILER, type(profiler))
-        if self._latest_stats_data is not None:
+        if self._latest_result_data is not None:
             try:
-                self._send(client, self._latest_stats_data)
+                self._send(client, self._latest_result_data)
             except socket.error as err:
                 if err.errno in (EBADF, EPIPE):
                     self.disconnected(client)

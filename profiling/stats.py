@@ -7,19 +7,16 @@
 
 """
 from __future__ import absolute_import, division
-from collections import defaultdict
 import inspect
 from threading import RLock
-import time
 
 from six import itervalues
 
 from .sortkeys import by_deep_time
 
 
-__all__ = ['Statistic', 'Statistics', 'RecordingStatistic',
-           'RecordingStatistics', 'VoidRecordingStatistic', 'FrozenStatistic',
-           'FrozenStatistics', 'FlatStatistic', 'FlatStatistics']
+__all__ = ['Statistic', 'RecordingStatistic', 'VoidRecordingStatistic',
+           'FrozenStatistic']
 
 
 def failure(funcname, message='{class} not allow {func}.', exctype=TypeError):
@@ -29,11 +26,6 @@ def failure(funcname, message='{class} not allow {func}.', exctype=TypeError):
         raise exctype(message.format(**fmtopts))
     func.__name__ = funcname
     return func
-
-
-# Statistic
-# CountedStatistic
-# TimedStatistic
 
 
 class Statistic(object):
@@ -135,72 +127,15 @@ class Statistic(object):
                 ''.format(class_name, name_string, count_string, time_string))
 
 
-class Statistics(Statistic):
-    """Thr root statistic of the statistics tree."""
-
-    _state_slots = ['cpu_time', 'wall_time']
-
-    cpu_time = 0.0
-    wall_time = 0.0
-
-    name = None
-    filename = None
-    lineno = None
-    module = None
-
-    @property
-    def cpu_usage(self):
-        try:
-            return self.cpu_time / self.wall_time
-        except ZeroDivisionError:
-            return 0.0
-
-    @property
-    def deep_time(self):
-        return self.wall_time
-
-    @deep_time.setter
-    def deep_time(self, wall_time):
-        self.wall_time = wall_time
-
-    @property
-    def own_time(self):
-        return self.cpu_time
-
-    @own_time.setter
-    def own_time(self, cpu_time):
-        self.cpu_time = cpu_time
-
-    def clear(self):
-        self.children.clear()
-        cls = type(self)
-        self.own_count = cls.own_count
-        self.cpu_time = cls.cpu_time
-        self.wall_time = cls.wall_time
-        try:
-            del self._cpu_time_started
-        except AttributeError:
-            pass
-        try:
-            del self._wall_time_started
-        except AttributeError:
-            pass
-
-    def __repr__(self):
-        class_name = type(self).__name__
-        return '<{0} cpu_usage={1:.2%}>'.format(class_name, self.cpu_usage)
-
-
 class RecordingStatistic(Statistic):
     """Recordig statistic measures execution time of a code."""
 
     _state_slots = None
 
-    def __init__(self, code=None):
+    def __init__(self, code):
         super(RecordingStatistic, self).__init__()
         self.code = code
         self.children = {}
-        self._times_entered = {}
         self.lock = RLock()
 
     @property
@@ -229,21 +164,6 @@ class RecordingStatistic(Statistic):
             return
         return module.__name__
 
-    def record_call(self):
-        with self.lock:
-            self.own_count += 1
-
-    def record_entering(self, time, frame_key=None):
-        with self.lock:
-            self._times_entered[frame_key] = time
-            self.record_call()
-
-    def record_leaving(self, time, frame_key=None):
-        with self.lock:
-            time_entered = self._times_entered.pop(frame_key)
-            time_elapsed = time - time_entered
-            self.deep_time += max(0, time_elapsed)
-
     def clear(self):
         with self.lock:
             self.code = None
@@ -251,7 +171,6 @@ class RecordingStatistic(Statistic):
             cls = type(self)
             self.own_count = cls.own_count
             self.deep_time = cls.deep_time
-            self._times_entered.clear()
 
     def get_child(self, code):
         with self.lock:
@@ -292,30 +211,6 @@ class RecordingStatistic(Statistic):
         raise TypeError('Cannot dump recording statistic')
 
 
-class RecordingStatistics(RecordingStatistic, Statistics):
-    """Thr root statistic of the recording statistics tree."""
-
-    _state_slots = None
-
-    wall = time.time
-
-    record_entering = failure('record_entering')
-    record_leaving = failure('record_leaving')
-
-    def record_starting(self, time):
-        self._cpu_time_started = time
-        self._wall_time_started = self.wall()
-
-    def record_stopping(self, time):
-        try:
-            self.cpu_time = max(0, time - self._cpu_time_started)
-            self.wall_time = max(0, self.wall() - self._wall_time_started)
-        except AttributeError:
-            raise RuntimeError('Starting does not recorded')
-        del self._cpu_time_started
-        del self._wall_time_started
-
-
 class VoidRecordingStatistic(RecordingStatistic):
     """Statistic for an absent frame."""
 
@@ -327,12 +222,6 @@ class VoidRecordingStatistic(RecordingStatistic):
     def deep_time(self):
         return sum(stat.deep_time for stat in self)
 
-    def record_entering(self, time, frame=None):
-        pass
-
-    def record_leaving(self, time, frame=None):
-        pass
-
 
 class FrozenStatistic(Statistic):
     """Frozen :class:`Statistic` to serialize by Pickle."""
@@ -340,70 +229,16 @@ class FrozenStatistic(Statistic):
     _state_slots = ['name', 'filename', 'lineno', 'module',
                     'own_count', 'deep_time', 'children']
 
-    def __init__(self, stat):
+    def __init__(self, stat, slots=('own_count', 'deep_time')):
         super(FrozenStatistic, self).__init__(stat)
-        self.own_count = stat.own_count
-        self.deep_time = stat.deep_time
+        for attr in slots:
+            setattr(self, attr, getattr(stat, attr))
         self.children = self._freeze_children(stat)
 
     @classmethod
     def _freeze_children(cls, stat):
         with stat.lock:
             return [cls(s) for s in stat]
-
-    def __iter__(self):
-        return iter(self.children)
-
-    def __len__(self):
-        return len(self.children)
-
-
-class FrozenStatistics(FrozenStatistic, Statistics):
-    """Frozen :class:`Statistics` to serialize by Pickle."""
-
-    _state_slots = ['cpu_time', 'wall_time', 'children']
-
-    def __init__(self, stats):
-        Statistic.__init__(self)
-        self.cpu_time = stats.cpu_time
-        self.wall_time = stats.wall_time
-        self.children = FrozenStatistic._freeze_children(stats)
-
-
-class FlatStatistic(Statistic):
-
-    _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'own_count', 'deep_time', 'own_time']
-
-    own_time = 0.0
-
-
-class FlatStatistics(Statistics):
-
-    _state_slots = ['cpu_time', 'wall_time', 'children']
-
-    @classmethod
-    def _flatten_stats(cls, stats, registry=None):
-        if registry is None:
-            registry = {}
-            defaultdict(FlatStatistic)
-        for stat in stats:
-            try:
-                flatten_stat = registry[stat.regular_name]
-            except KeyError:
-                flatten_stat = FlatStatistic(stat)
-                registry[stat.regular_name] = flatten_stat
-            for attr in ['own_count', 'deep_time', 'own_time']:
-                value = getattr(flatten_stat, attr) + getattr(stat, attr)
-                setattr(flatten_stat, attr, value)
-            cls._flatten_stats(stat, registry=registry)
-        return registry.values()
-
-    def __init__(self, stats):
-        Statistic.__init__(self)
-        self.cpu_time = stats.cpu_time
-        self.wall_time = stats.wall_time
-        self.children = self._flatten_stats(stats)
 
     def __iter__(self):
         return iter(self.children)

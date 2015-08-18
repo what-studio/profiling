@@ -7,7 +7,6 @@
 
 """
 from __future__ import absolute_import
-import time
 
 from .. import sortkeys
 from ..profiler import Profiler
@@ -34,15 +33,18 @@ class SamplingStatisticsTable(StatisticsTable):
     ]
     order = sortkeys.by_deep_count
 
-    def make_cells(self, node, stat, stats):
+    def make_cells(self, node, stat):
+        root_stat = node.get_root().get_value()
         yield fmt.make_stat_text(stat)
         yield fmt.make_int_or_na_text(stat.own_count)
-        yield fmt.make_percent_text(stat.own_count, stats.deep_count)
+        yield fmt.make_percent_text(stat.own_count, root_stat.deep_count)
         yield fmt.make_int_or_na_text(stat.deep_count)
-        yield fmt.make_percent_text(stat.deep_count, stats.deep_count)
+        yield fmt.make_percent_text(stat.deep_count, root_stat.deep_count)
 
 
 class SamplingProfiler(Profiler):
+
+    stats_slots = ('own_count',)
 
     table_class = SamplingStatisticsTable
 
@@ -70,11 +72,9 @@ class SamplingProfiler(Profiler):
                 parent_stat.ensure_child(f.f_code, VoidRecordingStatistic)
         code = frame.f_code
         stat = parent_stat.ensure_child(code, RecordingStatistic)
-        stat.record_call()
+        stat.own_count += 1
 
     def run(self):
         self.sampler.start(self)
-        self.stats.record_starting(time.clock())
         yield
-        self.stats.record_stopping(time.clock())
         self.sampler.stop()

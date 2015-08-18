@@ -409,18 +409,19 @@ def __profile__(filename, code, globals_, profiler_factory,
     # discard this __profile__ function from the result.
     profiler.stats.discard_child(frame.f_code)
     if dump_filename is None:
+        stats, cpu_time, wall_time = profiler.result()
         viewer, loop = make_viewer(mono)
         viewer.set_profiler_class(type(profiler))
-        viewer.set_stats(profiler.stats, get_title(filename))
+        viewer.set_result(stats, cpu_time, wall_time, get_title(filename))
         viewer.activate()
         try:
             loop.run()
         except KeyboardInterrupt:
             pass
     else:
-        stats = profiler.result()
+        result = profiler.result()
         with open(dump_filename, 'wb') as f:
-            pickle.dump(stats, f, pickle_protocol)
+            pickle.dump(result, f, pickle_protocol)
         click.echo('To view statistics:')
         click.echo('  $ python -m profiling view ', nl=False)
         click.secho(dump_filename, underline=True)
@@ -572,9 +573,9 @@ def view(src, mono):
     viewer, loop = make_viewer(mono)
     if src_type == 'dump':
         with open(src_name, 'rb') as f:
-            stats = pickle.load(f)
+            stats, cpu_time, wall_time = pickle.load(f)
         time = datetime.fromtimestamp(os.path.getmtime(src_name))
-        viewer.set_stats(stats, title, time)
+        viewer.set_result(stats, cpu_time, wall_time, title, time)
     elif src_type in ('tcp', 'sock'):
         family = {'tcp': socket.AF_INET, 'sock': socket.AF_UNIX}[src_type]
         client = FailoverProfilingClient(viewer, loop.event_loop,
