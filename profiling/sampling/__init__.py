@@ -44,8 +44,6 @@ class SamplingStatisticsTable(StatisticsTable):
 
 class SamplingProfiler(Profiler):
 
-    stats_slots = ('own_count',)
-
     table_class = SamplingStatisticsTable
 
     #: The frames sampler.  Usually it is an instance of :class:`profiling.

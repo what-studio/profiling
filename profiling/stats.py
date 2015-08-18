@@ -10,7 +10,7 @@ from __future__ import absolute_import, division
 import inspect
 from threading import RLock
 
-from six import itervalues
+from six import itervalues, with_metaclass
 
 from .sortkeys import by_deep_time
 
@@ -28,42 +28,65 @@ def failure(funcname, message='{class} not allow {func}.', exctype=TypeError):
     return func
 
 
-class Statistics(object):
+def stats_from_members(stats_class, members):
+    stats = stats_class()
+    for attr, value in zip(stats_class.__slots__, members):
+        setattr(stats, attr, value)
+    return stats
+
+
+class default(object):
+
+    __slots__ = ('value',)
+
+    def __init__(self, value):
+        self.value = value
+
+
+class StatisticsMeta(type):
+
+    def __new__(meta, name, bases, attrs):
+        defaults = {}
+        try:
+            slots = attrs['__slots__']
+        except KeyError:
+            pass
+        else:
+            for attr in slots:
+                if attr not in attrs:
+                    continue
+                elif isinstance(attrs[attr], default):
+                    defaults[attr] = attrs.pop(attr).value
+        cls = super(StatisticsMeta, meta).__new__(meta, name, bases, attrs)
+        cls.__defaults__ = defaults
+        return cls
+
+    def __call__(cls, *args, **kwargs):
+        obj = super(StatisticsMeta, cls).__call__(*args, **kwargs)
+        for attr, value in cls.__defaults__.items():
+            if not hasattr(obj, attr):
+                setattr(obj, attr, value)
+        return obj
+
+
+class Statistics(with_metaclass(StatisticsMeta)):
     """Statistics of a function."""
 
-    _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'own_count', 'deep_time']
+    __slots__ = ('name', 'filename', 'lineno', 'module',
+                 'own_count', 'deep_time')
 
-    name = None
-    filename = None
-    lineno = None
-    module = None
-
-    #: The inclusive execution count.
-    own_count = 0
-
+    name = default(None)
+    filename = default(None)
+    lineno = default(None)
+    module = default(None)
+    #: The inclusive calling/sampling count.
+    own_count = default(0)
     #: The exclusive execution time.
-    deep_time = 0.0
+    deep_time = default(0.0)
 
-    def __init__(self, stats=None, name=None, filename=None, lineno=None,
-                 module=None):
-        if stats is not None:
-            assert name is filename is lineno is module is None
-            name = stats.name
-            filename = stats.filename
-            lineno = stats.lineno
-            module = stats.module
-        if name is not None:
-            self.name = name
-        if filename is not None:
-            self.filename = filename
-        if lineno is not None:
-            self.lineno = lineno
-        if module is not None:
-            self.module = module
-
-    def __hash__(self):
-        return hash((self.name, self.filename, self.lineno))
+    def __init__(self, **members):
+        for attr, value in members.items():
+            setattr(self, attr, value)
 
     @property
     def regular_name(self):
@@ -74,10 +97,15 @@ class Statistics(object):
 
     @property
     def deep_count(self):
+        """The inclusive calling/sampling count.
+
+        Calculates as sum of the own count and deep counts of the children.
+        """
         return self.own_count + sum(stats.deep_count for stats in self)
 
     @property
     def own_time(self):
+        """The exclusive execution time."""
         sub_time = sum(stats.deep_time for stats in self)
         return max(0., self.deep_time - sub_time)
 
@@ -99,19 +127,21 @@ class Statistics(object):
         return sorted(self, key=order)
 
     def __iter__(self):
-        """Override it to walk child stats."""
+        """Override it to walk statistics children."""
         return iter(())
 
     def __len__(self):
-        """Override it to count child stats."""
+        """Override it to count statistics children."""
         return 0
 
-    def __getstate__(self):
-        return tuple(getattr(self, attr) for attr in self._state_slots)
+    def __reduce__(self):
+        """Safen for Pickle."""
+        members = [getattr(self, attr) for attr in self.__slots__]
+        return (stats_from_members, (self.__class__, members,))
 
-    def __setstate__(self, state):
-        for attr, val in zip(self._state_slots, state):
-            setattr(self, attr, val)
+    def __hash__(self):
+        """Statistics can be a key."""
+        return hash((self.name, self.filename, self.lineno))
 
     def __repr__(self):
         # format name
@@ -134,10 +164,12 @@ class Statistics(object):
 class RecordingStatistics(Statistics):
     """Recordig statistics measures execution time of a code."""
 
-    _state_slots = None
+    __slots__ = ('own_count', 'deep_time', 'code', 'lock', '_children')
+
+    own_count = default(0)
+    deep_time = default(0.0)
 
     def __init__(self, code=None):
-        super(RecordingStatistics, self).__init__()
         self.code = code
         self.lock = RLock()
         self._children = {}
@@ -167,14 +199,6 @@ class RecordingStatistics(Statistics):
         if not module:
             return
         return module.__name__
-
-    def clear(self):
-        with self.lock:
-            self.code = None
-            self._children.clear()
-            cls = type(self)
-            self.own_count = cls.own_count
-            self.deep_time = cls.deep_time
 
     def get_child(self, code):
         with self.lock:
@@ -218,24 +242,25 @@ class RecordingStatistics(Statistics):
 class VoidRecordingStatistics(RecordingStatistics):
     """Statistics for an absent frame."""
 
-    _state_slots = None
+    __slots__ = ('code', 'lock', '_children')
 
-    clear = failure('clear')
-
-    @property
-    def deep_time(self):
-        return sum(stats.deep_time for stats in self)
+    _ignore = lambda x, *a, **k: None
+    own_count = property(lambda x: 0, _ignore)
+    deep_time = property(lambda x: sum(s.deep_time for s in x), _ignore)
+    del _ignore
 
 
 class FrozenStatistics(Statistics):
     """Frozen :class:`Statistics` to serialize by Pickle."""
 
-    _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'own_count', 'deep_time', '_children']
+    __slots__ = ('name', 'filename', 'lineno', 'module',
+                 'own_count', 'deep_time', '_children')
 
-    def __init__(self, stats, slots=('own_count', 'deep_time')):
-        super(FrozenStatistics, self).__init__(stats)
-        for attr in slots:
+    def __init__(self, stats=None):
+        if stats is None:
+            self._children = []
+            return
+        for attr in self.__slots__:
             setattr(self, attr, getattr(stats, attr))
         self._children = self._freeze_children(stats)
 

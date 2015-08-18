@@ -75,6 +75,12 @@ def test_stats():
 #     assert stats.cpu_usage == 400 / 1990.
 
 
+def test_pickle():
+    stats = Statistics(name='ok')
+    for protocol in range(pickle.HIGHEST_PROTOCOL + 1):
+        assert pickle.loads(pickle.dumps(stats, protocol)).name == 'ok'
+
+
 def test_frozen():
     code = mock_code('foo')
     stats = RecordingStatistics(code)

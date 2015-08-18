@@ -20,9 +20,6 @@ class Profiler(Runnable):
     #: A widget class which extends :class:`profiling.viewer.StatisticsTable`.
     table_class = StatisticsTable
 
-    #: Which statistics attributes would be frozen to make a result.
-    stats_slots = ('own_count', 'deep_time')
-
     #: The root recording statistics.
     stats = None
 
@@ -53,20 +50,17 @@ class Profiler(Runnable):
             wall_time = max(0, time.time() - self._wall_time_started)
         except AttributeError:
             cpu_time = wall_time = 0.0
-        frozen_stats = FrozenStatistics(self.stats, self.stats_slots)
+        frozen_stats = FrozenStatistics(self.stats)
         return (frozen_stats, cpu_time, wall_time)
 
     def clear(self):
         """Clears or initializes the recording statistics."""
-        if self.stats is None:
-            self.stats = RecordingStatistics()
-        else:
-            self.stats.clear()
         try:
             del self._cpu_time_started
             del self._wall_time_started
         except AttributeError:
             pass
+        self.stats = RecordingStatistics()
 
 
 class ProfilerWrapper(Profiler):
