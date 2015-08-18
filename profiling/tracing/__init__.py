@@ -107,7 +107,10 @@ class TracingProfiler(Profiler):
             pass
 
     def run(self):
-        if sys.getprofile() is not None or threading.getprofile() is not None:
+        if sys.getprofile() is not None:
+            # NOTE: There's no threading.getprofile().
+            # The profiling function will be stored at threading._profile_hook
+            # but it's not documented.
             raise RuntimeError('Another profiler already registered')
         with deferral() as defer:
             sys.setprofile(self._profile)
