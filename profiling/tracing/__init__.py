@@ -12,7 +12,7 @@ import threading
 
 from .. import sortkeys
 from ..profiler import Profiler
-from ..stats import RecordingStatistic, VoidRecordingStatistic
+from ..stats import RecordingStatistics, VoidRecordingStatistics
 from ..utils import deferral, frame_stack
 from ..viewer import StatisticsTable, fmt
 from .timers import Timer
@@ -38,15 +38,15 @@ class TracingStatisticsTable(StatisticsTable):
     ]
     order = sortkeys.by_deep_time
 
-    def make_cells(self, node, stat):
-        yield fmt.make_stat_text(stat)
-        yield fmt.make_int_or_na_text(stat.own_count)
-        yield fmt.make_time_text(stat.own_time)
-        yield fmt.make_time_text(stat.own_time_per_call)
-        yield fmt.make_percent_text(stat.own_time, self.cpu_time)
-        yield fmt.make_time_text(stat.deep_time)
-        yield fmt.make_time_text(stat.deep_time_per_call)
-        yield fmt.make_percent_text(stat.deep_time, self.cpu_time)
+    def make_cells(self, node, stats):
+        yield fmt.make_stat_text(stats)
+        yield fmt.make_int_or_na_text(stats.own_count)
+        yield fmt.make_time_text(stats.own_time)
+        yield fmt.make_time_text(stats.own_time_per_call)
+        yield fmt.make_percent_text(stats.own_time, self.cpu_time)
+        yield fmt.make_time_text(stats.deep_time)
+        yield fmt.make_time_text(stats.deep_time_per_call)
+        yield fmt.make_percent_text(stats.deep_time, self.cpu_time)
 
 
 class TracingProfiler(Profiler):
@@ -76,10 +76,10 @@ class TracingProfiler(Profiler):
         frames.pop()
         if not frames:
             return
-        parent_stat = self.stats
+        void = VoidRecordingStatistics
+        parent_stats = self.stats
         for f in frames:
-            parent_stat = \
-                parent_stat.ensure_child(f.f_code, VoidRecordingStatistic)
+            parent_stats = parent_stats.ensure_child(f.f_code, void)
         code = frame.f_code
         frame_key = id(frame)
         # if c:
@@ -89,27 +89,27 @@ class TracingProfiler(Profiler):
         # record
         if event == 'call':
             time = self.timer()
-            self.record_entering(time, code, frame_key, parent_stat)
+            self.record_entering(time, code, frame_key, parent_stats)
         elif event == 'return':
-            self.record_leaving(time, code, frame_key, parent_stat)
+            self.record_leaving(time, code, frame_key, parent_stats)
 
-    def record_entering(self, time, code, frame_key, parent_stat):
+    def record_entering(self, time, code, frame_key, parent_stats):
         """Entered to a function call."""
-        stat = parent_stat.ensure_child(code, RecordingStatistic)
-        with stat.lock:
+        stats = parent_stats.ensure_child(code, RecordingStatistics)
+        with stats.lock:
             self._times_entered[(code, frame_key)] = time
-            stat.own_count += 1
+            stats.own_count += 1
 
-    def record_leaving(self, time, code, frame_key, parent_stat):
+    def record_leaving(self, time, code, frame_key, parent_stats):
         """Left from a function call."""
         try:
-            stat = parent_stat.get_child(code)
+            stats = parent_stats.get_child(code)
             time_entered = self._times_entered.pop((code, frame_key))
         except KeyError:
             return
-        with stat.lock:
+        with stats.lock:
             time_elapsed = time - time_entered
-            stat.deep_time += max(0, time_elapsed)
+            stats.deep_time += max(0, time_elapsed)
 
     def run(self):
         if sys.getprofile() is not None:

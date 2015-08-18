@@ -3,26 +3,26 @@ from textwrap import dedent
 import time
 
 
-__all__ = ['find_stats', 'find_stat', 'factorial', 'spin',
+__all__ = ['find_multiple_stats', 'find_stats', 'factorial', 'spin',
            'mock_code_names']
 
 
-def find_stats(stats, name, _found=None, _on_found=None):
+def find_multiple_stats(stats, name, _found=None, _on_found=None):
     if _found is None:
         _found = []
-    for stat in stats:
-        if stat.name == name:
-            _found.append(stat)
+    for child_stats in stats:
+        if child_stats.name == name:
+            _found.append(child_stats)
             if callable(_on_found):
                 _on_found(_found)
-        find_stats(stat, name, _found)
+        find_multiple_stats(child_stats, name, _found)
     return _found
 
 
-def find_stat(stats, name):
+def find_stats(stats, name):
     def _on_found(found):
         raise StopIteration
-    return find_stats(stats, name)[0]
+    return find_multiple_stats(stats, name)[0]
 
 
 def factorial(n):

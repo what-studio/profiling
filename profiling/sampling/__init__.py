@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 from .. import sortkeys
 from ..profiler import Profiler
-from ..stats import RecordingStatistic, VoidRecordingStatistic
+from ..stats import RecordingStatistics, VoidRecordingStatistics
 from ..utils import frame_stack
 from ..viewer import StatisticsTable, fmt
 from .samplers import Sampler, ItimerSampler
@@ -33,13 +33,13 @@ class SamplingStatisticsTable(StatisticsTable):
     ]
     order = sortkeys.by_deep_count
 
-    def make_cells(self, node, stat):
-        root_stat = node.get_root().get_value()
-        yield fmt.make_stat_text(stat)
-        yield fmt.make_int_or_na_text(stat.own_count)
-        yield fmt.make_percent_text(stat.own_count, root_stat.deep_count)
-        yield fmt.make_int_or_na_text(stat.deep_count)
-        yield fmt.make_percent_text(stat.deep_count, root_stat.deep_count)
+    def make_cells(self, node, stats):
+        root_stats = node.get_root().get_value()
+        yield fmt.make_stat_text(stats)
+        yield fmt.make_int_or_na_text(stats.own_count)
+        yield fmt.make_percent_text(stats.own_count, root_stats.deep_count)
+        yield fmt.make_int_or_na_text(stats.deep_count)
+        yield fmt.make_percent_text(stats.deep_count, root_stats.deep_count)
 
 
 class SamplingProfiler(Profiler):
@@ -66,13 +66,13 @@ class SamplingProfiler(Profiler):
         if not frames:
             return
         # count function call.
-        parent_stat = self.stats
+        void = VoidRecordingStatistics
+        parent_stats = self.stats
         for f in frames:
-            parent_stat = \
-                parent_stat.ensure_child(f.f_code, VoidRecordingStatistic)
+            parent_stats = parent_stats.ensure_child(f.f_code, void)
         code = frame.f_code
-        stat = parent_stat.ensure_child(code, RecordingStatistic)
-        stat.own_count += 1
+        stats = parent_stats.ensure_child(code, RecordingStatistics)
+        stats.own_count += 1
 
     def run(self):
         self.sampler.start(self)

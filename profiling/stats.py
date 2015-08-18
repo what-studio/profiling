@@ -3,7 +3,7 @@
     profiling.stats
     ~~~~~~~~~~~~~~~
 
-    Statistic classes.
+    Statistics classes.
 
 """
 from __future__ import absolute_import, division
@@ -15,8 +15,8 @@ from six import itervalues
 from .sortkeys import by_deep_time
 
 
-__all__ = ['Statistic', 'RecordingStatistic', 'VoidRecordingStatistic',
-           'FrozenStatistic']
+__all__ = ['Statistics', 'RecordingStatistics', 'VoidRecordingStatistics',
+           'FrozenStatistics']
 
 
 def failure(funcname, message='{class} not allow {func}.', exctype=TypeError):
@@ -28,8 +28,8 @@ def failure(funcname, message='{class} not allow {func}.', exctype=TypeError):
     return func
 
 
-class Statistic(object):
-    """A statistic."""
+class Statistics(object):
+    """Statistics of a function."""
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
                     'own_count', 'deep_time']
@@ -38,17 +38,21 @@ class Statistic(object):
     filename = None
     lineno = None
     module = None
+
+    #: The inclusive execution count.
     own_count = 0
+
+    #: The exclusive execution time.
     deep_time = 0.0
 
-    def __init__(self, stat=None, name=None, filename=None, lineno=None,
+    def __init__(self, stats=None, name=None, filename=None, lineno=None,
                  module=None):
-        if stat is not None:
+        if stats is not None:
             assert name is filename is lineno is module is None
-            name = stat.name
-            filename = stat.filename
-            lineno = stat.lineno
-            module = stat.module
+            name = stats.name
+            filename = stats.filename
+            lineno = stats.lineno
+            module = stats.module
         if name is not None:
             self.name = name
         if filename is not None:
@@ -70,11 +74,11 @@ class Statistic(object):
 
     @property
     def deep_count(self):
-        return self.own_count + sum(stat.deep_count for stat in self)
+        return self.own_count + sum(stats.deep_count for stats in self)
 
     @property
     def own_time(self):
-        sub_time = sum(stat.deep_time for stat in self)
+        sub_time = sum(stats.deep_time for stats in self)
         return max(0., self.deep_time - sub_time)
 
     @property
@@ -127,16 +131,16 @@ class Statistic(object):
                 ''.format(class_name, name_string, count_string, time_string))
 
 
-class RecordingStatistic(Statistic):
-    """Recordig statistic measures execution time of a code."""
+class RecordingStatistics(Statistics):
+    """Recordig statistics measures execution time of a code."""
 
     _state_slots = None
 
-    def __init__(self, code):
-        super(RecordingStatistic, self).__init__()
+    def __init__(self, code=None):
+        super(RecordingStatistics, self).__init__()
         self.code = code
-        self.children = {}
         self.lock = RLock()
+        self._children = {}
 
     @property
     def name(self):
@@ -167,26 +171,26 @@ class RecordingStatistic(Statistic):
     def clear(self):
         with self.lock:
             self.code = None
-            self.children.clear()
+            self._children.clear()
             cls = type(self)
             self.own_count = cls.own_count
             self.deep_time = cls.deep_time
 
     def get_child(self, code):
         with self.lock:
-            return self.children[code]
+            return self._children[code]
 
-    def add_child(self, code, stat):
+    def add_child(self, code, stats):
         with self.lock:
-            self.children[code] = stat
+            self._children[code] = stats
 
     def remove_child(self, code):
         with self.lock:
-            del self.children[code]
+            del self._children[code]
 
     def discard_child(self, code):
         with self.lock:
-            self.children.pop(code, None)
+            self._children.pop(code, None)
 
     def ensure_child(self, code, adding_stat_class=None):
         with self.lock:
@@ -194,25 +198,25 @@ class RecordingStatistic(Statistic):
                 return self.get_child(code)
             except KeyError:
                 stat_class = adding_stat_class or type(self)
-                stat = stat_class(code)
-                self.add_child(code, stat)
-                return stat
+                stats = stat_class(code)
+                self.add_child(code, stats)
+                return stats
 
     def __iter__(self):
-        return itervalues(self.children)
+        return itervalues(self._children)
 
     def __len__(self):
-        return len(self.children)
+        return len(self._children)
 
     def __contains__(self, code):
-        return code in self.children
+        return code in self._children
 
     def __getstate__(self):
-        raise TypeError('Cannot dump recording statistic')
+        raise TypeError('Cannot dump recording statistics')
 
 
-class VoidRecordingStatistic(RecordingStatistic):
-    """Statistic for an absent frame."""
+class VoidRecordingStatistics(RecordingStatistics):
+    """Statistics for an absent frame."""
 
     _state_slots = None
 
@@ -220,28 +224,28 @@ class VoidRecordingStatistic(RecordingStatistic):
 
     @property
     def deep_time(self):
-        return sum(stat.deep_time for stat in self)
+        return sum(stats.deep_time for stats in self)
 
 
-class FrozenStatistic(Statistic):
-    """Frozen :class:`Statistic` to serialize by Pickle."""
+class FrozenStatistics(Statistics):
+    """Frozen :class:`Statistics` to serialize by Pickle."""
 
     _state_slots = ['name', 'filename', 'lineno', 'module',
-                    'own_count', 'deep_time', 'children']
+                    'own_count', 'deep_time', '_children']
 
-    def __init__(self, stat, slots=('own_count', 'deep_time')):
-        super(FrozenStatistic, self).__init__(stat)
+    def __init__(self, stats, slots=('own_count', 'deep_time')):
+        super(FrozenStatistics, self).__init__(stats)
         for attr in slots:
-            setattr(self, attr, getattr(stat, attr))
-        self.children = self._freeze_children(stat)
+            setattr(self, attr, getattr(stats, attr))
+        self._children = self._freeze_children(stats)
 
     @classmethod
-    def _freeze_children(cls, stat):
-        with stat.lock:
-            return [cls(s) for s in stat]
+    def _freeze_children(cls, stats):
+        with stats.lock:
+            return [cls(s) for s in stats]
 
     def __iter__(self):
-        return iter(self.children)
+        return iter(self._children)
 
     def __len__(self):
-        return len(self.children)
+        return len(self._children)

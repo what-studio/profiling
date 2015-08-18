@@ -193,16 +193,17 @@ class Formatter(object):
     markup_time = _markup(format_time, attr_time)
     make_time_text = _make_text(markup_time, **_numeric)
 
-    # stat
+    # stats
 
-    def markup_stat(self, stat):
-        if stat.name:
-            loc = '({0}:{1})'.format(stat.module or stat.filename, stat.lineno)
-            return [('name', stat.name), ' ', ('loc', loc)]
+    def markup_stats(self, stats):
+        if stats.name:
+            loc = ('({0}:{1})'
+                   ''.format(stats.module or stats.filename, stats.lineno))
+            return [('name', stats.name), ' ', ('loc', loc)]
         else:
-            return ('loc', stat.module or stat.filename)
+            return ('loc', stats.module or stats.filename)
 
-    make_stat_text = _make_text(markup_stat, wrap='clip')
+    make_stat_text = _make_text(markup_stats, wrap='clip')
 
     del _markup
     del _make_text
@@ -322,9 +323,9 @@ class StatisticsWidget(StatisticWidget):
 
 class StatisticNodeBase(urwid.TreeNode):
 
-    def __init__(self, stat=None, parent=None, key=None, depth=None,
+    def __init__(self, stats=None, parent=None, key=None, depth=None,
                  table=None):
-        super(StatisticNodeBase, self).__init__(stat, parent, key, depth)
+        super(StatisticNodeBase, self).__init__(stats, parent, key, depth)
         self.table = table
 
     def get_focus(self):
@@ -345,8 +346,8 @@ class StatisticNodeBase(urwid.TreeNode):
     def setup_widget(self, widget):
         if self.table is None:
             return
-        stat = self.get_value()
-        if hash(stat) in self.table._expanded_stat_hashes:
+        stats = self.get_value()
+        if hash(stats) in self.table._expanded_stat_hashes:
             widget.expand()
 
 
@@ -375,10 +376,10 @@ class LeafStatisticNode(StatisticNodeBase):
 class StatisticNode(StatisticNodeBase, urwid.ParentNode):
 
     def deep_usage(self):
-        stat = self.get_value()
+        stats = self.get_value()
         table = self.get_root()
         try:
-            return stat.deep_time / table.cpu_time
+            return stats.deep_time / table.cpu_time
         except AttributeError:
             return 0.0
 
@@ -404,15 +405,15 @@ class StatisticNode(StatisticNodeBase, urwid.ParentNode):
         on(widget, 'collapsed', table._widget_collapsed, widget)
 
     def load_child_keys(self):
-        stat = self.get_value()
-        if stat is None:
+        stats = self.get_value()
+        if stats is None:
             return ()
-        return stat.sorted(self.table.order)
+        return stats.sorted(self.table.order)
 
-    def load_child_node(self, stat):
+    def load_child_node(self, stats):
         depth = self.get_depth() + 1
-        node_class = StatisticNode if len(stat) else LeafStatisticNode
-        return node_class(stat, self, stat, depth, self.table)
+        node_class = StatisticNode if len(stats) else LeafStatisticNode
+        return node_class(stats, self, stats, depth, self.table)
 
 
 class StatisticsListBox(urwid.TreeListBox):
@@ -463,11 +464,11 @@ class StatisticsTable(urwid.WidgetWrap):
         self.update_frame()
 
     def make_row(self, node):
-        stat = node.get_value()
-        return self.make_columns(self.make_cells(node, stat))
+        stats = node.get_value()
+        return self.make_columns(self.make_cells(node, stats))
 
-    def make_cells(self, node, stat):
-        yield fmt.make_stat_text(stat)
+    def make_cells(self, node, stats):
+        yield fmt.make_stat_text(stats)
 
     @classmethod
     def make_columns(cls, column_widgets):
@@ -522,8 +523,8 @@ class StatisticsTable(urwid.WidgetWrap):
         path = deque()
         __, node = self.get_focus()
         while not node.is_root():
-            stat = node.get_value()
-            path.appendleft(hash(stat))
+            stats = node.get_value()
+            path.appendleft(hash(stats))
             node = node.get_parent()
         return path
 
@@ -532,9 +533,9 @@ class StatisticsTable(urwid.WidgetWrap):
         for hash_value in path:
             if isinstance(node, LeafStatisticNode):
                 break
-            for stat in node.get_child_keys():
-                if hash(stat) == hash_value:
-                    node = node.get_child_node(stat)
+            for stats in node.get_child_keys():
+                if hash(stats) == hash_value:
+                    node = node.get_child_node(stats)
                     break
             else:
                 break
@@ -677,12 +678,12 @@ class StatisticsTable(urwid.WidgetWrap):
         self.update_frame(focus)
 
     def _widget_expanded(self, widget):
-        stat = widget.get_node().get_value()
-        self._expanded_stat_hashes.add(hash(stat))
+        stats = widget.get_node().get_value()
+        self._expanded_stat_hashes.add(hash(stats))
 
     def _widget_collapsed(self, widget):
-        stat = widget.get_node().get_value()
-        self._expanded_stat_hashes.discard(hash(stat))
+        stats = widget.get_node().get_value()
+        self._expanded_stat_hashes.discard(hash(stats))
 
 
 class StatisticsViewer(object):

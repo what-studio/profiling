@@ -31,24 +31,24 @@ class ContextualTimer(Timer):
 
     def __new__(cls, *args, **kwargs):
         timer = super(ContextualTimer, cls).__new__(cls, *args, **kwargs)
-        timer.contextual_times = {}
+        timer._contextual_times = {}
         return timer
 
     def __call__(self, context=None):
         context = self.detect_context(context)
-        paused_at, resumed_at = self.contextual_times.get(context, (0, 0))
+        paused_at, resumed_at = self._contextual_times.get(context, (0, 0))
         if resumed_at is None:  # paused
             return paused_at
         return paused_at + self.clock() - resumed_at
 
     def pause(self, context=None):
         context = self.detect_context(context)
-        self.contextual_times[context] = (self(context), None)
+        self._contextual_times[context] = (self(context), None)
 
     def resume(self, context=None):
         context = self.detect_context(context)
-        paused_at, __ = self.contextual_times.get(context, (0, 0))
-        self.contextual_times[context] = (paused_at, self.clock())
+        paused_at, __ = self._contextual_times.get(context, (0, 0))
+        self._contextual_times[context] = (paused_at, self.clock())
 
     def detect_context(self, context=None):
         raise NotImplementedError('detect_context() should be implemented')

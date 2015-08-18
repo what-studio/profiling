@@ -7,7 +7,7 @@ import pytest
 from profiling.__main__ import spawn_thread
 from profiling.tracing import TracingProfiler
 from profiling.tracing.timers import ThreadTimer, YappiTimer, GreenletTimer
-from utils import factorial, find_stat
+from utils import factorial, find_stats
 
 
 # is it running on pypy?
@@ -33,8 +33,8 @@ def _test_contextual_timer(timer, sleep, spawn, join=lambda x: x.join()):
             c2 = spawn(heavy)
             for c in [c1, c2]:
                 join(c)
-        stat1 = find_stat(profiler.stats, 'light')
-        stat2 = find_stat(profiler.stats, 'heavy')
+        stat1 = find_stats(profiler.stats, 'light')
+        stat2 = find_stats(profiler.stats, 'heavy')
         return (stat1, stat2)
     # using the default timer.
     # light() ends later than heavy().  its total time includes heavy's also.

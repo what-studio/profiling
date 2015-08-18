@@ -5,7 +5,7 @@ from types import CodeType
 from six import PY3
 
 from profiling.sortkeys import by_name, by_own_count, by_deep_time_per_call
-from profiling.stats import FrozenStatistic, RecordingStatistic, Statistic
+from profiling.stats import FrozenStatistics, RecordingStatistics, Statistics
 
 
 def mock_code(name):
@@ -17,57 +17,57 @@ def mock_code(name):
     return CodeType(*args)
 
 
-def test_stat():
-    stat = Statistic(name='foo', filename='bar', lineno=42)
-    assert stat.regular_name == 'foo'
-    stat.module = 'baz'
-    assert stat.regular_name == 'baz:foo'
-    assert stat.deep_time_per_call == 0
-    stat.deep_time = 128
-    stat.own_count = 4
-    assert stat.deep_time_per_call == 32
-    assert len(stat) == 0
-    assert not list(stat)
+def test_stats():
+    stats = Statistics(name='foo', filename='bar', lineno=42)
+    assert stats.regular_name == 'foo'
+    stats.module = 'baz'
+    assert stats.regular_name == 'baz:foo'
+    assert stats.deep_time_per_call == 0
+    stats.deep_time = 128
+    stats.own_count = 4
+    assert stats.deep_time_per_call == 32
+    assert len(stats) == 0
+    assert not list(stats)
 
 
 # def test_recording():
 #     stats.wall = lambda: 10
 #     stats.record_starting(0)
 #     code = mock_code('foo')
-#     stat = RecordingStatistic(code)
-#     assert stat.name == 'foo'
-#     assert stat.own_count == 0
-#     assert stat.deep_time == 0
-#     stat.record_entering(100)
-#     stat.record_leaving(200)
-#     assert stat.own_count == 1
-#     assert stat.deep_time == 100
-#     stat.record_entering(200)
-#     stat.record_leaving(400)
-#     assert stat.own_count == 2
-#     assert stat.deep_time == 300
+#     stats = RecordingStatistics(code)
+#     assert stats.name == 'foo'
+#     assert stats.own_count == 0
+#     assert stats.deep_time == 0
+#     stats.record_entering(100)
+#     stats.record_leaving(200)
+#     assert stats.own_count == 1
+#     assert stats.deep_time == 100
+#     stats.record_entering(200)
+#     stats.record_leaving(400)
+#     assert stats.own_count == 2
+#     assert stats.deep_time == 300
 #     code2 = mock_code('bar')
-#     stat2 = RecordingStatistic(code2)
-#     assert code2 not in stat
-#     stat.add_child(code2, stat2)
-#     assert code2 in stat
-#     assert stat.get_child(code2) is stat2
-#     assert len(stat) == 1
-#     assert list(stat) == [stat2]
-#     assert stat.deep_time == 300
-#     assert stat.own_time == 300
-#     stat2.record_entering(1000)
-#     stat2.record_leaving(1004)
-#     assert stat2.deep_time == 4
-#     assert stat2.own_time == 4
-#     assert stat.deep_time == 300
-#     assert stat.own_time == 296
-#     stat.clear()
-#     assert len(stat) == 0
+#     stats2 = RecordingStatistics(code2)
+#     assert code2 not in stats
+#     stats.add_child(code2, stats2)
+#     assert code2 in stats
+#     assert stats.get_child(code2) is stats2
+#     assert len(stats) == 1
+#     assert list(stats) == [stats2]
+#     assert stats.deep_time == 300
+#     assert stats.own_time == 300
+#     stats2.record_entering(1000)
+#     stats2.record_leaving(1004)
+#     assert stats2.deep_time == 4
+#     assert stats2.own_time == 4
+#     assert stats.deep_time == 300
+#     assert stats.own_time == 296
+#     stats.clear()
+#     assert len(stats) == 0
 #     with pytest.raises(TypeError):
-#         pickle.dumps(stat)
-#     stat3 = stat.ensure_child(mock_code('baz'), VoidRecordingStatistic)
-#     assert isinstance(stat3, VoidRecordingStatistic)
+#         pickle.dumps(stats)
+#     stats3 = stats.ensure_child(mock_code('baz'), VoidRecordingStatistics)
+#     assert isinstance(stats3, VoidRecordingStatistics)
 #     stats.wall = lambda: 2000
 #     stats.record_stopping(400)
 #     assert stats.cpu_time == 400
@@ -77,32 +77,32 @@ def test_stat():
 
 def test_frozen():
     code = mock_code('foo')
-    stat = RecordingStatistic(code)
-    stat.deep_time = 10
-    frozen_stat = FrozenStatistic(stat)
-    assert frozen_stat.name == 'foo'
-    assert frozen_stat.deep_time == 10
-    restored_frozen_stat = pickle.loads(pickle.dumps(frozen_stat))
-    assert restored_frozen_stat.name == 'foo'
-    assert restored_frozen_stat.deep_time == 10
+    stats = RecordingStatistics(code)
+    stats.deep_time = 10
+    frozen_stats = FrozenStatistics(stats)
+    assert frozen_stats.name == 'foo'
+    assert frozen_stats.deep_time == 10
+    restored_frozen_stats = pickle.loads(pickle.dumps(frozen_stats))
+    assert restored_frozen_stats.name == 'foo'
+    assert restored_frozen_stats.deep_time == 10
 
 
 def test_sorting():
-    stat = RecordingStatistic(mock_code('foo'))
-    stat1 = RecordingStatistic(mock_code('bar'))
-    stat2 = RecordingStatistic(mock_code('baz'))
-    stat3 = RecordingStatistic(mock_code('qux'))
-    stat.add_child(stat1.code, stat1)
-    stat.add_child(stat2.code, stat2)
-    stat.add_child(stat3.code, stat3)
-    stat.deep_time = 100
-    stat1.deep_time = 20
-    stat1.own_count = 3
-    stat2.deep_time = 30
-    stat2.own_count = 2
-    stat3.deep_time = 40
-    stat3.own_count = 4
-    assert stat.sorted() == [stat3, stat2, stat1]
-    assert stat.sorted(by_own_count) == [stat3, stat1, stat2]
-    assert stat.sorted(by_deep_time_per_call) == [stat2, stat3, stat1]
-    assert stat.sorted(by_name) == [stat1, stat2, stat3]
+    stats = RecordingStatistics(mock_code('foo'))
+    stats1 = RecordingStatistics(mock_code('bar'))
+    stats2 = RecordingStatistics(mock_code('baz'))
+    stats3 = RecordingStatistics(mock_code('qux'))
+    stats.add_child(stats1.code, stats1)
+    stats.add_child(stats2.code, stats2)
+    stats.add_child(stats3.code, stats3)
+    stats.deep_time = 100
+    stats1.deep_time = 20
+    stats1.own_count = 3
+    stats2.deep_time = 30
+    stats2.own_count = 2
+    stats3.deep_time = 40
+    stats3.own_count = 4
+    assert stats.sorted() == [stats3, stats2, stats1]
+    assert stats.sorted(by_own_count) == [stats3, stats1, stats2]
+    assert stats.sorted(by_deep_time_per_call) == [stats2, stats3, stats1]
+    assert stats.sorted(by_name) == [stats1, stats2, stats3]
