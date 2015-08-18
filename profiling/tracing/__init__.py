@@ -29,7 +29,7 @@ class TracingStatisticsTable(StatisticsTable):
 
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('CALLS', 'right', (6,), sortkeys.by_deep_count),
+        ('CALLS', 'right', (6,), sortkeys.by_own_count),
         ('OWN', 'right', (6,), sortkeys.by_own_time),
         ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
         ('%', 'left', (4,), None),
@@ -41,7 +41,7 @@ class TracingStatisticsTable(StatisticsTable):
 
     def make_cells(self, node, stat, stats):
         yield fmt.make_stat_text(stat)
-        yield fmt.make_int_or_na_text(stat.deep_count)
+        yield fmt.make_int_or_na_text(stat.own_count)
         yield fmt.make_time_text(stat.own_time)
         yield fmt.make_time_text(stat.own_time_per_call)
         yield fmt.make_percent_text(stat.own_time, stats.cpu_time)

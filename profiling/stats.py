@@ -88,7 +88,7 @@ class Statistic(object):
     @property
     def deep_time_per_call(self):
         try:
-            return self.deep_time / self.deep_count
+            return self.deep_time / self.own_count
         except ZeroDivisionError:
             return 0.0
 
@@ -120,7 +120,7 @@ class Statistic(object):
     def __repr__(self):
         # format name
         regular_name = self.regular_name
-        name_string = '' if regular_name else "'{0}'".format(regular_name)
+        name_string = "'{0}' ".format(regular_name) if regular_name else ''
         # format count
         deep_count = self.deep_count
         if self.own_count == deep_count:
