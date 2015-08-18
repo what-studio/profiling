@@ -60,7 +60,7 @@ class Formatter(object):
             ratio /= float(denom)
         except ZeroDivisionError:
             ratio = 0
-        if round(ratio, 1) >= 1:
+        if round(ratio, 2) >= 1:
             precision = 0
         elif round(ratio, 2) >= 0.1:
             precision = 1

@@ -54,3 +54,4 @@ def test_format_percent():
     assert fmt.format_percent(1) == '100'
     assert fmt.format_percent(0.999999) == '100'
     assert fmt.format_percent(0.9999) == '100'
+    assert fmt.format_percent(0.988) == '98.8'
