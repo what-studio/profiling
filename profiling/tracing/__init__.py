@@ -28,7 +28,7 @@ class TracingStatisticsTable(StatisticsTable):
 
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('CALLS', 'right', (6,), sortkeys.by_own_count),
+        ('CALLS', 'right', (6,), sortkeys.by_own_hits),
         ('OWN', 'right', (6,), sortkeys.by_own_time),
         ('/CALL', 'right', (6,), sortkeys.by_own_time_per_call),
         ('%', 'left', (4,), None),
@@ -40,7 +40,7 @@ class TracingStatisticsTable(StatisticsTable):
 
     def make_cells(self, node, stats):
         yield fmt.make_stat_text(stats)
-        yield fmt.make_int_or_na_text(stats.own_count)
+        yield fmt.make_int_or_na_text(stats.own_hits)
         yield fmt.make_time_text(stats.own_time)
         yield fmt.make_time_text(stats.own_time_per_call)
         yield fmt.make_percent_text(stats.own_time, self.cpu_time)
@@ -98,7 +98,7 @@ class TracingProfiler(Profiler):
         stats = parent_stats.ensure_child(code, RecordingStatistics)
         with stats.lock:
             self._times_entered[(code, frame_key)] = time
-            stats.own_count += 1
+            stats.own_hits += 1
 
     def record_leaving(self, time, code, frame_key, parent_stats):
         """Left from a function call."""

@@ -4,7 +4,7 @@ from types import CodeType
 
 from six import PY3
 
-from profiling.sortkeys import by_name, by_own_count, by_deep_time_per_call
+from profiling.sortkeys import by_name, by_own_hits, by_deep_time_per_call
 from profiling.stats import FrozenStatistics, RecordingStatistics, Statistics
 
 
@@ -24,7 +24,7 @@ def test_stats():
     assert stats.regular_name == 'baz:foo'
     assert stats.deep_time_per_call == 0
     stats.deep_time = 128
-    stats.own_count = 4
+    stats.own_hits = 4
     assert stats.deep_time_per_call == 32
     assert len(stats) == 0
     assert not list(stats)
@@ -36,15 +36,15 @@ def test_stats():
 #     code = mock_code('foo')
 #     stats = RecordingStatistics(code)
 #     assert stats.name == 'foo'
-#     assert stats.own_count == 0
+#     assert stats.own_hits == 0
 #     assert stats.deep_time == 0
 #     stats.record_entering(100)
 #     stats.record_leaving(200)
-#     assert stats.own_count == 1
+#     assert stats.own_hits == 1
 #     assert stats.deep_time == 100
 #     stats.record_entering(200)
 #     stats.record_leaving(400)
-#     assert stats.own_count == 2
+#     assert stats.own_hits == 2
 #     assert stats.deep_time == 300
 #     code2 = mock_code('bar')
 #     stats2 = RecordingStatistics(code2)
@@ -103,12 +103,12 @@ def test_sorting():
     stats.add_child(stats3.code, stats3)
     stats.deep_time = 100
     stats1.deep_time = 20
-    stats1.own_count = 3
+    stats1.own_hits = 3
     stats2.deep_time = 30
-    stats2.own_count = 2
+    stats2.own_hits = 2
     stats3.deep_time = 40
-    stats3.own_count = 4
+    stats3.own_hits = 4
     assert stats.sorted() == [stats3, stats2, stats1]
-    assert stats.sorted(by_own_count) == [stats3, stats1, stats2]
+    assert stats.sorted(by_own_hits) == [stats3, stats1, stats2]
     assert stats.sorted(by_deep_time_per_call) == [stats2, stats3, stats1]
     assert stats.sorted(by_name) == [stats1, stats2, stats3]

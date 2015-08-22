@@ -73,14 +73,14 @@ class Statistics(with_metaclass(StatisticsMeta)):
     """Statistics of a function."""
 
     __slots__ = ('name', 'filename', 'lineno', 'module',
-                 'own_count', 'deep_time')
+                 'own_hits', 'deep_time')
 
     name = default(None)
     filename = default(None)
     lineno = default(None)
     module = default(None)
-    #: The inclusive calling/sampling count.
-    own_count = default(0)
+    #: The inclusive calling/sampling number.
+    own_hits = default(0)
     #: The exclusive execution time.
     deep_time = default(0.0)
 
@@ -96,12 +96,12 @@ class Statistics(with_metaclass(StatisticsMeta)):
         return name or module
 
     @property
-    def deep_count(self):
-        """The inclusive calling/sampling count.
+    def deep_hits(self):
+        """The inclusive calling/sampling number.
 
-        Calculates as sum of the own count and deep counts of the children.
+        Calculates as sum of the own hits and deep hits of the children.
         """
-        return self.own_count + sum(stats.deep_count for stats in self)
+        return self.own_hits + sum(stats.deep_hits for stats in self)
 
     @property
     def own_time(self):
@@ -112,14 +112,14 @@ class Statistics(with_metaclass(StatisticsMeta)):
     @property
     def deep_time_per_call(self):
         try:
-            return self.deep_time / self.own_count
+            return self.deep_time / self.own_hits
         except ZeroDivisionError:
             return 0.0
 
     @property
     def own_time_per_call(self):
         try:
-            return self.own_time / self.own_count
+            return self.own_time / self.own_hits
         except ZeroDivisionError:
             return 0.0
 
@@ -147,26 +147,26 @@ class Statistics(with_metaclass(StatisticsMeta)):
         # format name
         regular_name = self.regular_name
         name_string = "'{0}' ".format(regular_name) if regular_name else ''
-        # format count
-        deep_count = self.deep_count
-        if self.own_count == deep_count:
-            count_string = str(self.own_count)
+        # format hits
+        deep_hits = self.deep_hits
+        if self.own_hits == deep_hits:
+            hits_string = str(self.own_hits)
         else:
-            count_string = '{0}/{1}'.format(self.own_count, deep_count)
+            hits_string = '{0}/{1}'.format(self.own_hits, deep_hits)
         # format time
         time_string = '{0:.6f}/{1:.6f}'.format(self.own_time, self.deep_time)
         # join all
         class_name = type(self).__name__
-        return ('<{0} {1}count={2} time={3}>'
-                ''.format(class_name, name_string, count_string, time_string))
+        return ('<{0} {1}hits={2} time={3}>'
+                ''.format(class_name, name_string, hits_string, time_string))
 
 
 class RecordingStatistics(Statistics):
     """Recordig statistics measures execution time of a code."""
 
-    __slots__ = ('own_count', 'deep_time', 'code', 'lock', '_children')
+    __slots__ = ('own_hits', 'deep_time', 'code', 'lock', '_children')
 
-    own_count = default(0)
+    own_hits = default(0)
     deep_time = default(0.0)
 
     def __init__(self, code=None):
@@ -245,7 +245,7 @@ class VoidRecordingStatistics(RecordingStatistics):
     __slots__ = ('code', 'lock', '_children')
 
     _ignore = lambda x, *a, **k: None
-    own_count = property(lambda x: 0, _ignore)
+    own_hits = property(lambda x: 0, _ignore)
     deep_time = property(lambda x: sum(s.deep_time for s in x), _ignore)
     del _ignore
 
@@ -254,7 +254,7 @@ class FrozenStatistics(Statistics):
     """Frozen :class:`Statistics` to serialize by Pickle."""
 
     __slots__ = ('name', 'filename', 'lineno', 'module',
-                 'own_count', 'deep_time', '_children')
+                 'own_hits', 'deep_time', '_children')
 
     def __init__(self, stats=None):
         if stats is None:

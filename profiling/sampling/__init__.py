@@ -26,20 +26,20 @@ class SamplingStatisticsTable(StatisticsTable):
 
     columns = [
         ('FUNCTION', 'left', ('weight', 1), sortkeys.by_function),
-        ('OWN', 'right', (6,), sortkeys.by_own_count),
+        ('OWN', 'right', (6,), sortkeys.by_own_hits),
         ('%', 'left', (4,), None),
-        ('DEEP', 'right', (6,), sortkeys.by_deep_count),
+        ('DEEP', 'right', (6,), sortkeys.by_deep_hits),
         ('%', 'left', (4,), None),
     ]
-    order = sortkeys.by_deep_count
+    order = sortkeys.by_deep_hits
 
     def make_cells(self, node, stats):
         root_stats = node.get_root().get_value()
         yield fmt.make_stat_text(stats)
-        yield fmt.make_int_or_na_text(stats.own_count)
-        yield fmt.make_percent_text(stats.own_count, root_stats.deep_count)
-        yield fmt.make_int_or_na_text(stats.deep_count)
-        yield fmt.make_percent_text(stats.deep_count, root_stats.deep_count)
+        yield fmt.make_int_or_na_text(stats.own_hits)
+        yield fmt.make_percent_text(stats.own_hits, root_stats.deep_hits)
+        yield fmt.make_int_or_na_text(stats.deep_hits)
+        yield fmt.make_percent_text(stats.deep_hits, root_stats.deep_hits)
 
 
 class SamplingProfiler(Profiler):
@@ -63,14 +63,13 @@ class SamplingProfiler(Profiler):
         frames.pop()
         if not frames:
             return
-        # count function call.
         void = VoidRecordingStatistics
         parent_stats = self.stats
         for f in frames:
             parent_stats = parent_stats.ensure_child(f.f_code, void)
         code = frame.f_code
         stats = parent_stats.ensure_child(code, RecordingStatistics)
-        stats.own_count += 1
+        stats.own_hits += 1
 
     def run(self):
         self.sampler.start(self)

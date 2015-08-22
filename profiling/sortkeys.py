@@ -6,7 +6,7 @@
 from __future__ import absolute_import
 
 
-__all__ = ['by_name', 'by_module', 'by_deep_count', 'by_own_count',
+__all__ = ['by_name', 'by_module', 'by_deep_hits', 'by_own_hits',
            'by_deep_time', 'by_own_time', 'by_deep_time_per_call',
            'by_own_time_per_call']
 
@@ -26,11 +26,11 @@ class SortKey(object):
 
 
 def _by_deep_time_per_call(stat):
-    return -stat.deep_time_per_call if stat.deep_count else -stat.deep_time
+    return -stat.deep_time_per_call if stat.deep_hits else -stat.deep_time
 
 
 def _by_own_time_per_call(stat):
-    return (-stat.own_time_per_call if stat.own_count else -stat.own_time,
+    return (-stat.own_time_per_call if stat.own_hits else -stat.own_time,
             _by_deep_time_per_call(stat))
 
 
@@ -43,11 +43,11 @@ by_module = SortKey(lambda stat: stat.module)
 #: Sorting by module and name in ascending order.
 by_function = SortKey(lambda stat: (stat.module, stat.name))
 
-#: Sorting by number of inclusive count in descending order.
-by_deep_count = SortKey(lambda stat: -stat.deep_count)
+#: Sorting by number of inclusive hits in descending order.
+by_deep_hits = SortKey(lambda stat: -stat.deep_hits)
 
-#: Sorting by number of exclusive count in descending order.
-by_own_count = SortKey(lambda stat: -stat.own_count)
+#: Sorting by number of exclusive hits in descending order.
+by_own_hits = SortKey(lambda stat: -stat.own_hits)
 
 #: Sorting by inclusive elapsed time in descending order.
 by_deep_time = SortKey(lambda stat: -stat.deep_time)

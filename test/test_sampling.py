@@ -26,5 +26,5 @@ def test_profiler():
         spin_500ms()
     stat1 = find_stats(profiler.stats, 'spin_100ms')
     stat2 = find_stats(profiler.stats, 'spin_500ms')
-    ratio = stat1.deep_count / stat2.deep_count
+    ratio = stat1.deep_hits / stat2.deep_hits
     assert 0.8 <= ratio * 5 <= 1.2  # 1:5 expaected, but tolerate (0.8~1.2):5
