@@ -6,7 +6,7 @@ import pytest
 
 from profiling.__main__ import spawn_thread
 from profiling.tracing import TracingProfiler
-from profiling.tracing.timers import ThreadTimer, YappiTimer, GreenletTimer
+from profiling.tracing.timers import ThreadTimer, GreenletTimer
 from utils import factorial, find_stats
 
 
@@ -20,7 +20,7 @@ else:
     del __pypy__
 
 
-def _test_contextual_timer(timer, sleep, spawn, join=lambda x: x.join()):
+def _test_timer_with_threads(timer, sleep, spawn, join=lambda x: x.join()):
     def light():
         factorial(10)
         sleep(0.1)
@@ -50,15 +50,10 @@ def _test_contextual_timer(timer, sleep, spawn, join=lambda x: x.join()):
     assert stat1.deep_time < stat2.deep_time
 
 
-@pytest.mark.xfail(sys.version_info < (3, 3),
-                   reason='ThreadTimer requires Python 3.3 or later.')
 def test_thread_timer():
-    _test_contextual_timer(ThreadTimer(), time.sleep, spawn_thread)
-
-
-def test_yappi_timer():
-    pytest.importorskip('yappi')
-    _test_contextual_timer(YappiTimer(), time.sleep, spawn_thread)
+    if sys.version_info < (3, 3):
+        pytest.importorskip('yappi')
+    _test_timer_with_threads(ThreadTimer(), time.sleep, spawn_thread)
 
 
 @pytest.mark.xfail(PYPY, reason='greenlet.settrace() not available on PyPy.')
@@ -69,18 +64,11 @@ def test_greenlet_timer_with_gevent():
         # gevent Alpha versions doesn't respect Semantic Versioning.
         gevent = pytest.importorskip('gevent')
         assert gevent.__version__.startswith('1.1a')
-    _test_contextual_timer(GreenletTimer(), gevent.sleep, gevent.spawn)
+    _test_timer_with_threads(GreenletTimer(), gevent.sleep, gevent.spawn)
 
 
 @pytest.mark.xfail(PYPY, reason='greenlet.settrace() not available on PyPy.')
 def test_greenlet_timer_with_eventlet():
     eventlet = pytest.importorskip('eventlet', '0.15')
-    _test_contextual_timer(GreenletTimer(), eventlet.sleep, eventlet.spawn,
-                           eventlet.greenthread.GreenThread.wait)
-
-
-@pytest.mark.xfail(sys.version_info >= (3, 3),
-                   reason='ThreadTimer works well on Python 3.3 or later.')
-def test_thread_timer_runtime_error():
-    with pytest.raises(RuntimeError):
-        ThreadTimer()
+    _test_timer_with_threads(GreenletTimer(), eventlet.sleep, eventlet.spawn,
+                             eventlet.greenthread.GreenThread.wait)

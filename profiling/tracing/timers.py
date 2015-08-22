@@ -10,8 +10,7 @@ import time
 from ..utils import Runnable, lazy_import
 
 
-__all__ = ['Timer', 'ContextualTimer', 'ThreadTimer', 'YappiTimer',
-           'GreenletTimer']
+__all__ = ['Timer', 'ContextualTimer', 'ThreadTimer', 'GreenletTimer']
 
 
 class Timer(Runnable):
@@ -55,31 +54,24 @@ class ContextualTimer(Timer):
 
 
 class ThreadTimer(Timer):
-    """A timer to get CPU time per thread.  Python 3.3 or later required."""
-
-    if sys.version_info < (3, 3):
-        def __init__(self):
-            raise RuntimeError('Python 3.3 or later required.  '
-                               'Use YappiTimer instead.')
-
-    def __call__(self):
-        return time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-
-
-class YappiTimer(Timer):
-    """A timer to get CPU time per thread using `Yappi`_'s timer.
+    """A timer to get CPU time per thread.  Python 3.3 or later uses the
+    built-in :mod:`time` module.  Earlier Python versions requires `Yappi`_ to
+    be installed.
 
     .. _Yappi: https://code.google.com/p/yappi/
-
     """
 
-    yappi = lazy_import('yappi')
-
-    def __call__(self):
-        return self.yappi.get_clock_time()
+    if sys.version_info < (3, 3):
+        yappi = lazy_import('yappi')
+        def __call__(self):
+            return self.yappi.get_clock_time()
+    else:
+        def __call__(self):
+            return time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
 
 class GreenletTimer(ContextualTimer):
+    """A timer to get CPU time per greenlet."""
 
     greenlet = lazy_import('greenlet')
 
