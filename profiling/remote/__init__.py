@@ -37,7 +37,7 @@ LOGGER = get_logger('Profiling')
 LOG = LOGGER.debug
 
 #: The default profiling interval.
-INTERVAL = 5
+INTERVAL = 1
 
 #: The default Pickle protocol.
 PICKLE_PROTOCOL = getattr(pickle, 'DEFAULT_PROTOCOL', pickle.HIGHEST_PROTOCOL)

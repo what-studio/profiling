@@ -31,8 +31,8 @@ import traceback
 import click
 from six import exec_
 
+from . import remote
 from .profiler import Profiler
-from .remote import INTERVAL, PICKLE_PROTOCOL
 from .remote.background import BackgroundProfiler
 from .remote.client import FailoverProfilingClient, ProfilingClient
 from .remote.select import SelectProfilingServer
@@ -281,11 +281,32 @@ class ViewerSource(click.ParamType):
         return 'SOURCE'
 
 
-class SignalNumber(click.IntRange):
+class SignalNumber(click.ParamType):
     """A parameter type for signal number."""
 
-    def __init__(self):
-        super(SignalNumber, self).__init__(0, 255)
+    @staticmethod
+    def name_of(signum):
+        for name, value in signal.__dict__.items():
+            if signum == value:
+                if name.startswith('SIG') and not name.startswith('SIG_'):
+                    return name
+        return str(signum)
+
+    def convert(self, value, param, ctx):
+        if isinstance(value, int):
+            return value
+        elif value.isdigit():
+            return int(value)
+        signame = value.upper()
+        if not signame.startswith('SIG'):
+            signame = 'SIG' + signame
+        if signame.startswith('SIG_'):
+            self.fail('Invalid signal %s' % signame)
+        try:
+            signum = getattr(signal, signame)
+        except AttributeError:
+            self.fail('Unknown signal %s' % signame)
+        return signum
 
     def get_metavar(self, param):
         return 'SIGNUM'
@@ -329,12 +350,11 @@ def profiler_options(f):
         type=Class([samplers], samplers.Sampler),
         help='Choose frames sampler for sampling profiler. (itimer|tracing)')
     @click.option(
-        '--sampling-interval', type=float, default=samplers.DEFAULT_INTERVAL,
-        help='How often sample. '
-             '(default: %.3f sec)' % samplers.DEFAULT_INTERVAL)
+        '--sampling-interval', type=float, default=samplers.INTERVAL,
+        help='How often sample. (default: %.3f cpu sec)' % samplers.INTERVAL)
     # etc
     @click.option(
-        '--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
+        '--pickle-protocol', type=int, default=remote.PICKLE_PROTOCOL,
         help='Pickle protocol to dump result.')
     @wraps(f)
     def wrapped(import_profiler_class, timer_class, sampler_class,
@@ -383,19 +403,25 @@ viewer_options = Params([
     click.option('--mono', is_flag=True, help='Disable coloring.'),
 ])
 onetime_profiler_options = Params([
-    click.option('-d', '--dump', 'dump_filename',
-                 type=click.Path(writable=True),
-                 help='Profiling result dump filename.'),
+    click.option(
+        '-d', '--dump', 'dump_filename', type=click.Path(writable=True),
+        help='Profiling result dump filename.'),
 ])
 live_profiler_options = Params([
-    click.option('-i', '--interval', type=float, default=INTERVAL,
-                 help='How often update the profiling result.'),
-    click.option('--spawn', type=click.Choice(spawn.modes),
-                 callback=lambda c, p, v: partial(spawn, v),
-                 help='How to spawn profiler server in background.'),
-    click.option('--signum', type=SignalNumber(),
-                 default=BackgroundProfiler.signum,
-                 help='For communication between server and application.')
+    click.option(
+        '-i', '--interval', type=float, default=remote.INTERVAL,
+        help='How often update result. (default: %.0f sec)' % remote.INTERVAL),
+    click.option(
+        '--spawn', type=click.Choice(spawn.modes),
+        callback=lambda c, p, v: partial(spawn, v),
+        help='How to spawn profiler server in background.'),
+    click.option(
+        '--signum', type=SignalNumber(),
+        default=BackgroundProfiler.signum,
+        help=(
+            'For communication between server and application. (default: %s)' %
+            SignalNumber.name_of(BackgroundProfiler.signum)
+        ))
 ])
 
 
@@ -403,7 +429,7 @@ live_profiler_options = Params([
 
 
 def __profile__(filename, code, globals_, profiler_factory,
-                pickle_protocol=PICKLE_PROTOCOL, dump_filename=None,
+                pickle_protocol=remote.PICKLE_PROTOCOL, dump_filename=None,
                 mono=False):
     frame = sys._getframe()
     profiler = profiler_factory(top_frame=frame, top_code=code)

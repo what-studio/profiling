@@ -19,16 +19,16 @@ from ..utils import Runnable
 __all__ = ['Sampler', 'ItimerSampler', 'TracingSampler']
 
 
-DEFAULT_INTERVAL = 1e-3  # 1ms
+INTERVAL = 1e-3  # 1ms
 
 
 class Sampler(Runnable):
     """The base class for samplers."""
 
     #: Sampling interval.
-    interval = DEFAULT_INTERVAL
+    interval = INTERVAL
 
-    def __init__(self, interval=DEFAULT_INTERVAL):
+    def __init__(self, interval=INTERVAL):
         self.interval = interval
 
     @staticmethod
