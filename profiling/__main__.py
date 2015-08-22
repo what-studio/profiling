@@ -113,18 +113,18 @@ def spawn(mode, func, *args, **kwargs):
 
     Available modes:
 
-    - `thread`
+    - `threading`
     - `greenlet`
     - `eventlet`
 
     """
     if mode is None:
-        # 'thread' is the default mode.
-        mode = 'thread'
+        # 'threading' is the default mode.
+        mode = 'threading'
     elif mode not in spawn.modes:
         # validate the given mode.
         raise ValueError('Invalid spawn mode: %s' % mode)
-    if mode == 'thread':
+    if mode == 'threading':
         return spawn_thread(func, *args, **kwargs)
     elif mode == 'gevent':
         import gevent
@@ -135,7 +135,7 @@ def spawn(mode, func, *args, **kwargs):
     assert False
 
 
-spawn.modes = ['thread', 'gevent', 'eventlet']
+spawn.modes = ['threading', 'gevent', 'eventlet']
 
 
 #: Just returns the first argument.
