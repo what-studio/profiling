@@ -615,7 +615,7 @@ class StatisticsTable(urwid.WidgetWrap):
         except ZeroDivisionError:
             cpu_usage = 0.0
         cpu_info = urwid.Text([
-            'CPU ', fmt.markup_percent(cpu_usage),
+            'CPU ', fmt.markup_percent(cpu_usage, unit=True),
             ' ', ('weak', fraction_string)])
         # set header columns
         col_opts = ('weight', 1, False)
