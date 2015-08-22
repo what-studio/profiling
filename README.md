@@ -78,7 +78,7 @@ $ python -m profiling live-profile webserver.py
 
 See a demo:
 
-[![asciicast](https://asciinema.org/a/25393.png)](https://asciinema.org/a/25393)
+[![asciicast](https://asciinema.org/a/25394.png)](https://asciinema.org/a/25394)
 
 There's a live-profiling server also.  The server doesn't profile the
 program at ordinary times.  But when a client connects to the server, it
