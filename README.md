@@ -6,16 +6,17 @@ The profiling package is an interactive Python profiler.  It is inspired from
 
 - Profiling statistics keep the frame stack.
 - An interactive TUI profiling statistics viewer.
+- Provides both of statistical and deterministic profiling.
 - Utilities for remote profiling.
 - Thread or greenlet aware CPU timer.
 - Supports Python 2.7, 3.3 and 3.4.
 - Currently supports only Linux.
 
 [![Build Status]
-(https://travis-ci.org/what-studio/profiling.svg?branch=sampling)]
+(https://travis-ci.org/what-studio/profiling.svg?branch=master)]
 (https://travis-ci.org/what-studio/profiling)
 [![Coverage Status]
-(https://coveralls.io/repos/what-studio/profiling/badge.svg?branch=sampling)]
+(https://coveralls.io/repos/what-studio/profiling/badge.svg?branch=master)]
 (https://coveralls.io/r/what-studio/profiling)
 
 [Unity 3D]: http://unity3d.com/
@@ -61,7 +62,7 @@ If your script reads ``sys.argv``, append your arguments after ``--``.
 It isolates your arguments from the ``profile`` command:
 
 ```sh
-$ python -m profiling profile your-program.py -- --your-flag --your-param=42 -hjkl
+$ python -m profiling profile your-program.py -- --your-flag --your-param=42
 ```
 
 Live-profiling
