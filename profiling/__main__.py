@@ -161,12 +161,15 @@ importer = lambda module_name, name: partial(import_, module_name, name)
 
 class Class(click.ParamType):
 
-    def __init__(self, base, modules, postfix=True):
-        self.base = base
+    def __init__(self, modules, base, base_name=None, postfix=True):
         self.modules = modules
+        self.base = base
+        self.base_name = base_name
         self.postfix = postfix
 
     def convert(self, value, param, ctx):
+        if value == self.base_name:
+            return self.base
         name = value.title()
         if self.postfix:
             name += self.base.__name__.title()
@@ -307,25 +310,32 @@ class Params(object):
 
 def profiler_options(f):
     # tracing profiler options
-    @click.option('-T', '--tracing', 'import_profiler_class',
-                  flag_value=importer('.tracing', 'TracingProfiler'),
-                  help='Use tracing profiler. (default)', default=True)
-    @click.option('--timer', 'timer_class',
-                  type=Class(timers.Timer, [timers], 'Timer'),
-                  help='Choose CPU timer for tracing profiler.')
+    @click.option(
+        '-T', '--tracing', 'import_profiler_class',
+        flag_value=importer('.tracing', 'TracingProfiler'),
+        default=True,
+        help='Use tracing profiler. (default)')
+    @click.option(
+        '--timer', 'timer_class',
+        type=Class([timers], timers.Timer, 'basic'),
+        help='Choose CPU timer for tracing profiler. (basic|thread|greenlet)')
     # sampling profiler options
-    @click.option('-S', '--sampling', 'import_profiler_class',
-                  flag_value=importer('.sampling', 'SamplingProfiler'),
-                  help='Use sampling profiler.')
-    @click.option('--sampler', 'sampler_class',
-                  type=Class(samplers.Sampler, [samplers], 'Sampler'),
-                  help='Choose frames sampler for sampling profiler.')
-    @click.option('--sampling-interval', type=float,
-                  default=samplers.DEFAULT_INTERVAL,
-                  help='Interval of each sampling.')
+    @click.option(
+        '-S', '--sampling', 'import_profiler_class',
+        flag_value=importer('.sampling', 'SamplingProfiler'),
+        help='Use sampling profiler.')
+    @click.option(
+        '--sampler', 'sampler_class',
+        type=Class([samplers], samplers.Sampler),
+        help='Choose frames sampler for sampling profiler. (itimer|tracing)')
+    @click.option(
+        '--sampling-interval', type=float, default=samplers.DEFAULT_INTERVAL,
+        help='How often sample. '
+             '(default: %.3f sec)' % samplers.DEFAULT_INTERVAL)
     # etc
-    @click.option('--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
-                  help='Pickle protocol to dump result.')
+    @click.option(
+        '--pickle-protocol', type=int, default=PICKLE_PROTOCOL,
+        help='Pickle protocol to dump result.')
     @wraps(f)
     def wrapped(import_profiler_class, timer_class, sampler_class,
                 sampling_interval, **kwargs):
