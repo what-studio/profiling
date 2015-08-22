@@ -274,7 +274,7 @@ class ViewerSource(click.ParamType):
             elif S_ISREG(mode):
                 src_type = 'dump'
         if not src_type:
-            raise ValueError('A dump file or a socket addr required.')
+            raise ValueError('A dump file or a socket address required.')
         return (src_type, src_name)
 
     def get_metavar(self, param):
