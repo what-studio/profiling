@@ -143,13 +143,14 @@ profiler.start()
 ...  # run your program.
 profiler.stop()
 
-# or using context manager
+# or using context manager.
 with Profiler() as profiler:
     ...  # run your program.
 
-# view statistics.
+# view the result.
+stats, cpu_time, wall_time = profiler.result()
 viewer = StatisticsViewer()
-viewer.set_stats(profiler.stats)
+viewer.set_result(stats, cpu_time, wall_time)
 loop = viewer.loop()
 loop.run()
 ```
