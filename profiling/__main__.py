@@ -326,7 +326,7 @@ class Params(object):
         return f
 
     def __add__(self, params):
-        return type(self)(self.params + params)
+        return self.__class__(self.params + params)
 
 
 def profiler_options(f):
@@ -447,7 +447,7 @@ def __profile__(filename, code, globals_, profiler_factory,
     if dump_filename is None:
         stats, cpu_time, wall_time = profiler.result()
         viewer, loop = make_viewer(mono)
-        viewer.set_profiler_class(type(profiler))
+        viewer.set_profiler_class(profiler.__class__)
         viewer.set_result(stats, cpu_time, wall_time, get_title(filename))
         viewer.activate()
         try:
@@ -457,7 +457,7 @@ def __profile__(filename, code, globals_, profiler_factory,
     else:
         result = profiler.result()
         with open(dump_filename, 'wb') as f:
-            pickle.dump(result, f, pickle_protocol)
+            pickle.dump((profiler.__class__, result), f, pickle_protocol)
         click.echo('To view statistics:')
         click.echo('  $ python -m profiling view ', nl=False)
         click.secho(dump_filename, underline=True)
@@ -608,9 +608,10 @@ def view(src, mono):
     title = get_title(src_name, src_type)
     viewer, loop = make_viewer(mono)
     if src_type == 'dump':
-        with open(src_name, 'rb') as f:
-            stats, cpu_time, wall_time = pickle.load(f)
         time = datetime.fromtimestamp(os.path.getmtime(src_name))
+        with open(src_name, 'rb') as f:
+            profiler_class, (stats, cpu_time, wall_time) = pickle.load(f)
+        viewer.set_profiler_class(profiler_class)
         viewer.set_result(stats, cpu_time, wall_time, title, time)
     elif src_type in ('tcp', 'sock'):
         family = {'tcp': socket.AF_INET, 'sock': socket.AF_UNIX}[src_type]
