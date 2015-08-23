@@ -612,6 +612,7 @@ def view(src, mono):
             profiler_class, (stats, cpu_time, wall_time) = pickle.load(f)
         viewer.set_profiler_class(profiler_class)
         viewer.set_result(stats, cpu_time, wall_time, title, time)
+        viewer.activate()
     elif src_type in ('tcp', 'sock'):
         family = {'tcp': socket.AF_INET, 'sock': socket.AF_UNIX}[src_type]
         client = FailoverProfilingClient(viewer, loop.event_loop,
