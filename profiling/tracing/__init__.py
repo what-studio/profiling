@@ -21,7 +21,7 @@ from .timers import Timer
 __all__ = ['TracingProfiler', 'TracingStatisticsTable']
 
 
-DEFAULT_TIMER_CLASS = Timer
+TIMER_CLASS = Timer
 
 
 class TracingStatisticsTable(StatisticsTable):
@@ -59,7 +59,7 @@ class TracingProfiler(Profiler):
     timer = None
 
     def __init__(self, top_frame=None, top_code=None, timer=None):
-        timer = timer or DEFAULT_TIMER_CLASS()
+        timer = timer or TIMER_CLASS()
         if not isinstance(timer, Timer):
             raise TypeError('Not a timer instance')
         super(TracingProfiler, self).__init__(top_frame, top_code)

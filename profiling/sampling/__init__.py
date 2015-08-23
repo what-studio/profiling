@@ -19,7 +19,7 @@ from .samplers import Sampler, ItimerSampler
 __all__ = ['SamplingProfiler', 'SamplingStatisticsTable']
 
 
-DEFAULT_SAMPLER_CLASS = ItimerSampler
+SAMPLER_CLASS = ItimerSampler
 
 
 class SamplingStatisticsTable(StatisticsTable):
@@ -51,7 +51,7 @@ class SamplingProfiler(Profiler):
     sampler = None
 
     def __init__(self, top_frame=None, top_code=None, sampler=None):
-        sampler = sampler or DEFAULT_SAMPLER_CLASS()
+        sampler = sampler or SAMPLER_CLASS()
         if not isinstance(sampler, Sampler):
             raise TypeError('Not a sampler instance')
         super(SamplingProfiler, self).__init__(top_frame, top_code)

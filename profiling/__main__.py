@@ -31,7 +31,7 @@ import traceback
 import click
 from six import exec_
 
-from . import remote
+from . import remote, sampling, tracing
 from .profiler import Profiler
 from .remote.background import BackgroundProfiler
 from .remote.client import FailoverProfilingClient, ProfilingClient
@@ -363,13 +363,12 @@ def profiler_options(f):
         assert issubclass(profiler_class, Profiler)
         if issubclass(profiler_class, TracingProfiler):
             # profiler requires timer.
-            timer = None if timer_class is None else timer_class()
+            timer_class = timer_class or tracing.TIMER_CLASS
+            timer = timer_class()
             profiler_kwargs = {'timer': timer}
         elif issubclass(profiler_class, SamplingProfiler):
-            if sampler_class is None:
-                sampler = None
-            else:
-                sampler = sampler_class(sampling_interval)
+            sampler_class = sampler_class or sampling.SAMPLER_CLASS
+            sampler = sampler_class(sampling_interval)
             profiler_kwargs = {'sampler': sampler}
         else:
             profiler_kwargs = {}
