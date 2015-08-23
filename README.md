@@ -42,7 +42,7 @@ $ python -m profiling profile your-program.py
 
 Then an interactive viewer will be executed:
 
-![](screenshots/your-program.png)
+![](screenshots/tracing.png)
 
 If your program uses greenlets, choose `greenlet` timer:
 
@@ -107,9 +107,11 @@ statistical profilers, it also has only very cheap overhead.  When you profile
 you can choose it by just `--sampling` (shortly `-S`) option:
 
 ```sh
-$ python -m profiling live-profile --statistical webserver.py
-                                   ^^^^^^^^^^^^^
+$ python -m profiling live-profile -S webserver.py
+                                   ^^
 ```
+
+![](screenshots/sampling.png)
 
 Timeit then Profiling
 ---------------------
