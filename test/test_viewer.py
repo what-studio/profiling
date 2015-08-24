@@ -23,8 +23,8 @@ def test_fmt():
 def test_format_int():
     assert fmt.format_int(0) == '0'
     assert fmt.format_int(123) == '123'
-    assert fmt.format_int(12345) == '12.3K'
-    assert fmt.format_int(-12345) == '-12.3K'
+    assert fmt.format_int(12345) == '12.3k'
+    assert fmt.format_int(-12345) == '-12.3k'
     assert fmt.format_int(99999999) == '100.0M'
     assert fmt.format_int(-99999999) == '-100.0M'
     assert fmt.format_int(999999999) == '1.0G'
@@ -35,7 +35,7 @@ def test_format_int():
 
 def test_format_int_or_na():
     assert fmt.format_int_or_na(0) == 'n/a'
-    assert fmt.format_int_or_na(12345) == '12.3K'
+    assert fmt.format_int_or_na(12345) == '12.3k'
 
 
 def test_format_time():

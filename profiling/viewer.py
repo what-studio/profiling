@@ -93,7 +93,7 @@ class Formatter(object):
 
     # int
 
-    def format_int(self, num, units='KMGTPEZY'):
+    def format_int(self, num, units='kMGTPEZY'):
         # width: 1~6
         # examples:
         # 0: 0
