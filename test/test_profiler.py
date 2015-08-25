@@ -2,7 +2,7 @@
 import pytest
 
 from profiling.profiler import Profiler, ProfilerWrapper
-from utils import foo
+from utils import foo, spin
 
 
 class NullProfiler(Profiler):
@@ -38,11 +38,11 @@ def test_exclude_code(profiler):
 def test_result(profiler):
     __, cpu_time, wall_time = profiler.result()
     assert cpu_time == wall_time == 0.0
-    profiler.start()
-    profiler.stop()
+    with profiler:
+        spin(0.1)
     __, cpu_time, wall_time = profiler.result()
     assert cpu_time > 0.0
-    assert wall_time > 0.0
+    assert wall_time >= 0.1
 
 
 def test_wrapper(profiler):
