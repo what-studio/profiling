@@ -226,6 +226,9 @@ class RecordingStatistics(Statistics):
                 self.add_child(code, stats)
                 return stats
 
+    def clear_children(self):
+        self._children.clear()
+
     def __iter__(self):
         return itervalues(self._children)
 

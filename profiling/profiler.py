@@ -29,11 +29,12 @@ class Profiler(Runnable):
     def __init__(self, top_frame=None, top_code=None):
         self.top_frame = top_frame
         self.top_code = top_code
-        self.clear()
+        self.stats = RecordingStatistics()
 
     def start(self):
         self._cpu_time_started = time.clock()
         self._wall_time_started = time.time()
+        self.stats.clear_children()
         return super(Profiler, self).start()
 
     def exclude_code(self, code):
@@ -52,15 +53,6 @@ class Profiler(Runnable):
             cpu_time = wall_time = 0.0
         frozen_stats = FrozenStatistics(self.stats)
         return (frozen_stats, cpu_time, wall_time)
-
-    def clear(self):
-        """Clears or initializes the recording statistics."""
-        try:
-            del self._cpu_time_started
-            del self._wall_time_started
-        except AttributeError:
-            pass
-        self.stats = RecordingStatistics()
 
 
 class ProfilerWrapper(Profiler):
