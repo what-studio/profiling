@@ -28,3 +28,17 @@ def test_profiler():
     stat2 = find_stats(profiler.stats, 'spin_500ms')
     ratio = stat1.deep_hits / stat2.deep_hits
     assert 0.8 <= ratio * 5 <= 1.2  # 1:5 expaected, but tolerate (0.8~1.2):5
+
+
+def test_not_sampler():
+    with pytest.raises(TypeError):
+        SamplingProfiler(sampler=123)
+
+
+def test_sample_1_depth():
+    frame = sys._getframe()
+    while frame.f_back is not None:
+        frame = frame.f_back
+    assert frame.f_back is None
+    profiler = SamplingProfiler()
+    profiler.sample(frame)
