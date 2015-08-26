@@ -19,6 +19,6 @@ script:
   flake8 profiling test setup.py \
     -v --show-source --ignore=E301 --exclude=$EXCLUDE
 - | # pytest
-  py.test -v --cov=profiling
+  py.test -v --cov=profiling --cov-report=term-missing
 after_success:
 - coveralls
