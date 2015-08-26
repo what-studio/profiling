@@ -58,7 +58,7 @@ def test_tracing_sampler_does_not_sample_too_often():
     assert fake_profiler.count_and_clear_samples() == 1
     sampler._profile(fake_profiler, None, None, None)
     assert fake_profiler.count_and_clear_samples() == 0
-    spin(0.1)
+    spin(0.5)
     sampler._profile(fake_profiler, None, None, None)
     assert fake_profiler.count_and_clear_samples() == 1
 
