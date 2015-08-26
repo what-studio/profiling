@@ -2,8 +2,10 @@
 import pickle
 from types import CodeType
 
+import pytest
 from six import PY3
 
+import profiling
 from profiling.sortkeys import \
     by_name, by_own_hits, by_deep_time_per_call, by_own_time_per_call
 from profiling.stats import FrozenStatistics, RecordingStatistics, Statistics
@@ -24,11 +26,49 @@ def test_stats():
     stats.module = 'baz'
     assert stats.regular_name == 'baz:foo'
     assert stats.deep_time_per_call == 0
+    assert stats.own_time_per_call == 0
     stats.deep_time = 128
     stats.own_hits = 4
     assert stats.deep_time_per_call == 32
+    assert stats.own_time_per_call == 32
     assert len(stats) == 0
     assert not list(stats)
+
+
+def test_repr():
+    stats = Statistics(name='foo', own_hits=4, deep_time=128)
+    assert repr(stats) == "<Statistics 'foo' hits=4 time=128.000000>"
+    frozen = FrozenStatistics(stats)
+    frozen._children.append(Statistics(name='baz', own_hits=1, deep_time=120))
+    assert \
+        repr(frozen) == \
+        "<FrozenStatistics 'foo' hits=4/5 time=8.000000/128.000000>"
+
+
+def test_hash():
+    stats1 = Statistics(name='foo', filename='bar', lineno=42)
+    stats2 = Statistics(name='baz', filename='bar', lineno=89)
+    stats_dics = {stats1: 1, stats2: 2}
+    assert stats_dics[stats1] == 1
+    assert stats_dics[stats2] == 2
+
+
+def test_recording():
+    # profiling is a module not code.
+    # but inspect.getmodule() works like with code of a module.
+    assert RecordingStatistics(profiling).module == 'profiling'
+    # use discard_child.
+    stats = RecordingStatistics()
+    assert None not in stats
+    stats.ensure_child(None)
+    assert None in stats
+    stats.discard_child(None)
+    assert None not in stats
+    stats.discard_child(None)
+    assert None not in stats
+    # cannot be pickled.
+    with pytest.raises(TypeError):
+        pickle.dumps(stats)
 
 
 # def test_recording():

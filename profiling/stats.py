@@ -13,19 +13,11 @@ from threading import RLock
 from six import itervalues, with_metaclass
 
 from .sortkeys import by_deep_time
+from .utils import null_context
 
 
 __all__ = ['Statistics', 'RecordingStatistics', 'VoidRecordingStatistics',
            'FrozenStatistics']
-
-
-def failure(funcname, message='{class} not allow {func}.', exctype=TypeError):
-    """Generates a method which raises an exception."""
-    def func(self, *args, **kwargs):
-        fmtopts = {'func': funcname, 'obj': self, 'class': type(self).__name__}
-        raise exctype(message.format(**fmtopts))
-    func.__name__ = funcname
-    return func
 
 
 def stats_from_members(stats_class, members):
@@ -47,16 +39,11 @@ class StatisticsMeta(type):
 
     def __new__(meta, name, bases, attrs):
         defaults = {}
-        try:
-            slots = attrs['__slots__']
-        except KeyError:
-            pass
-        else:
-            for attr in slots:
-                if attr not in attrs:
-                    continue
-                elif isinstance(attrs[attr], default):
-                    defaults[attr] = attrs.pop(attr).value
+        for attr in attrs.get('__slots__', ()):
+            if attr not in attrs:
+                continue
+            elif isinstance(attrs[attr], default):
+                defaults[attr] = attrs.pop(attr).value
         cls = super(StatisticsMeta, meta).__new__(meta, name, bases, attrs)
         cls.__defaults__ = defaults
         return cls
@@ -154,7 +141,11 @@ class Statistics(with_metaclass(StatisticsMeta)):
         else:
             hits_string = '{0}/{1}'.format(self.own_hits, deep_hits)
         # format time
-        time_string = '{0:.6f}/{1:.6f}'.format(self.own_time, self.deep_time)
+        own_time = self.own_time
+        if own_time == self.deep_time:
+            time_string = '{0:.6f}'.format(self.deep_time)
+        else:
+            time_string = '{0:.6f}/{1:.6f}'.format(own_time, self.deep_time)
         # join all
         class_name = type(self).__name__
         return ('<{0} {1}hits={2} time={3}>'
@@ -240,7 +231,7 @@ class RecordingStatistics(Statistics):
     def __contains__(self, code):
         return code in self._children
 
-    def __getstate__(self):
+    def __reduce__(self):
         raise TypeError('Cannot dump recording statistics')
 
 
@@ -266,12 +257,17 @@ class FrozenStatistics(Statistics):
             self._children = []
             return
         for attr in self.__slots__:
-            setattr(self, attr, getattr(stats, attr))
+            try:
+                value = getattr(stats, attr)
+            except AttributeError:
+                continue
+            else:
+                setattr(self, attr, value)
         self._children = self._freeze_children(stats)
 
     @classmethod
     def _freeze_children(cls, stats):
-        with stats.lock:
+        with getattr(stats, 'lock', null_context):
             return [cls(s) for s in stats]
 
     def __iter__(self):

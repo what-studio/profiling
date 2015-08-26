@@ -43,13 +43,15 @@ def spin(seconds):
 
 foo = None  # placeheolder
 mock_code_names = ['foo', 'bar', 'baz']
+source = ''
 for name, next_name in zip(mock_code_names[:-1], mock_code_names[1:]):
-    exec(dedent('''
+    source += dedent('''
     def {0}():
         return {1}()
-    ''').format(name, next_name))
-exec('''
+    ''').format(name, next_name)
+source += '''
 def {0}():
     return __import__('sys')._getframe()
-'''.format(mock_code_names[-1]))
+'''.format(mock_code_names[-1])
+exec(source)
 __all__.extend(mock_code_names)

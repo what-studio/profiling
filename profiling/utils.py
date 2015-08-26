@@ -13,7 +13,8 @@ except ImportError:
     speedup = False
 
 
-__all__ = ['Runnable', 'frame_stack', 'repr_frame', 'lazy_import', 'deferral']
+__all__ = ['Runnable', 'frame_stack', 'repr_frame', 'lazy_import', 'deferral',
+           'null_context']
 
 
 class Runnable(object):
@@ -111,8 +112,6 @@ class LazyImport(object):
         self.module = None
 
     def __get__(self, obj, cls):
-        # if obj is None:
-        #     return self
         if self.module is None:
             self.module = __import__(self.module_name)
         return self.module
@@ -141,3 +140,14 @@ def deferral():
         while deferred:
             f, a, k = deferred.pop()
             f(*a, **k)
+
+
+class NullContext(object):
+    def __enter__(self):
+        pass
+    def __exit__(self, *exc_info):
+        pass
+
+
+#: A context manager which does nothing.
+null_context = NullContext()
