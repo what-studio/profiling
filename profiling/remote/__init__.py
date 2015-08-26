@@ -180,7 +180,6 @@ class ProfilingServer(object):
             data = pack_msg(RESULT, result,
                             pickle_protocol=self.pickle_protocol)
             self._latest_result_data = data
-            self.profiler.clear()
             # broadcast
             closed_clients = []
             for client in self.clients:

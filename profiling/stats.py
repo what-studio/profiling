@@ -226,8 +226,10 @@ class RecordingStatistics(Statistics):
                 self.add_child(code, stats)
                 return stats
 
-    def clear_children(self):
+    def clear(self):
         self._children.clear()
+        for attr, value in self.__defaults__.items():
+            setattr(self, attr, value)
 
     def __iter__(self):
         return itervalues(self._children)

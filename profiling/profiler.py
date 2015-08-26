@@ -34,7 +34,7 @@ class Profiler(Runnable):
     def start(self):
         self._cpu_time_started = time.clock()
         self._wall_time_started = time.time()
-        self.stats.clear_children()
+        self.stats.clear()
         return super(Profiler, self).start()
 
     def exclude_code(self, code):
@@ -57,8 +57,8 @@ class Profiler(Runnable):
 
 class ProfilerWrapper(Profiler):
 
-    for attr in ['table_class', 'stats', 'top_frame', 'top_code',
-                 'result', 'clear', 'is_running']:
+    for attr in ['table_class', 'stats', 'top_frame', 'top_code', 'result',
+                 'is_running']:
         f = lambda self, attr=attr: getattr(self.profiler, attr)
         locals()[attr] = property(f)
         del f
