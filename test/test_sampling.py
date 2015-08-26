@@ -5,7 +5,7 @@ import sys
 import pytest
 
 from profiling.sampling import SamplingProfiler
-from profiling.sampling.samplers import ItimerSampler
+from profiling.sampling.samplers import ItimerSampler, TracingSampler
 from utils import find_stats, spin
 
 
@@ -17,17 +17,50 @@ def spin_500ms():
     spin(0.5)
 
 
-@pytest.mark.flaky(reruns=10)
-def test_profiler():
-    profiler = SamplingProfiler(top_frame=sys._getframe(),
-                                sampler=ItimerSampler(0.0001))
+def _test_sampling_profiler(sampler):
+    profiler = SamplingProfiler(top_frame=sys._getframe(), sampler=sampler)
     with profiler:
         spin_100ms()
         spin_500ms()
     stat1 = find_stats(profiler.stats, 'spin_100ms')
     stat2 = find_stats(profiler.stats, 'spin_500ms')
     ratio = stat1.deep_hits / stat2.deep_hits
-    assert 0.8 <= ratio * 5 <= 1.2  # 1:5 expaected, but tolerate (0.8~1.2):5
+    # 1:5 expaected, but tolerate (0.8~1.2):5
+    assert 0.8 <= ratio * 5 <= 1.2
+
+
+@pytest.mark.flaky(reruns=10)
+def test_itimer_sampler():
+    _test_sampling_profiler(ItimerSampler(0.0001))
+
+
+@pytest.mark.flaky(reruns=10)
+def test_tracing_sampler():
+    _test_sampling_profiler(TracingSampler(0.0001))
+
+
+@pytest.mark.flaky(reruns=10)
+def test_tracing_sampler_does_not_sample_too_often():
+    # pytest-cov cannot detect a callback function registered by
+    # :func:`sys.setprofile`.
+    class fake_profiler(object):
+        samples = []
+        @classmethod
+        def sample(cls, frame):
+            cls.samples.append(frame)
+        @classmethod
+        def count_and_clear_samples(cls):
+            count = len(cls.samples)
+            del cls.samples[:]
+            return count
+    sampler = TracingSampler(0.1)
+    sampler._profile(fake_profiler, None, None, None)
+    assert fake_profiler.count_and_clear_samples() == 1
+    sampler._profile(fake_profiler, None, None, None)
+    assert fake_profiler.count_and_clear_samples() == 0
+    spin(0.1)
+    sampler._profile(fake_profiler, None, None, None)
+    assert fake_profiler.count_and_clear_samples() == 1
 
 
 def test_not_sampler():
