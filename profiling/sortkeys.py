@@ -25,15 +25,6 @@ class SortKey(object):
         return cls(lambda stat: -self.func(stat))
 
 
-def _by_deep_time_per_call(stat):
-    return -stat.deep_time_per_call if stat.deep_hits else -stat.deep_time
-
-
-def _by_own_time_per_call(stat):
-    return (-stat.own_time_per_call if stat.own_hits else -stat.own_time,
-            _by_deep_time_per_call(stat))
-
-
 #: Sorting by name in ascending order.
 by_name = SortKey(lambda stat: stat.name)
 
@@ -55,8 +46,15 @@ by_deep_time = SortKey(lambda stat: -stat.deep_time)
 #: Sorting by exclusive elapsed time in descending order.
 by_own_time = SortKey(lambda stat: (-stat.own_time, -stat.deep_time))
 
-#: Sorting by inclusive elapsed time per call in descending order.
-by_deep_time_per_call = SortKey(_by_deep_time_per_call)
 
-#: Sorting by exclusive elapsed time per call in descending order.
-by_own_time_per_call = SortKey(_by_own_time_per_call)
+@SortKey
+def by_deep_time_per_call(stat):
+    """Sorting by inclusive elapsed time per call in descending order."""
+    return -stat.deep_time_per_call if stat.deep_hits else -stat.deep_time
+
+
+@SortKey
+def by_own_time_per_call(stat):
+    """Sorting by exclusive elapsed time per call in descending order."""
+    return (-stat.own_time_per_call if stat.own_hits else -stat.own_time,
+            by_deep_time_per_call(stat))

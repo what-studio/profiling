@@ -4,7 +4,8 @@ from types import CodeType
 
 from six import PY3
 
-from profiling.sortkeys import by_name, by_own_hits, by_deep_time_per_call
+from profiling.sortkeys import \
+    by_name, by_own_hits, by_deep_time_per_call, by_own_time_per_call
 from profiling.stats import FrozenStatistics, RecordingStatistics, Statistics
 
 
@@ -110,5 +111,7 @@ def test_sorting():
     stats3.own_hits = 4
     assert stats.sorted() == [stats3, stats2, stats1]
     assert stats.sorted(by_own_hits) == [stats3, stats1, stats2]
+    assert stats.sorted(~by_own_hits) == [stats2, stats1, stats3]
     assert stats.sorted(by_deep_time_per_call) == [stats2, stats3, stats1]
+    assert stats.sorted(by_own_time_per_call) == [stats2, stats3, stats1]
     assert stats.sorted(by_name) == [stats1, stats2, stats3]
