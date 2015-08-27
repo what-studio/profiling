@@ -8,12 +8,10 @@
 """
 from __future__ import absolute_import, division
 import inspect
-from threading import RLock
 
 from six import itervalues, with_metaclass
 
 from .sortkeys import by_deep_time
-from .utils import null_context
 
 
 __all__ = ['Statistics', 'RecordingStatistics', 'VoidRecordingStatistics',
@@ -155,14 +153,13 @@ class Statistics(with_metaclass(StatisticsMeta)):
 class RecordingStatistics(Statistics):
     """Recordig statistics measures execution time of a code."""
 
-    __slots__ = ('own_hits', 'deep_time', 'code', 'lock', '_children')
+    __slots__ = ('own_hits', 'deep_time', 'code', '_children')
 
     own_hits = default(0)
     deep_time = default(0.0)
 
     def __init__(self, code=None):
         self.code = code
-        self.lock = RLock()
         self._children = {}
 
     @property
@@ -192,30 +189,24 @@ class RecordingStatistics(Statistics):
         return module.__name__
 
     def get_child(self, code):
-        with self.lock:
-            return self._children[code]
+        return self._children[code]
 
     def add_child(self, code, stats):
-        with self.lock:
-            self._children[code] = stats
+        self._children[code] = stats
 
     def remove_child(self, code):
-        with self.lock:
-            del self._children[code]
+        del self._children[code]
 
     def discard_child(self, code):
-        with self.lock:
-            self._children.pop(code, None)
+        self._children.pop(code, None)
 
     def ensure_child(self, code, adding_stat_class=None):
-        with self.lock:
-            try:
-                return self.get_child(code)
-            except KeyError:
-                stat_class = adding_stat_class or type(self)
-                stats = stat_class(code)
-                self.add_child(code, stats)
-                return stats
+        stats = self._children.get(code)
+        if stats is None:
+            stat_class = adding_stat_class or type(self)
+            stats = stat_class(code)
+            self.add_child(code, stats)
+        return stats
 
     def clear(self):
         self._children.clear()
@@ -238,7 +229,7 @@ class RecordingStatistics(Statistics):
 class VoidRecordingStatistics(RecordingStatistics):
     """Statistics for an absent frame."""
 
-    __slots__ = ('code', 'lock', '_children')
+    __slots__ = ('code', '_children')
 
     _ignore = lambda x, *a, **k: None
     own_hits = property(lambda x: 0, _ignore)
@@ -267,8 +258,8 @@ class FrozenStatistics(Statistics):
 
     @classmethod
     def _freeze_children(cls, stats):
-        with getattr(stats, 'lock', null_context):
-            return [cls(s) for s in stats]
+        children = list(stats)
+        return [cls(s) for s in children]
 
     def __iter__(self):
         return iter(self._children)

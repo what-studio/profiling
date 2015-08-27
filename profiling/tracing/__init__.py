@@ -68,7 +68,6 @@ class TracingProfiler(Profiler):
 
     def _profile(self, frame, event, arg):
         """The callback function to register by :func:`sys.setprofile`."""
-        time = self.timer()
         # c = event.startswith('c_')
         if event.startswith('c_'):
             return
@@ -76,6 +75,7 @@ class TracingProfiler(Profiler):
         frames.pop()
         if not frames:
             return
+        time = self.timer()
         void = VoidRecordingStatistics
         parent_stats = self.stats
         for f in frames:
@@ -88,7 +88,6 @@ class TracingProfiler(Profiler):
         #     frame_key = id(arg)
         # record
         if event == 'call':
-            time = self.timer()
             self.record_entering(time, code, frame_key, parent_stats)
         elif event == 'return':
             self.record_leaving(time, code, frame_key, parent_stats)
@@ -96,9 +95,8 @@ class TracingProfiler(Profiler):
     def record_entering(self, time, code, frame_key, parent_stats):
         """Entered to a function call."""
         stats = parent_stats.ensure_child(code, RecordingStatistics)
-        with stats.lock:
-            self._times_entered[(code, frame_key)] = time
-            stats.own_hits += 1
+        self._times_entered[(code, frame_key)] = time
+        stats.own_hits += 1
 
     def record_leaving(self, time, code, frame_key, parent_stats):
         """Left from a function call."""
@@ -107,9 +105,8 @@ class TracingProfiler(Profiler):
             time_entered = self._times_entered.pop((code, frame_key))
         except KeyError:
             return
-        with stats.lock:
-            time_elapsed = time - time_entered
-            stats.deep_time += max(0, time_elapsed)
+        time_elapsed = time - time_entered
+        stats.deep_time += max(0, time_elapsed)
 
     def run(self):
         if sys.getprofile() is not None:
