@@ -13,8 +13,7 @@ except ImportError:
     speedup = False
 
 
-__all__ = ['Runnable', 'frame_stack', 'repr_frame', 'lazy_import', 'deferral',
-           'null_context']
+__all__ = ['Runnable', 'frame_stack', 'repr_frame', 'lazy_import', 'deferral']
 
 
 class Runnable(object):
@@ -140,14 +139,3 @@ def deferral():
         while deferred:
             f, a, k = deferred.pop()
             f(*a, **k)
-
-
-class NullContext(object):
-    def __enter__(self):
-        pass
-    def __exit__(self, *exc_info):
-        pass
-
-
-#: A context manager which does nothing.
-null_context = NullContext()
