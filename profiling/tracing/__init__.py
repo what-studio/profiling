@@ -58,6 +58,10 @@ class TracingProfiler(Profiler):
     #: timers.Timer`.
     timer = None
 
+    #: The CPU time of profiling overhead.  It's the time spent in
+    #: :meth:`_profile`.
+    overhead = 0.0
+
     def __init__(self, top_frame=None, top_code=None, timer=None):
         timer = timer or TIMER_CLASS()
         if not isinstance(timer, Timer):
@@ -71,11 +75,12 @@ class TracingProfiler(Profiler):
         # c = event.startswith('c_')
         if event.startswith('c_'):
             return
+        time1 = self.timer()
         frames = frame_stack(frame, self.top_frame, self.top_code)
         frames.pop()
         if not frames:
+            self.overhead += self.timer() - time1
             return
-        time = self.timer()
         void = VoidRecordingStatistics
         parent_stats = self.stats
         for f in frames:
@@ -87,10 +92,16 @@ class TracingProfiler(Profiler):
         #     code = mock_code(arg.__name__)
         #     frame_key = id(arg)
         # record
+        time2 = self.timer()
+        self.overhead += time2 - time1
         if event == 'call':
+            time = time2 - self.overhead
             self.record_entering(time, code, frame_key, parent_stats)
         elif event == 'return':
+            time = time1 - self.overhead
             self.record_leaving(time, code, frame_key, parent_stats)
+        time3 = self.timer()
+        self.overhead += time3 - time2
 
     def record_entering(self, time, code, frame_key, parent_stats):
         """Entered to a function call."""
@@ -108,6 +119,11 @@ class TracingProfiler(Profiler):
         time_elapsed = time - time_entered
         stats.deep_time += max(0, time_elapsed)
 
+    def result(self):
+        base = super(TracingProfiler, self)
+        frozen_stats, cpu_time, wall_time = base.result()
+        return (frozen_stats, cpu_time - self.overhead, wall_time)
+
     def run(self):
         if sys.getprofile() is not None:
             # NOTE: There's no threading.getprofile().
@@ -115,6 +131,8 @@ class TracingProfiler(Profiler):
             # but it's not documented.
             raise RuntimeError('Another profiler already registered')
         with deferral() as defer:
+            self._times_entered.clear()
+            self.overhead = 0.0
             sys.setprofile(self._profile)
             defer(sys.setprofile, None)
             threading.setprofile(self._profile)
@@ -122,4 +140,3 @@ class TracingProfiler(Profiler):
             self.timer.start(self)
             defer(self.timer.stop)
             yield
-            self._times_entered.clear()
