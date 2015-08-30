@@ -65,12 +65,12 @@ It isolates your arguments from the ``profile`` command:
 $ python -m profiling profile your-program.py -- --your-flag --your-param=42
 ```
 
-Live-profiling
+Live Profiling
 --------------
 
-If your program has a long life time like a web server, profiling result
-at the end of program doesn't help you.  You will need a continuous profiler.
-It works via `live-profile` command:
+If your program has a long life time like a web server, a profiling result
+at the end of program is not helpful enough.  Probably you need a continuous profiler.
+It can be achived by `live-profile` command:
 
 ```sh
 $ python -m profiling live-profile webserver.py
@@ -82,21 +82,22 @@ See a demo:
 
 There's a live-profiling server also.  The server doesn't profile the
 program at ordinary times.  But when a client connects to the server, it
-runs profiler and reports to the all connected clients.  Start a server
-with `remote-profile` command:
+starts to profile and reports the results to the all connected clients.
+
+Start a profling server by `remote-profile` command:
 
 ```sh
 $ python -m profiling remote-profile webserver.py --bind 127.0.0.1:8912
 ```
 
-Then run a client with `view` command:
+And also run a client for the server by `view` command:
 
 ```sh
 $ python -m profiling view 127.0.0.1:8912
 ```
 
-Sampling Profiler
------------------
+Statistical Profiling
+---------------------
 
 `TracingProfiler`, the default profiler, implements a deterministic profiler
 for deep call graph.  Of course, it has heavy overhead.  The overhead can
