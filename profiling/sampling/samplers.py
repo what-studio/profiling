@@ -13,7 +13,7 @@ import weakref
 
 import six.moves._thread as _thread
 
-from ..utils import Runnable
+from ..utils import Runnable, deferral
 
 
 __all__ = ['Sampler', 'ItimerSampler', 'TracingSampler']
@@ -49,13 +49,15 @@ class ItimerSampler(Sampler):
             profiler.sample(frame_)
 
     def run(self, profiler):
-        interval = self.interval
-        handle = functools.partial(self.handle_signal, weakref.proxy(profiler))
-        prev_handler = signal.signal(signal.SIGPROF, handle)
-        prev_itimer = signal.setitimer(signal.ITIMER_PROF, interval, interval)
-        yield
-        signal.setitimer(signal.ITIMER_PROF, *prev_itimer)
-        signal.signal(signal.SIGPROF, prev_handler)
+        weak_profiler = weakref.proxy(profiler)
+        handler = functools.partial(self.handle_signal, weak_profiler)
+        t = self.interval
+        with deferral() as defer:
+            prev_handler = signal.signal(signal.SIGPROF, handler)
+            defer(signal.signal, signal.SIGPROF, prev_handler)
+            prev_itimer = signal.setitimer(signal.ITIMER_PROF, t, t)
+            defer(signal.setitimer, signal.ITIMER_PROF, *prev_itimer)
+            yield
 
 
 class TracingSampler(Sampler):
