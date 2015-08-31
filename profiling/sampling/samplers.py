@@ -50,11 +50,11 @@ class ItimerSampler(Sampler):
 
     def run(self, profiler):
         weak_profiler = weakref.proxy(profiler)
-        handler = functools.partial(self.handle_signal, weak_profiler)
+        handle = functools.partial(self.handle_signal, weak_profiler)
         t = self.interval
         with deferral() as defer:
-            prev_handler = signal.signal(signal.SIGPROF, handler)
-            defer(signal.signal, signal.SIGPROF, prev_handler)
+            prev_handle = signal.signal(signal.SIGPROF, handle)
+            defer(signal.signal, signal.SIGPROF, prev_handle)
             prev_itimer = signal.setitimer(signal.ITIMER_PROF, t, t)
             defer(signal.setitimer, signal.ITIMER_PROF, *prev_itimer)
             yield
@@ -76,8 +76,9 @@ class TracingSampler(Sampler):
 
     def run(self, profiler):
         profile = functools.partial(self._profile, profiler)
-        sys.setprofile(profile)
-        threading.setprofile(profile)
-        yield
-        threading.setprofile(None)
-        sys.setprofile(None)
+        with deferral() as defer:
+            sys.setprofile(profile)
+            defer(sys.setprofile, None)
+            threading.setprofile(profile)
+            defer(threading.setprofile, None)
+            yield
