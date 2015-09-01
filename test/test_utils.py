@@ -69,14 +69,14 @@ def test_frame_stack():
     frames = frame_stack(frame)
     assert to_code_names(frames) == ['foo', 'bar', 'baz']
     # top frame
-    frames = frame_stack(frame, top_frame=frame.f_back)
+    frames = frame_stack(frame, top_frames=[frame.f_back])
     assert to_code_names(frames) == ['bar', 'baz']
     # top code
-    frames = frame_stack(frame, top_code=frame.f_back.f_code)
+    frames = frame_stack(frame, top_codes=[frame.f_back.f_code])
     assert to_code_names(frames) == ['bar', 'baz']
     # both of top frame and top code
-    frames = frame_stack(frame, top_frame=frame.f_back,
-                         top_code=frame.f_back.f_code)
+    frames = frame_stack(frame, top_frames=[frame.f_back],
+                         top_codes=[frame.f_back.f_code])
     assert to_code_names(frames) == ['bar', 'baz']
 
 

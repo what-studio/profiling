@@ -43,7 +43,7 @@ def test_profile():
 
 
 def test_profiler():
-    profiler = TracingProfiler(top_frame=sys._getframe())
+    profiler = TracingProfiler(top_frames=[sys._getframe()])
     assert isinstance(profiler.stats, RecordingStatistics)
     stats, cpu_time, wall_time = profiler.result()
     assert isinstance(stats, FrozenStatistics)

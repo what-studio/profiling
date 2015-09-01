@@ -38,13 +38,13 @@ def _test_timer_with_threads(timer, sleep, spawn, join=lambda x: x.join()):
         return (stat1, stat2)
     # using the default timer.
     # light() ends later than heavy().  its total time includes heavy's also.
-    normal_profiler = TracingProfiler(top_frame=sys._getframe())
+    normal_profiler = TracingProfiler(top_frames=[sys._getframe()])
     stat1, stat2 = profile(normal_profiler)
     assert stat1.deep_time >= stat2.deep_time
     # using the given timer.
     # light() ends later than heavy() like the above case.  but the total time
     # doesn't include heavy's.  each contexts should have isolated cpu time.
-    contextual_profiler = TracingProfiler(top_frame=sys._getframe(),
+    contextual_profiler = TracingProfiler(top_frames=[sys._getframe()],
                                           timer=timer)
     stat1, stat2 = profile(contextual_profiler)
     assert stat1.deep_time < stat2.deep_time

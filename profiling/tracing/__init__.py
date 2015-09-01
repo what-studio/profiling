@@ -13,7 +13,7 @@ import threading
 from .. import sortkeys
 from ..profiler import Profiler
 from ..stats import RecordingStatistics, VoidRecordingStatistics
-from ..utils import deferral, frame_stack
+from ..utils import deferral
 from ..viewer import StatisticsTable, fmt
 from .timers import Timer
 
@@ -62,11 +62,13 @@ class TracingProfiler(Profiler):
     #: :meth:`_profile`.
     overhead = 0.0
 
-    def __init__(self, top_frame=None, top_code=None, timer=None):
+    def __init__(self, top_frames=(), top_codes=(),
+                 upper_frames=(), upper_codes=(), timer=None):
         timer = timer or TIMER_CLASS()
         if not isinstance(timer, Timer):
             raise TypeError('Not a timer instance')
-        super(TracingProfiler, self).__init__(top_frame, top_code)
+        base = super(TracingProfiler, self)
+        base.__init__(top_frames, top_codes, upper_frames, upper_codes)
         self.timer = timer
         self._times_entered = {}
 
@@ -76,8 +78,9 @@ class TracingProfiler(Profiler):
         if event.startswith('c_'):
             return
         time1 = self.timer()
-        frames = frame_stack(frame, self.top_frame, self.top_code)
-        frames.pop()
+        frames = self.frame_stack(frame)
+        if frames:
+            frames.pop()
         if not frames:
             self.overhead += self.timer() - time1
             return

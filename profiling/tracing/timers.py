@@ -34,22 +34,25 @@ class ContextualTimer(Timer):
         return timer
 
     def __call__(self, context=None):
-        context = self.detect_context(context)
+        if context is None:
+            context = self.detect_context()
         paused_at, resumed_at = self._contextual_times.get(context, (0, 0))
         if resumed_at is None:  # paused
             return paused_at
         return paused_at + self.clock() - resumed_at
 
     def pause(self, context=None):
-        context = self.detect_context(context)
+        if context is None:
+            context = self.detect_context()
         self._contextual_times[context] = (self(context), None)
 
     def resume(self, context=None):
-        context = self.detect_context(context)
+        if context is None:
+            context = self.detect_context()
         paused_at, __ = self._contextual_times.get(context, (0, 0))
         self._contextual_times[context] = (paused_at, self.clock())
 
-    def detect_context(self, context=None):
+    def detect_context(self):
         raise NotImplementedError('detect_context() should be implemented')
 
 
@@ -75,10 +78,9 @@ class GreenletTimer(ContextualTimer):
 
     greenlet = lazy_import('greenlet')
 
-    def detect_context(self, context=None):
-        if context is None and self.greenlet:
-            context = id(self.greenlet.getcurrent())
-        return context
+    def detect_context(self):
+        if self.greenlet:
+            return id(self.greenlet.getcurrent())
 
     def _trace(self, event, args):
         origin, target = args

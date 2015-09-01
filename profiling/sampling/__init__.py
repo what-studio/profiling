@@ -11,7 +11,6 @@ from __future__ import absolute_import
 from .. import sortkeys
 from ..profiler import Profiler
 from ..stats import RecordingStatistics, VoidRecordingStatistics
-from ..utils import frame_stack
 from ..viewer import StatisticsTable, fmt
 from .samplers import Sampler, ItimerSampler
 
@@ -50,25 +49,28 @@ class SamplingProfiler(Profiler):
     #: sampling.samplers.Sampler`.
     sampler = None
 
-    def __init__(self, top_frame=None, top_code=None, sampler=None):
+    def __init__(self, top_frames=(), top_codes=(),
+                 upper_frames=(), upper_codes=(), sampler=None):
         sampler = sampler or SAMPLER_CLASS()
         if not isinstance(sampler, Sampler):
             raise TypeError('Not a sampler instance')
-        super(SamplingProfiler, self).__init__(top_frame, top_code)
+        base = super(SamplingProfiler, self)
+        base.__init__(top_frames, top_codes, upper_frames, upper_codes)
         self.sampler = sampler
 
     def sample(self, frame):
         """Samples the given frame."""
-        frames = frame_stack(frame, self.top_frame, self.top_code)
-        frames.pop()
+        frames = self.frame_stack(frame)
+        if frames:
+            frames.pop()
         if not frames:
             return
-        void = VoidRecordingStatistics
         parent_stats = self.stats
-        for f in frames:
-            parent_stats = parent_stats.ensure_child(f.f_code, void)
-        code = frame.f_code
-        stats = parent_stats.ensure_child(code, RecordingStatistics)
+        if frames:
+            void = VoidRecordingStatistics
+            for f in frames:
+                parent_stats = parent_stats.ensure_child(f.f_code, void)
+        stats = parent_stats.ensure_child(frame.f_code, RecordingStatistics)
         stats.own_hits += 1
 
     def run(self):

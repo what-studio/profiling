@@ -85,16 +85,22 @@ class Runnable(object):
 
 
 if speedup:
-    def frame_stack(frame, top_frame=None, top_code=None):
+    def frame_stack(frame, top_frames=(), top_codes=(),
+                    upper_frames=(), upper_codes=()):
         """Returns a deque of frame stack."""
-        return speedup.frame_stack(frame, top_frame, top_code)
+        return speedup.frame_stack(frame, set(top_frames), set(top_codes),
+                                   set(upper_frames), set(upper_codes))
 else:
-    def frame_stack(frame, top_frame=None, top_code=None):
+    def frame_stack(frame, top_frames=(), top_codes=(),
+                    upper_frames=(), upper_codes=()):
         """Returns a deque of frame stack."""
         frames = deque()
         while frame is not None:
+            code = frame.f_code
+            if frame in upper_frames or code in upper_codes:
+                break
             frames.appendleft(frame)
-            if frame is top_frame or frame.f_code is top_code:
+            if frame in top_frames or code in top_codes:
                 break
             frame = frame.f_back
         return frames

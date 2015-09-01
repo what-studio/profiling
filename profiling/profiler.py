@@ -7,7 +7,7 @@ from __future__ import absolute_import
 import time
 
 from .stats import FrozenStatistics, RecordingStatistics
-from .utils import Runnable
+from .utils import Runnable, frame_stack
 from .viewer import StatisticsTable
 
 
@@ -23,12 +23,17 @@ class Profiler(Runnable):
     #: The root recording statistics.
     stats = None
 
-    top_frame = None
-    top_code = None
+    top_frames = ()
+    top_codes = ()
+    upper_frames = ()
+    upper_codes = ()
 
-    def __init__(self, top_frame=None, top_code=None):
-        self.top_frame = top_frame
-        self.top_code = top_code
+    def __init__(self, top_frames=(), top_codes=(),
+                 upper_frames=(), upper_codes=()):
+        self.top_frames = top_frames
+        self.top_codes = top_codes
+        self.upper_frames = upper_frames
+        self.upper_codes = upper_codes
         self.stats = RecordingStatistics()
 
     def start(self):
@@ -36,6 +41,10 @@ class Profiler(Runnable):
         self._wall_time_started = time.time()
         self.stats.clear()
         return super(Profiler, self).start()
+
+    def frame_stack(self, frame):
+        return frame_stack(frame, self.top_frames, self.top_codes,
+                           self.upper_frames, self.upper_codes)
 
     def exclude_code(self, code):
         """Excludes statistics of the given code."""

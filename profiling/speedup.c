@@ -4,11 +4,15 @@
 static PyObject *
 frame_stack(PyObject *self, PyObject *args)
 {
-    // frame_stack(frame[, top_frame[, top_code]]) -> list of frames
+    // frame_stack(frame, top_frames, top_codes, upper_frames, upper_codes)
+    // returns a list of frames.
     PyFrameObject* frame;
-    const PyFrameObject* top_frame;
-    const PyCodeObject* top_code;
-    if (!PyArg_ParseTuple(args, "OOO", &frame, &top_frame, &top_code))
+    const PySetObject* top_frames;
+    const PySetObject* top_codes;
+    const PySetObject* upper_frames;
+    const PySetObject* upper_codes;
+    if (!PyArg_ParseTuple(args, "OOOOO", &frame, &top_frames, &top_codes,
+                          &upper_frames, &upper_codes))
     {
         return NULL;
     }
@@ -19,11 +23,17 @@ frame_stack(PyObject *self, PyObject *args)
     }
     while (frame != NULL)
     {
+        if (PySet_Contains(upper_frames, frame) == 1 ||
+            PySet_Contains(upper_codes, frame->f_code) == 1)
+        {
+            break;
+        }
         if (PyList_Append(frame_stack, (PyObject*)frame))
         {
             return NULL;
         }
-        if (frame == top_frame || frame->f_code == top_code)
+        if (PySet_Contains(top_frames, frame) == 1 ||
+            PySet_Contains(top_codes, frame->f_code) == 1)
         {
             break;
         }
