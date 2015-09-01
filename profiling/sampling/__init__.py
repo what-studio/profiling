@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 from .. import sortkeys
 from ..profiler import Profiler
-from ..stats import RecordingStatistics, VoidRecordingStatistics
+from ..stats import RecordingStatistics, VoidRecordingStatistics as void
 from ..viewer import StatisticsTable, fmt
 from .samplers import Sampler, ItimerSampler
 
@@ -63,13 +63,9 @@ class SamplingProfiler(Profiler):
         frames = self.frame_stack(frame)
         if frames:
             frames.pop()
-        if not frames:
-            return
         parent_stats = self.stats
-        if frames:
-            void = VoidRecordingStatistics
-            for f in frames:
-                parent_stats = parent_stats.ensure_child(f.f_code, void)
+        for f in frames:
+            parent_stats = parent_stats.ensure_child(f.f_code, void)
         stats = parent_stats.ensure_child(frame.f_code, RecordingStatistics)
         stats.own_hits += 1
 

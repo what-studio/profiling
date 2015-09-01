@@ -431,7 +431,7 @@ def __profile__(filename, code, globals_, profiler_factory,
                 pickle_protocol=remote.PICKLE_PROTOCOL, dump_filename=None,
                 mono=False):
     frame = sys._getframe()
-    profiler = profiler_factory(top_frame=frame, top_code=code)
+    profiler = profiler_factory(top_frames=[frame], top_codes=[code])
     profiler.start()
     try:
         exec_(code, globals_)
@@ -542,7 +542,7 @@ def live_profile(script, argv, profiler_factory, interval, spawn, signum,
         # redirect stderr to parent.
         os.dup2(stderr_w_fd, sys.stderr.fileno())
         frame = sys._getframe()
-        profiler = profiler_factory(top_frame=frame, top_code=code)
+        profiler = profiler_factory(top_frames=[frame], top_codes=[code])
         profiler_trigger = BackgroundProfiler(profiler, signum)
         profiler_trigger.prepare()
         server_args = (interval, noop, pickle_protocol)
@@ -585,7 +585,7 @@ def remote_profile(script, argv, profiler_factory, interval, spawn, signum,
         log = noop
     # start profiling server.
     frame = sys._getframe()
-    profiler = profiler_factory(top_frame=frame, top_code=code)
+    profiler = profiler_factory(top_frames=[frame], top_codes=[code])
     profiler_trigger = BackgroundProfiler(profiler, signum)
     profiler_trigger.prepare()
     server_args = (interval, log, pickle_protocol)

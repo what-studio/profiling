@@ -12,7 +12,7 @@ import threading
 
 from .. import sortkeys
 from ..profiler import Profiler
-from ..stats import RecordingStatistics, VoidRecordingStatistics
+from ..stats import RecordingStatistics, VoidRecordingStatistics as void
 from ..utils import deferral
 from ..viewer import StatisticsTable, fmt
 from .timers import Timer
@@ -81,10 +81,6 @@ class TracingProfiler(Profiler):
         frames = self.frame_stack(frame)
         if frames:
             frames.pop()
-        if not frames:
-            self.overhead += self.timer() - time1
-            return
-        void = VoidRecordingStatistics
         parent_stats = self.stats
         for f in frames:
             parent_stats = parent_stats.ensure_child(f.f_code, void)
