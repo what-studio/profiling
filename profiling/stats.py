@@ -36,13 +36,23 @@ class default(object):
 class StatisticsMeta(type):
 
     def __new__(meta, name, bases, attrs):
+        slots = attrs.get('__slots__', ())
         defaults = {}
-        for attr in attrs.get('__slots__', ()):
+        for attr in slots:
             if attr not in attrs:
                 continue
             elif isinstance(attrs[attr], default):
                 defaults[attr] = attrs.pop(attr).value
         cls = super(StatisticsMeta, meta).__new__(meta, name, bases, attrs)
+        try:
+            base_defaults = cls.__defaults__
+        except AttributeError:
+            pass
+        else:
+            # inherit defaults from the base classes.
+            for attr in slots:
+                if attr not in defaults and attr in base_defaults:
+                    defaults[attr] = base_defaults[attr]
         cls.__defaults__ = defaults
         return cls
 

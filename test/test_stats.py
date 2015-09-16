@@ -37,8 +37,9 @@ def test_stats():
 def test_repr():
     stats = Statistics(name='foo', own_hits=4, deep_time=128)
     assert repr(stats) == "<Statistics 'foo' hits=4 time=128.000000>"
-    frozen = FrozenStatistics(stats)
-    frozen._children.append(Statistics(name='baz', own_hits=1, deep_time=120))
+    frozen = FrozenStatistics(name='foo', own_hits=4, deep_time=128,
+                              children=[])
+    frozen.children.append(Statistics(name='baz', own_hits=1, deep_time=120))
     assert \
         repr(frozen) == \
         "<FrozenStatistics 'foo' hits=4/5 time=8.000000/128.000000>"
