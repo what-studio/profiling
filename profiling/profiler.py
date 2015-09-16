@@ -6,7 +6,7 @@
 from __future__ import absolute_import
 import time
 
-from .stats import FrozenStatistics, RecordingStatistics
+from .stats import RecordingStatistics
 from .utils import Runnable, frame_stack
 from .viewer import StatisticsTable
 
@@ -60,8 +60,7 @@ class Profiler(Runnable):
             wall_time = max(0, time.time() - self._wall_time_started)
         except AttributeError:
             cpu_time = wall_time = 0.0
-        frozen_stats = FrozenStatistics(self.stats)
-        return (frozen_stats, cpu_time, wall_time)
+        return (self.stats, cpu_time, wall_time)
 
 
 class ProfilerWrapper(Profiler):

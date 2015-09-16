@@ -2,7 +2,6 @@
 import pickle
 from types import CodeType
 
-import pytest
 from six import PY3
 
 import profiling
@@ -66,9 +65,6 @@ def test_recording():
     assert None not in stats
     stats.discard_child(None)
     assert None not in stats
-    # cannot be pickled.
-    with pytest.raises(TypeError):
-        pickle.dumps(stats)
 
 
 # def test_recording():
@@ -126,12 +122,16 @@ def test_frozen():
     code = mock_code('foo')
     stats = RecordingStatistics(code)
     stats.deep_time = 10
-    frozen_stats = FrozenStatistics(stats)
+    stats.ensure_child(None)
+    # RecordingStatistics are frozen at pickling.
+    frozen_stats = pickle.loads(pickle.dumps(stats))
     assert frozen_stats.name == 'foo'
     assert frozen_stats.deep_time == 10
+    assert len(frozen_stats) == 1
     restored_frozen_stats = pickle.loads(pickle.dumps(frozen_stats))
     assert restored_frozen_stats.name == 'foo'
     assert restored_frozen_stats.deep_time == 10
+    assert len(restored_frozen_stats) == 1
 
 
 def test_sorting():

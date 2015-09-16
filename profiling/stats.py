@@ -119,14 +119,14 @@ class Statistics(with_metaclass(StatisticsMeta)):
         """Override it to count statistics children."""
         return 0
 
-    def __reduce__(self):
-        """Safen for Pickle."""
-        members = [getattr(self, attr) for attr in self.__slots__]
-        return (stats_from_members, (self.__class__, members,))
-
     def __hash__(self):
         """Statistics can be a key."""
         return hash((self.name, self.filename, self.lineno))
+
+    def __reduce__(self):
+        """Safen for Pickle."""
+        members = [getattr(self, attr) for attr in self.__slots__]
+        return (stats_from_members, (self.__class__, members))
 
     def __repr__(self):
         # format name
@@ -188,6 +188,10 @@ class RecordingStatistics(Statistics):
             return
         return module.__name__
 
+    @property
+    def children(self):
+        return list(itervalues(self._children))
+
     def get_child(self, code):
         return self._children[code]
 
@@ -223,7 +227,9 @@ class RecordingStatistics(Statistics):
         return code in self._children
 
     def __reduce__(self):
-        raise TypeError('Cannot dump recording statistics')
+        """Freezes this statistics to safen to pack/unpack in Pickle."""
+        members = [getattr(self, attr) for attr in FrozenStatistics.__slots__]
+        return (stats_from_members, (FrozenStatistics, members))
 
 
 class VoidRecordingStatistics(RecordingStatistics):
@@ -241,28 +247,10 @@ class FrozenStatistics(Statistics):
     """Frozen :class:`Statistics` to serialize by Pickle."""
 
     __slots__ = ('name', 'filename', 'lineno', 'module',
-                 'own_hits', 'deep_time', '_children')
-
-    def __init__(self, stats=None):
-        if stats is None:
-            self._children = []
-            return
-        for attr in self.__slots__:
-            try:
-                value = getattr(stats, attr)
-            except AttributeError:
-                continue
-            else:
-                setattr(self, attr, value)
-        self._children = self._freeze_children(stats)
-
-    @classmethod
-    def _freeze_children(cls, stats):
-        children = list(stats)
-        return [cls(s) for s in children]
+                 'own_hits', 'deep_time', 'children')
 
     def __iter__(self):
-        return iter(self._children)
+        return iter(self.children)
 
     def __len__(self):
-        return len(self._children)
+        return len(self.children)
