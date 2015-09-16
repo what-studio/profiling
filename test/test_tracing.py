@@ -4,7 +4,7 @@ import sys
 import pytest
 import six
 
-from profiling.stats import FrozenStatistics, RecordingStatistics
+from profiling.stats import RecordingStatistics
 from profiling.tracing import TracingProfiler
 from utils import factorial, find_stats, foo
 
@@ -46,7 +46,6 @@ def test_profiler():
     profiler = TracingProfiler(top_frames=[sys._getframe()])
     assert isinstance(profiler.stats, RecordingStatistics)
     stats, cpu_time, wall_time = profiler.result()
-    assert isinstance(stats, FrozenStatistics)
     assert len(stats) == 0
     with profiler:
         factorial(1000)
