@@ -135,8 +135,12 @@ class Statistics(with_metaclass(StatisticsMeta)):
 
     def __reduce__(self):
         """Safen for Pickle."""
-        members = [getattr(self, attr) for attr in self.__slots__]
-        return (stats_from_members, (self.__class__, members))
+        return self.reduce_stats(self)
+
+    @classmethod
+    def reduce_stats(cls, stats):
+        members = [getattr(stats, attr) for attr in cls.__slots__]
+        return (stats_from_members, (cls, members))
 
     def __repr__(self):
         # format name
@@ -238,8 +242,7 @@ class RecordingStatistics(Statistics):
 
     def __reduce__(self):
         """Freezes this statistics to safen to pack/unpack in Pickle."""
-        members = [getattr(self, attr) for attr in FrozenStatistics.__slots__]
-        return (stats_from_members, (FrozenStatistics, members))
+        return FrozenStatistics.reduce_stats(self)
 
 
 class VoidRecordingStatistics(RecordingStatistics):
