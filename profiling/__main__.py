@@ -29,7 +29,7 @@ import time
 import traceback
 
 import click
-from six import PY3, exec_
+from six import exec_
 
 from . import remote, sampling, tracing
 from .profiler import Profiler
@@ -216,12 +216,14 @@ class Module(click.ParamType):
             detail = runpy._get_module_details(value)
         except ImportError as exc:
             ctx.fail(str(exc))
-        if PY3:
+        try:
+            # since Python 3.4.
             mod_name, mod_spec, code = detail
+        except ValueError:
+            mod_name, loader, code, filename = detail
+        else:
             loader = mod_spec.loader
             filename = mod_spec.origin
-        else:
-            mod_name, loader, code, filename = detail
         # follow runpy's behavior.
         pkg_name = mod_name.rpartition('.')[0]
         globals_ = sys.modules['__main__'].__dict__.copy()
