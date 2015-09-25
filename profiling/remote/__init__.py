@@ -8,6 +8,7 @@
 
 """
 from __future__ import absolute_import
+from errno import EBADF, EPIPE, ECONNRESET
 import functools
 import io
 from logging import getLogger as get_logger
@@ -19,7 +20,6 @@ import socket
 import struct
 import sys
 
-from .errnos import EBADF, EPIPE, ECONNRESET
 from .. import __version__
 from ..utils import frame_stack
 

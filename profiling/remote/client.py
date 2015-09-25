@@ -6,12 +6,12 @@
 """
 from __future__ import absolute_import
 from datetime import datetime
+from errno import ENOENT, ECONNREFUSED, EINPROGRESS
 import socket
 
 from valuedispatch import valuedispatch
 
 from . import PROFILER, RESULT, WELCOME, recv_msg
-from .errnos import ENOENT, ECONNREFUSED, EINPROGRESS
 
 
 __all__ = ['ProfilingClient', 'FailoverProfilingClient']
