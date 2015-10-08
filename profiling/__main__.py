@@ -44,11 +44,12 @@ from .viewer import StatisticsViewer
 __all__ = ['cli', 'profile', 'view']
 
 
-class AliasedGroup(click.Group):
+class ProfilingCLI(click.Group):
 
     def __init__(self, *args, **kwargs):
-        super(AliasedGroup, self).__init__(*args, **kwargs)
-        self.aliases = {}
+        super(ProfilingCLI, self).__init__(*args, **kwargs)
+        self.command_aliases = {}
+        self.primary_command_name = None
 
     def command(self, *args, **kwargs):
         """Usage::
@@ -59,24 +60,37 @@ class AliasedGroup(click.Group):
 
         """
         aliases = kwargs.pop('aliases', None)
-        decorator = super(AliasedGroup, self).command(*args, **kwargs)
+        decorator = super(ProfilingCLI, self).command(*args, **kwargs)
         if aliases is None:
             return decorator
         def aliased_decorator(f):
             cmd = decorator(f)
             for alias in aliases:
-                self.aliases[alias] = cmd
+                self.command_aliases[alias] = cmd.name
             return cmd
         return aliased_decorator
 
+    def primary_command(self, *args, **kwargs):
+        def decorator(f):
+            cmd = self.command(*args, **kwargs)(f)
+            self.primary_command_name = cmd.name
+            return cmd
+        return decorator
+
     def get_command(self, ctx, cmd_name):
         try:
-            return self.aliases[cmd_name]
+            return self.command_aliases[cmd_name]
         except KeyError:
-            return super(AliasedGroup, self).get_command(ctx, cmd_name)
+            pass
+        if self.primary_command_name is None:
+            pass
+        elif cmd_name not in self.commands:
+            ctx.args.insert(0, self.primary_command_name)
+            cmd_name = self.primary_command_name
+        return super(ProfilingCLI, self).get_command(ctx, cmd_name)
 
 
-@click.command(cls=AliasedGroup)
+@click.command(cls=ProfilingCLI)
 def cli():
     pass
 
@@ -481,7 +495,7 @@ class ProfilingCommand(click.Command):
         return pieces
 
 
-@cli.command(cls=ProfilingCommand)
+@cli.primary_command(cls=ProfilingCommand)
 @profiler_arguments
 @profiler_options
 @onetime_profiler_options
