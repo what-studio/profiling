@@ -7,7 +7,7 @@
 
     .. sourcecode:: console
 
-       $ python -m profiling --help
+       $ profiling --help
 
 """
 from __future__ import absolute_import
@@ -466,7 +466,7 @@ def __profile__(filename, code, globals_, profiler_factory,
         with open(dump_filename, 'wb') as f:
             pickle.dump((profiler.__class__, result), f, pickle_protocol)
         click.echo('To view statistics:')
-        click.echo('  $ python -m profiling view ', nl=False)
+        click.echo('  $ profiling view ', nl=False)
         click.secho(dump_filename, underline=True)
 
 
