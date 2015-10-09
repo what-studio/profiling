@@ -8,7 +8,7 @@
 
     .. sourcecode:: console
 
-       $ python -m profiling view SOURCE
+       $ profiling view SOURCE
 
     ::
 

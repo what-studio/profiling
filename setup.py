@@ -86,6 +86,9 @@ setup(
     platforms='linux',
     packages=find_packages(),
     ext_modules=ext_modules,
+    entry_points={
+        'console_scripts': ['profiling = profiling.__main__:cli']
+    },
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',

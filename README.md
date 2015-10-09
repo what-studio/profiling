@@ -37,7 +37,7 @@ Profiling
 To profile a single program, simply run `profile` command:
 
 ```sh
-$ python -m profiling profile your-program.py
+$ profiling profile your-program.py
 ```
 
 Then an interactive viewer will be executed:
@@ -47,22 +47,22 @@ Then an interactive viewer will be executed:
 If your program uses greenlets, choose `greenlet` timer:
 
 ```sh
-$ python -m profiling profile --timer=greenlet your-program.py
+$ profiling profile --timer=greenlet your-program.py
 ```
 
 With `--dump` option, it saves the profiling result to a file.  You can
 browse the saved result by using the `view` command:
 
 ```sh
-$ python -m profiling profile --dump=your-program.prf your-program.py
-$ python -m profiling view your-program.prf
+$ profiling profile --dump=your-program.prf your-program.py
+$ profiling view your-program.prf
 ```
 
 If your script reads ``sys.argv``, append your arguments after ``--``.
 It isolates your arguments from the ``profile`` command:
 
 ```sh
-$ python -m profiling profile your-program.py -- --your-flag --your-param=42
+$ profiling profile your-program.py -- --your-flag --your-param=42
 ```
 
 Live Profiling
@@ -73,7 +73,7 @@ at the end of program is not helpful enough.  Probably you need a continuous pro
 It can be achived by `live-profile` command:
 
 ```sh
-$ python -m profiling live-profile webserver.py
+$ profiling live-profile webserver.py
 ```
 
 See a demo:
@@ -87,13 +87,13 @@ starts to profile and reports the results to the all connected clients.
 Start a profling server by `remote-profile` command:
 
 ```sh
-$ python -m profiling remote-profile webserver.py --bind 127.0.0.1:8912
+$ profiling remote-profile webserver.py --bind 127.0.0.1:8912
 ```
 
 And also run a client for the server by `view` command:
 
 ```sh
-$ python -m profiling view 127.0.0.1:8912
+$ profiling view 127.0.0.1:8912
 ```
 
 Statistical Profiling
@@ -108,7 +108,7 @@ statistical profilers, it also has only very cheap overhead.  When you profile
 you can choose it by just `--sampling` (shortly `-S`) option:
 
 ```sh
-$ python -m profiling live-profile -S webserver.py
+$ profiling live-profile -S webserver.py
                                    ^^
 ```
 
@@ -124,11 +124,11 @@ $ python -m timeit -s 'from trueskill import *' 'rate_1vs1(Rating(), Rating())'
 1000 loops, best of 3: 722 usec per loop
 ```
 
-If you want to profile the checked code, just add `profiling` before `timeit`:
+If you want to profile the checked code, simply use `timeit` command:
 
 ```sh
-$ python -m profiling timeit -s 'from trueskill import *' 'rate_1vs1(Rating(), Rating())'
-            ^^^^^^^^^
+$ profiling timeit -s 'from trueskill import *' 'rate_1vs1(Rating(), Rating())'
+  ^^^^^^^^^
 ```
 
 Profiling from Code
