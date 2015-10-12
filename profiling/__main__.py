@@ -32,6 +32,7 @@ import click
 from six import exec_
 
 from . import remote, sampling, tracing
+from .__about__ import __version__
 from .profiler import Profiler
 from .remote.background import BackgroundProfiler
 from .remote.client import FailoverProfilingClient, ProfilingClient
@@ -97,6 +98,7 @@ class ProfilingCLI(click.Group):
 
 
 @click.command(cls=ProfilingCLI)
+@click.version_option(__version__)
 def cli():
     pass
 

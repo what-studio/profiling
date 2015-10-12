@@ -7,7 +7,7 @@ An interactive profilier.
 
 """
 from __future__ import with_statement
-import ast
+import os
 from setuptools import find_packages, setup
 from setuptools.command.install import install
 from setuptools.command.test import test
@@ -21,6 +21,12 @@ except ImportError:
     __pypy__ = False
 
 
+# include __about__.py.
+__dir__ = os.path.dirname(__file__)
+with open(os.path.join(__dir__, 'profiling', '__about__.py')) as f:
+    exec(f.read())
+
+
 # these files require specific python version or later.  they will be replaced
 # with a placeholder which raises a runtime error on installation.
 PYTHON_VERSION_REQUIREMENTS = {
@@ -30,18 +36,6 @@ INCOMPATIBLE_PYTHON_VERSION_PLACEHOLDER = dedent('''
 # -*- coding: utf-8 -*-
 raise RuntimeError('Python {version} or later required.')
 ''').strip()
-
-
-def get_version(filename):
-    """Detects the current version."""
-    with open(filename) as f:
-        tree = ast.parse(f.read(), filename)
-    for node in tree.body:
-        if isinstance(node, ast.Assign) and len(node.targets) == 1:
-            target, = node.targets
-            if isinstance(target, ast.Name) and target.id == '__version__':
-                return node.value.s
-    raise ValueError('__version__ not found from {0}'.format(filename))
 
 
 def requirements(filename):
@@ -78,11 +72,11 @@ else:
 
 setup(
     name='profiling',
-    version=get_version('profiling/__init__.py'),
-    license='BSD',
-    author='What! Studio',
-    maintainer='Heungsub Lee',
-    maintainer_email='sub@nexon.co.kr',
+    version=__version__,
+    license=__license__,
+    author=__author__,
+    maintainer=__maintainer__,
+    maintainer_email=__maintainer_email__,
     platforms='linux',
     packages=find_packages(),
     ext_modules=ext_modules,
