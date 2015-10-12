@@ -49,7 +49,7 @@ class ProfilingCLI(click.Group):
     def __init__(self, *args, **kwargs):
         super(ProfilingCLI, self).__init__(*args, **kwargs)
         self.command_aliases = {}
-        self.primary_command_name = None
+        self.implicit_command_name = None
 
     def command(self, *args, **kwargs):
         """Usage::
@@ -70,23 +70,26 @@ class ProfilingCLI(click.Group):
             return cmd
         return aliased_decorator
 
-    def primary_command(self, *args, **kwargs):
+    def implicit_command(self, *args, **kwargs):
+        """Makes a registrar to define implicit command."""
         def decorator(f):
+            if self.implicit_command_name is not None:
+                raise RuntimeError('Implicit command already defined')
             cmd = self.command(*args, **kwargs)(f)
-            self.primary_command_name = cmd.name
+            self.implicit_command_name = cmd.name
             return cmd
         return decorator
 
     def get_command(self, ctx, cmd_name):
         try:
-            return self.command_aliases[cmd_name]
+            cmd_name = self.command_aliases[cmd_name]
         except KeyError:
             pass
-        if self.primary_command_name is None:
+        if self.implicit_command_name is None:
             pass
         elif cmd_name not in self.commands:
-            ctx.args.insert(0, self.primary_command_name)
-            cmd_name = self.primary_command_name
+            ctx.args.insert(0, self.implicit_command_name)
+            cmd_name = self.implicit_command_name
         return super(ProfilingCLI, self).get_command(ctx, cmd_name)
 
 
@@ -495,7 +498,7 @@ class ProfilingCommand(click.Command):
         return pieces
 
 
-@cli.primary_command(cls=ProfilingCommand)
+@cli.implicit_command(cls=ProfilingCommand)
 @profiler_arguments
 @profiler_options
 @onetime_profiler_options
