@@ -34,10 +34,10 @@ $ pip install git+https://github.com/what-studio/profiling.git
 Profiling
 ---------
 
-To profile a single program, simply run `profile` command:
+To profile a single program, simply run the `profiling` command:
 
 ```sh
-$ profiling profile your-program.py
+$ profiling your-program.py
 ```
 
 Then an interactive viewer will be executed:
@@ -47,30 +47,30 @@ Then an interactive viewer will be executed:
 If your program uses greenlets, choose `greenlet` timer:
 
 ```sh
-$ profiling profile --timer=greenlet your-program.py
+$ profiling --timer=greenlet your-program.py
 ```
 
 With `--dump` option, it saves the profiling result to a file.  You can
-browse the saved result by using the `view` command:
+browse the saved result by using the `view` subcommand:
 
 ```sh
-$ profiling profile --dump=your-program.prf your-program.py
+$ profiling --dump=your-program.prf your-program.py
 $ profiling view your-program.prf
 ```
 
 If your script reads ``sys.argv``, append your arguments after ``--``.
-It isolates your arguments from the ``profile`` command:
+It isolates your arguments from the ``profiling`` command:
 
 ```sh
-$ profiling profile your-program.py -- --your-flag --your-param=42
+$ profiling your-program.py -- --your-flag --your-param=42
 ```
 
 Live Profiling
 --------------
 
 If your program has a long life time like a web server, a profiling result
-at the end of program is not helpful enough.  Probably you need a continuous profiler.
-It can be achived by `live-profile` command:
+at the end of program is not helpful enough.  Probably you need a continuous
+profiler.  It can be achived by the `live-profile` subcommand:
 
 ```sh
 $ profiling live-profile webserver.py
@@ -84,13 +84,13 @@ There's a live-profiling server also.  The server doesn't profile the
 program at ordinary times.  But when a client connects to the server, it
 starts to profile and reports the results to the all connected clients.
 
-Start a profling server by `remote-profile` command:
+Start a profling server by the `remote-profile` subcommand:
 
 ```sh
 $ profiling remote-profile webserver.py --bind 127.0.0.1:8912
 ```
 
-And also run a client for the server by `view` command:
+And also run a client for the server by the `view` subcommand:
 
 ```sh
 $ profiling view 127.0.0.1:8912
@@ -124,7 +124,7 @@ $ python -m timeit -s 'from trueskill import *' 'rate_1vs1(Rating(), Rating())'
 1000 loops, best of 3: 722 usec per loop
 ```
 
-If you want to profile the checked code, simply use `timeit` command:
+If you want to profile the checked code, simply use the `timeit` subcommand:
 
 ```sh
 $ profiling timeit -s 'from trueskill import *' 'rate_1vs1(Rating(), Rating())'
@@ -158,7 +158,7 @@ loop = viewer.loop()
 loop.run()
 ```
 
-Viewer Key Commands
+Viewer Key Bindings
 -------------------
 
 - <tt>q</tt> - Quit.
@@ -203,8 +203,10 @@ Columns
 Thanks to
 ---------
 
-- [Seungmyeong Yang](https://github.com/sequoiayang) who suggested this project.
-- [Pavel](https://github.com/htch) who inspired to implement ``-m`` option.
+- [Seungmyeong Yang](https://github.com/sequoiayang)
+  who suggested this project.
+- [Pavel](https://github.com/htch)
+  who inspired to implement ``-m`` option.
 
 Licensing
 ---------
