@@ -10,6 +10,9 @@ import pkg_resources
 comment_re = re.compile(r'#\s*(.+)\s*$')
 
 
+PYTHON_VERSION, __, __ = sys.version.partition(' ')
+
+
 # is it running on pypy?
 try:
     import __pypy__
@@ -20,7 +23,7 @@ else:
     del __pypy__
 
 
-def installs(sysreq_string, python_version=sys.version, pypy=PYPY):
+def installs(sysreq_string, python_version=PYTHON_VERSION, pypy=PYPY):
     for sysreq in sysreq_string.split():
         if sysreq == 'no-pypy':
             if pypy:
@@ -31,7 +34,7 @@ def installs(sysreq_string, python_version=sys.version, pypy=PYPY):
     return True
 
 
-def fit_requirements(requirements, python_version=sys.version, pypy=PYPY):
+def fit_requirements(requirements, python_version=PYTHON_VERSION, pypy=PYPY):
     """Yields requirement lines only compatible with the current system.
 
     It parses comments of the given requirement lines.  A comment string can
