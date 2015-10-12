@@ -50,6 +50,7 @@ def _test_timer_with_threads(timer, sleep, spawn, join=lambda x: x.join()):
     assert stat1.deep_time < stat2.deep_time
 
 
+@pytest.mark.flaky(reruns=10)
 def test_thread_timer():
     if sys.version_info < (3, 3):
         pytest.importorskip('yappi')

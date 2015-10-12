@@ -48,41 +48,44 @@ class ProfilingCLI(click.Group):
 
     def __init__(self, *args, **kwargs):
         super(ProfilingCLI, self).__init__(*args, **kwargs)
-        self.command_aliases = {}
         self.implicit_command_name = None
+        self.command_name_aliases = {}
 
     def command(self, *args, **kwargs):
         """Usage::
 
-           @group.command(aliases=['ci'])
+           @cli.command(implicit=True)
+           def main():
+               ...
+
+           @cli.command(aliases=['ci'])
            def commit():
                ...
 
         """
+        implicit = kwargs.pop('implicit', False)
         aliases = kwargs.pop('aliases', None)
         decorator = super(ProfilingCLI, self).command(*args, **kwargs)
-        if aliases is None:
+        if not implicit and aliases is None:
+            # customized features not used.
             return decorator
-        def aliased_decorator(f):
+        def _decorator(f):
             cmd = decorator(f)
-            for alias in aliases:
-                self.command_aliases[alias] = cmd.name
+            if implicit:
+                if self.implicit_command_name is not None:
+                    del self.commands[cmd.name]
+                    raise RuntimeError('Implicit command already defined')
+                self.implicit_command_name = cmd.name
+            if aliases:
+                for alias in aliases:
+                    self.command_name_aliases[alias] = cmd.name
             return cmd
-        return aliased_decorator
-
-    def implicit_command(self, *args, **kwargs):
-        """Makes a registrar to define implicit command."""
-        def decorator(f):
-            if self.implicit_command_name is not None:
-                raise RuntimeError('Implicit command already defined')
-            cmd = self.command(*args, **kwargs)(f)
-            self.implicit_command_name = cmd.name
-            return cmd
-        return decorator
+        return _decorator
 
     def get_command(self, ctx, cmd_name):
+        # resolve alias.
         try:
-            cmd_name = self.command_aliases[cmd_name]
+            cmd_name = self.command_name_aliases[cmd_name]
         except KeyError:
             pass
         if self.implicit_command_name is None:
@@ -498,7 +501,7 @@ class ProfilingCommand(click.Command):
         return pieces
 
 
-@cli.implicit_command(cls=ProfilingCommand)
+@cli.command(cls=ProfilingCommand, implicit=True)
 @profiler_arguments
 @profiler_options
 @onetime_profiler_options
