@@ -23,8 +23,9 @@ except ImportError:
 
 # include __about__.py.
 __dir__ = os.path.dirname(__file__)
+about = {}
 with open(os.path.join(__dir__, 'profiling', '__about__.py')) as f:
-    exec(f.read())
+    exec(f.read(), about)
 
 
 # these files require specific python version or later.  they will be replaced
@@ -72,11 +73,11 @@ else:
 
 setup(
     name='profiling',
-    version=__version__,
-    license=__license__,
-    author=__author__,
-    maintainer=__maintainer__,
-    maintainer_email=__maintainer_email__,
+    version=about['__version__'],
+    license=about['__license__'],
+    author=about['__author__'],
+    maintainer=about['__maintainer__'],
+    maintainer_email=about['__maintainer_email__'],
     platforms='linux',
     packages=find_packages(),
     ext_modules=ext_modules,
