@@ -41,7 +41,6 @@ def test_customized_cli():
     cli.command(name='bar', implicit=True)(f)
     with pytest.raises(RuntimeError):
         cli.command(name='baz', implicit=True)(f)
-    print cli.commands
     assert len(cli.commands) == 2
     ctx = click.Context(cli)
     assert cli.get_command(ctx, 'foo').name == 'foo'
