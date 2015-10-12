@@ -3,16 +3,11 @@ import click
 from click.testing import CliRunner
 import pytest
 
+from profiling.__about__ import __version__
 from profiling.__main__ import Module, ProfilingCLI, cli
 
 
 cli_runner = CliRunner()
-
-
-def test_profiling_command_usage():
-    for cmd in ['profile', 'live-profile', 'remote-profile']:
-        r = cli_runner.invoke(cli, [cmd, '--help'])
-        assert 'SCRIPT [--] [ARGV]...' in r.output
 
 
 def test_module_param_type():
@@ -48,3 +43,14 @@ def test_customized_cli():
     assert cli.get_command(ctx, 'foooo').name == 'foo'
     assert cli.get_command(ctx, 'bar').name == 'bar'
     assert cli.get_command(ctx, 'hello.txt').name == 'bar'
+
+
+def test_profiling_command_usage():
+    for cmd in ['profile', 'live-profile', 'remote-profile']:
+        r = cli_runner.invoke(cli, [cmd, '--help'])
+        assert 'SCRIPT [--] [ARGV]...' in r.output
+
+
+def test_version():
+    r = cli_runner.invoke(cli, ['--version'])
+    assert r.output.strip() == 'profiling, version %s' % __version__

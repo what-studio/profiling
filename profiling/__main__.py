@@ -97,7 +97,7 @@ class ProfilingCLI(click.Group):
         return super(ProfilingCLI, self).get_command(ctx, cmd_name)
 
 
-@click.command(cls=ProfilingCLI)
+@click.command(cls=ProfilingCLI, name='profiling')
 @click.version_option(__version__)
 def cli():
     pass
