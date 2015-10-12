@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import sys
 import time
 
@@ -62,9 +63,10 @@ def test_greenlet_timer_with_gevent():
     try:
         gevent = pytest.importorskip('gevent', '1')
     except ValueError:
-        # gevent Alpha versions doesn't respect Semantic Versioning.
+        # gevent Alpha or Beta versions doesn't respect Semantic Versioning.
+        # e.g. 1.1a1, 1.1b5
         gevent = pytest.importorskip('gevent')
-        assert gevent.__version__.startswith('1.1a')
+        assert re.match(r'^1\.1[ab]', gevent.__version__)
     _test_timer_with_threads(GreenletTimer(), gevent.sleep, gevent.spawn)
 
 
