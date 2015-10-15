@@ -21,7 +21,7 @@ def spin_500ms():
 
 
 def _test_sampling_profiler(sampler):
-    profiler = SamplingProfiler(top_frames=[sys._getframe()], sampler=sampler)
+    profiler = SamplingProfiler(sys._getframe(), sampler=sampler)
     with profiler:
         spin_100ms()
         spin_500ms()
