@@ -4,7 +4,7 @@ import sys
 import pytest
 import six
 
-from _utils import factorial, find_stats, foo
+from _utils import bar, factorial, find_stats, foo
 from profiling.stats import RecordingStatistics
 from profiling.tracing import TracingProfiler
 
@@ -60,3 +60,15 @@ def test_profiler():
     assert stats1.own_hits == 2
     assert stats2.own_hits == 0  # entering to __enter__() wasn't profiled.
     assert stats3.own_hits == 1
+
+
+def test_ignoring_codes():
+    baz_frame = foo()
+    base_frame = baz_frame.f_back.f_back.f_back  # caller of foo().
+    profiler = TracingProfiler(base_frame, [six.get_function_code(bar)])
+    profiler._profile(baz_frame, 'call', None)
+    profiler._profile(baz_frame, 'return', None)
+    layer1_stats = next(iter(profiler.stats))
+    assert layer1_stats.name == 'foo'
+    layer2_stats = next(iter(layer1_stats))
+    assert layer2_stats.name == 'baz'  # bar() is ignored.
