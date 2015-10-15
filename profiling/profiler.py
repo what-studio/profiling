@@ -24,17 +24,12 @@ class Profiler(Runnable):
     #: The root recording statistics.
     stats = None
 
-    top_frames = ()
-    top_codes = ()
-    upper_frames = ()
-    upper_codes = ()
+    base_frame = None
+    ignoring_codes = set()
 
-    def __init__(self, top_frames=(), top_codes=(),
-                 upper_frames=(), upper_codes=()):
-        self.top_frames = top_frames
-        self.top_codes = top_codes
-        self.upper_frames = upper_frames
-        self.upper_codes = upper_codes
+    def __init__(self, base_frame=None, ignoring_codes=()):
+        self.base_frame = base_frame
+        self.ignoring_codes = set(ignoring_codes)
         self.stats = RecordingStatistics()
 
     def start(self):
@@ -44,8 +39,7 @@ class Profiler(Runnable):
         return super(Profiler, self).start()
 
     def frame_stack(self, frame):
-        return frame_stack(frame, self.top_frames, self.top_codes,
-                           self.upper_frames, self.upper_codes)
+        return frame_stack(frame, self.base_frame, self.ignoring_codes)
 
     def exclude_code(self, code):
         """Excludes statistics of the given code."""

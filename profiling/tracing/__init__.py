@@ -63,13 +63,11 @@ class TracingProfiler(Profiler):
     #: :meth:`_profile`.
     overhead = 0.0
 
-    def __init__(self, top_frames=(), top_codes=(),
-                 upper_frames=(), upper_codes=(), timer=None):
+    def __init__(self, base_frame=None, ignoring_codes=(), timer=None):
         timer = timer or TIMER_CLASS()
         if not isinstance(timer, Timer):
             raise TypeError('Not a timer instance')
-        base = super(TracingProfiler, self)
-        base.__init__(top_frames, top_codes, upper_frames, upper_codes)
+        super(TracingProfiler, self).__init__(base_frame, ignoring_codes)
         self.timer = timer
         self._times_entered = {}
 
@@ -80,8 +78,10 @@ class TracingProfiler(Profiler):
             return
         time1 = self.timer()
         frames = self.frame_stack(frame)
-        if frames:
-            frames.pop()
+        assert frames
+        # if not frames:
+        #     return
+        frame = frames.pop()
         parent_stats = self.stats
         for f in frames:
             parent_stats = parent_stats.ensure_child(f.f_code, void)

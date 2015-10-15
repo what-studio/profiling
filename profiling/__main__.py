@@ -550,7 +550,7 @@ def __profile__(filename, code, globals_, profiler_factory,
                 pickle_protocol=remote.PICKLE_PROTOCOL, dump_filename=None,
                 mono=False):
     frame = sys._getframe()
-    profiler = profiler_factory(top_frames=[frame], top_codes=[code])
+    profiler = profiler_factory(base_frame=frame)
     profiler.start()
     try:
         exec_(code, globals_)

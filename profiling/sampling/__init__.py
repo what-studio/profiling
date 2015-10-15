@@ -49,20 +49,20 @@ class SamplingProfiler(Profiler):
     #: sampling.samplers.Sampler`.
     sampler = None
 
-    def __init__(self, top_frames=(), top_codes=(),
-                 upper_frames=(), upper_codes=(), sampler=None):
+    def __init__(self, base_frame=None, ignoring_codes=(), sampler=None):
         sampler = sampler or SAMPLER_CLASS()
         if not isinstance(sampler, Sampler):
             raise TypeError('Not a sampler instance')
-        base = super(SamplingProfiler, self)
-        base.__init__(top_frames, top_codes, upper_frames, upper_codes)
+        super(SamplingProfiler, self).__init__(base_frame, ignoring_codes)
         self.sampler = sampler
 
     def sample(self, frame):
         """Samples the given frame."""
         frames = self.frame_stack(frame)
-        if frames:
-            frames.pop()
+        assert frames
+        # if not frames:
+        #     return
+        frame = frames.pop()
         parent_stats = self.stats
         for f in frames:
             parent_stats = parent_stats.ensure_child(f.f_code, void)
