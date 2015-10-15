@@ -89,7 +89,8 @@ class Runnable(object):
 
 
 if speedup:
-    frame_stack = speedup.frame_stack
+    def frame_stack(frame, base_frame=None, ignoring_codes=()):
+        return speedup.frame_stack(frame, base_frame, set(ignoring_codes))
 else:
     def frame_stack(frame, base_frame=None, ignoring_codes=()):
         """Returns a deque of frame stack."""
