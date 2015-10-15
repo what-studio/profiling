@@ -2,8 +2,9 @@
 from collections import deque
 
 import pytest
+import six
 
-from _utils import foo, mock_code_names
+from _utils import baz, foo, mock_code_names
 from profiling.utils import frame_stack, lazy_import, repr_frame, Runnable
 
 
@@ -65,19 +66,19 @@ def test_frame_stack():
                 break
             code_names.appendleft(code_name)
         return list(code_names)
-    frame = foo()
-    frames = frame_stack(frame)
+    baz_frame = foo()
+    foo_frame = baz_frame.f_back.f_back
+    frames = frame_stack(baz_frame)
     assert to_code_names(frames) == ['foo', 'bar', 'baz']
-    # top frame
-    frames = frame_stack(frame, top_frames=[frame.f_back])
+    # base frame.
+    frames = frame_stack(baz_frame, base_frame=foo_frame)
     assert to_code_names(frames) == ['bar', 'baz']
-    # top code
-    frames = frame_stack(frame, top_codes=[frame.f_back.f_code])
-    assert to_code_names(frames) == ['bar', 'baz']
-    # both of top frame and top code
-    frames = frame_stack(frame, top_frames=[frame.f_back],
-                         top_codes=[frame.f_back.f_code])
-    assert to_code_names(frames) == ['bar', 'baz']
+    # ignoring codes.
+    frames = frame_stack(baz_frame, ignoring_codes=[
+        six.get_function_code(foo),
+        six.get_function_code(baz),
+    ])
+    assert to_code_names(frames) == ['bar']
 
 
 def test_lazy_import():
