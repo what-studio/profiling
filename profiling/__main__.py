@@ -30,9 +30,10 @@ import time
 import traceback
 
 import click
-from six import exec_
+from six import exec_, get_function_code
 from six.moves import builtins
 from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
+from valuedispatch import valuedispatch
 
 from . import remote, sampling, tracing
 from .__about__ import __version__
@@ -424,6 +425,21 @@ class SignalNumber(click.ParamType):
         return 'SIGNUM'
 
 
+@valuedispatch
+def get_ignoring_codes(name):
+    return []
+
+
+@get_ignoring_codes.register('asyncio')
+def get_ignoring_asyncio_codes(__):
+    import asyncio
+    return map(get_function_code, [
+        asyncio.BaseEventLoop.run_until_complete,
+        asyncio.BaseEventLoop.run_forever, asyncio.BaseEventLoop._run_once,
+        asyncio.Handle._run, asyncio.Task._wakeup, asyncio.Task._step,
+    ])
+
+
 # common parameters
 
 
@@ -470,12 +486,14 @@ def profiler_options(f):
         help='How often sample. (default: %.3f cpu sec)' % samplers.INTERVAL)
     # etc
     @click.option(
+        '--under', type=click.Choice(['asyncio']))
+    @click.option(
         '--pickle-protocol', type=int,
         default=config_default('pickle-protocol', remote.PICKLE_PROTOCOL),
         help='Pickle protocol to dump result.')
     @wraps(f)
     def wrapped(import_profiler_class, timer_class, sampler_class,
-                sampling_interval, **kwargs):
+                sampling_interval, under, **kwargs):
         profiler_class = import_profiler_class()
         assert issubclass(profiler_class, Profiler)
         if issubclass(profiler_class, TracingProfiler):
@@ -489,6 +507,7 @@ def profiler_options(f):
             profiler_kwargs = {'sampler': sampler}
         else:
             profiler_kwargs = {}
+        profiler_kwargs['ignoring_codes'] = get_ignoring_codes(under)
         profiler_factory = partial(profiler_class, **profiler_kwargs)
         return f(profiler_factory=profiler_factory, **kwargs)
     return wrapped
