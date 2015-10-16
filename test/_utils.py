@@ -2,9 +2,14 @@
 from textwrap import dedent
 import time
 
+import six
 
-__all__ = ['find_multiple_stats', 'find_stats', 'factorial', 'spin',
+
+__all__ = ['code_of', 'find_multiple_stats', 'find_stats', 'factorial', 'spin',
            'mock_code_names']
+
+
+code_of = six.get_function_code
 
 
 def find_multiple_stats(stats, name, _found=None, _on_found=None):

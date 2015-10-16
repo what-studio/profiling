@@ -4,7 +4,7 @@ import sys
 import pytest
 import six
 
-from _utils import bar, factorial, find_stats, foo
+from _utils import bar, code_of, factorial, find_stats, foo
 from profiling.stats import RecordingStatistics
 from profiling.tracing import TracingProfiler
 
@@ -65,7 +65,7 @@ def test_profiler():
 def test_ignoring_codes():
     baz_frame = foo()
     base_frame = baz_frame.f_back.f_back.f_back  # caller of foo().
-    profiler = TracingProfiler(base_frame, [six.get_function_code(bar)])
+    profiler = TracingProfiler(base_frame, ignoring_codes=[code_of(bar)])
     profiler._profile(baz_frame, 'call', None)
     profiler._profile(baz_frame, 'return', None)
     layer1_stats = next(iter(profiler.stats))
