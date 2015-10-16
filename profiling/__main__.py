@@ -447,6 +447,7 @@ def get_gevent_ignoring_codes(__):
         gevent.hub.Hub.run,
         gevent.hub.Hub.switch,
         gevent.hub.Waiter.switch,
+        gevent.Greenlet.run,
         gevent.Greenlet._report_result,
         gevent.Greenlet._has_links,
         gevent.Greenlet._Greenlet__cancel_start,
