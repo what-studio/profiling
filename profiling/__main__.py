@@ -97,7 +97,7 @@ class ProfilingCLI(click.Group):
         return super(ProfilingCLI, self).get_command(ctx, cmd_name)
 
 
-@click.command(cls=ProfilingCLI, name='profiling')
+@click.command('profiling', cls=ProfilingCLI)
 @click.version_option(__version__)
 def cli():
     pass
@@ -503,7 +503,7 @@ class ProfilingCommand(click.Command):
         return pieces
 
 
-@cli.command(cls=ProfilingCommand, implicit=True)
+@cli.command(implicit=True, cls=ProfilingCommand)
 @profiler_arguments
 @profiler_options
 @onetime_profiler_options
@@ -518,7 +518,7 @@ def profile(script, argv, profiler_factory,
                 mono=mono)
 
 
-@cli.command('live-profile', cls=ProfilingCommand)
+@cli.command('live-profile', aliases=['live'], cls=ProfilingCommand)
 @profiler_arguments
 @profiler_options
 @live_profiler_options
@@ -586,7 +586,7 @@ def live_profile(script, argv, profiler_factory, interval, spawn, signum,
             child_sock.shutdown(socket.SHUT_WR)
 
 
-@cli.command('remote-profile', cls=ProfilingCommand)
+@cli.command('remote-profile', aliases=['remote'], cls=ProfilingCommand)
 @profiler_arguments
 @profiler_options
 @live_profiler_options
