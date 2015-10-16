@@ -63,11 +63,13 @@ class TracingProfiler(Profiler):
     #: :meth:`_profile`.
     overhead = 0.0
 
-    def __init__(self, base_frame=None, ignoring_codes=(), timer=None):
+    def __init__(self, base_frame=None, base_code=None, ignoring_codes=(),
+                 timer=None):
         timer = timer or TIMER_CLASS()
         if not isinstance(timer, Timer):
             raise TypeError('Not a timer instance')
-        super(TracingProfiler, self).__init__(base_frame, ignoring_codes)
+        base = super(TracingProfiler, self)
+        base.__init__(base_frame, base_code, ignoring_codes)
         self.timer = timer
         self._times_entered = {}
 

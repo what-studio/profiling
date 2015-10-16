@@ -89,13 +89,16 @@ class Runnable(object):
 
 
 if speedup:
-    def frame_stack(frame, base_frame=None, ignoring_codes=()):
-        return speedup.frame_stack(frame, base_frame, set(ignoring_codes))
+    def frame_stack(frame, base_frame=None, base_code=None, ignoring_codes=()):
+        return speedup.frame_stack(frame, base_frame, base_code,
+                                   set(ignoring_codes))
 else:
-    def frame_stack(frame, base_frame=None, ignoring_codes=()):
+    def frame_stack(frame, base_frame=None, base_code=None, ignoring_codes=()):
         """Returns a deque of frame stack."""
         frames = deque()
-        while frame is not None and frame is not base_frame:
+        while frame is not None:
+            if frame is base_frame or frame.f_code is base_code:
+                break
             if frame.f_code not in ignoring_codes:
                 frames.appendleft(frame)
             frame = frame.f_back

@@ -4,12 +4,14 @@
 static PyObject *
 frame_stack(PyObject *self, PyObject *args)
 {
-    // frame_stack(frame, base_frame, ignoring_codes)
+    // frame_stack(frame, base_frame, base_code, ignoring_codes)
     // returns a list of frames.
     PyFrameObject* frame;
     const PyFrameObject* base_frame;
+    const PyCodeObject* base_code;
     const PySetObject* ignoring_codes;
-    if (!PyArg_ParseTuple(args, "OOO", &frame, &base_frame, &ignoring_codes))
+    if (!PyArg_ParseTuple(args, "OOOO", &frame, &base_frame,
+                                        &base_code, &ignoring_codes))
     {
         return NULL;
     }
@@ -18,8 +20,12 @@ frame_stack(PyObject *self, PyObject *args)
     {
         return NULL;
     }
-    while (frame != NULL && frame != base_frame)
+    while (frame != NULL)
     {
+        if (frame == base_frame || frame->f_code == base_code)
+        {
+            break;
+        }
         if (PySet_Contains(ignoring_codes, frame->f_code) == 0)
         {
             // not ignored.

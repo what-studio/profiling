@@ -588,7 +588,9 @@ def __profile__(filename, code, globals_, profiler_factory,
                 pickle_protocol=remote.PICKLE_PROTOCOL, dump_filename=None,
                 mono=False):
     frame = sys._getframe()
-    profiler = profiler_factory(base_frame=frame)
+    # base_frame removes __main__ which executes the cli from a result.
+    # base_code takes direct function calls out of the executing code.
+    profiler = profiler_factory(frame, code)
     profiler.start()
     try:
         exec_(code, globals_)
