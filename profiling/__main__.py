@@ -640,8 +640,7 @@ def profile(script, argv, profiler_factory,
     filename, code, globals_ = script
     sys.argv[:] = [filename] + list(argv)
     __profile__(filename, code, globals_, profiler_factory,
-                pickle_protocol=pickle_protocol, dump_filename=dump_filename,
-                mono=mono)
+                pickle_protocol, dump_filename, mono)
 
 
 @cli.command('live-profile', aliases=['live'], cls=ProfilingCommand)
