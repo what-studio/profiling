@@ -440,6 +440,20 @@ def get_asyncio_ignoring_codes(__):
     ])
 
 
+@get_eventloop_ignoring_codes.register('gevent')
+def get_gevent_ignoring_codes(__):
+    import gevent
+    return map(get_function_code, [
+        gevent.hub.Hub.run,
+        gevent.hub.Hub.switch,
+        gevent.hub.Waiter.switch,
+        gevent.Greenlet._report_result,
+        gevent.Greenlet._has_links,
+        gevent.Greenlet._Greenlet__cancel_start,
+        gevent.Greenlet.kwargs.fget,
+    ])
+
+
 # common parameters
 
 

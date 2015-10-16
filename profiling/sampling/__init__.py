@@ -59,9 +59,8 @@ class SamplingProfiler(Profiler):
     def sample(self, frame):
         """Samples the given frame."""
         frames = self.frame_stack(frame)
-        assert frames
-        # if not frames:
-        #     return
+        if not frames:
+            return
         frame = frames.pop()
         parent_stats = self.stats
         for f in frames:

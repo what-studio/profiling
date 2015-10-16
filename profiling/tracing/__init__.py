@@ -78,9 +78,8 @@ class TracingProfiler(Profiler):
             return
         time1 = self.timer()
         frames = self.frame_stack(frame)
-        assert frames
-        # if not frames:
-        #     return
+        if not frames:
+            return
         frame = frames.pop()
         parent_stats = self.stats
         for f in frames:
