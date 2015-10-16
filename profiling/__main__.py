@@ -426,12 +426,12 @@ class SignalNumber(click.ParamType):
 
 
 @valuedispatch
-def get_ignoring_codes(name):
+def get_eventloop_ignoring_codes(name):
     return []
 
 
-@get_ignoring_codes.register('asyncio')
-def get_ignoring_asyncio_codes(__):
+@get_eventloop_ignoring_codes.register('asyncio')
+def get_asyncio_ignoring_codes(__):
     import asyncio
     return map(get_function_code, [
         asyncio.BaseEventLoop.run_until_complete,
@@ -486,14 +486,16 @@ def profiler_options(f):
         help='How often sample. (default: %.3f cpu sec)' % samplers.INTERVAL)
     # etc
     @click.option(
-        '--under', type=click.Choice(['asyncio']))
+        '--aware-of', '-e', 'eventloop_name',
+        type=click.Choice(get_eventloop_ignoring_codes.registry.keys()),
+        help='Hide code the event-loop uses internally.')
     @click.option(
         '--pickle-protocol', type=int,
         default=config_default('pickle-protocol', remote.PICKLE_PROTOCOL),
         help='Pickle protocol to dump result.')
     @wraps(f)
     def wrapped(import_profiler_class, timer_class, sampler_class,
-                sampling_interval, under, **kwargs):
+                sampling_interval, eventloop_name, **kwargs):
         profiler_class = import_profiler_class()
         assert issubclass(profiler_class, Profiler)
         if issubclass(profiler_class, TracingProfiler):
@@ -507,7 +509,9 @@ def profiler_options(f):
             profiler_kwargs = {'sampler': sampler}
         else:
             profiler_kwargs = {}
-        profiler_kwargs['ignoring_codes'] = get_ignoring_codes(under)
+        profiler_kwargs.update(
+            ignoring_codes=get_eventloop_ignoring_codes(eventloop_name)
+        )
         profiler_factory = partial(profiler_class, **profiler_kwargs)
         return f(profiler_factory=profiler_factory, **kwargs)
     return wrapped
