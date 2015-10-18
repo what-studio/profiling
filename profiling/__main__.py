@@ -501,7 +501,7 @@ def profiler_options(f):
         help='How often sample. (default: %.3f cpu sec)' % samplers.INTERVAL)
     # etc
     @click.option(
-        '--aware-of', '-e', 'eventloop_name',
+        '--eventloop-aware',
         type=click.Choice(get_eventloop_ignoring_codes.registry.keys()),
         help='Hide code the event-loop uses internally.')
     @click.option(
@@ -510,7 +510,7 @@ def profiler_options(f):
         help='Pickle protocol to dump result.')
     @wraps(f)
     def wrapped(import_profiler_class, timer_class, sampler_class,
-                sampling_interval, eventloop_name, **kwargs):
+                sampling_interval, eventloop_aware, **kwargs):
         profiler_class = import_profiler_class()
         assert issubclass(profiler_class, Profiler)
         if issubclass(profiler_class, TracingProfiler):
@@ -525,7 +525,7 @@ def profiler_options(f):
         else:
             profiler_kwargs = {}
         profiler_kwargs.update(
-            ignoring_codes=get_eventloop_ignoring_codes(eventloop_name)
+            ignoring_codes=get_eventloop_ignoring_codes(eventloop_aware)
         )
         profiler_factory = partial(profiler_class, **profiler_kwargs)
         return f(profiler_factory=profiler_factory, **kwargs)
