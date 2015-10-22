@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.__main__
-    ~~~~~~~~~~~~~~~~~~
+   profiling.__main__
+   ~~~~~~~~~~~~~~~~~~
 
-    The command-line interface to profile a script or view profiling results.
+   The command-line interface to profile a script or view profiling results.
 
-    .. sourcecode:: console
+   .. sourcecode:: console
 
-       $ profiling --help
+      $ profiling --help
 
 """
 from __future__ import absolute_import
+
 from datetime import datetime
 from functools import partial, wraps
 import importlib
@@ -37,8 +38,8 @@ from .profiler import Profiler
 from .remote.background import BackgroundProfiler
 from .remote.client import FailoverProfilingClient, ProfilingClient
 from .remote.select import SelectProfilingServer
-from .sampling import SamplingProfiler, samplers
-from .tracing import TracingProfiler, timers
+from .sampling import samplers, SamplingProfiler
+from .tracing import timers, TracingProfiler
 from .viewer import StatisticsViewer
 
 

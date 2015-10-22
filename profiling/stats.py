@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.stats
-    ~~~~~~~~~~~~~~~
+   profiling.stats
+   ~~~~~~~~~~~~~~~
 
-    Statistics classes.
+   Statistics classes.
 
 """
 from __future__ import absolute_import, division
+
 import inspect
 
 from six import itervalues, with_metaclass

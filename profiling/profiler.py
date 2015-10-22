@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.profiler
-    ~~~~~~~~~~~~~~~~~~
+   profiling.profiler
+   ~~~~~~~~~~~~~~~~~~
 """
 from __future__ import absolute_import
+
 import time
 
 from .stats import RecordingStatistics
-from .utils import Runnable, frame_stack
+from .utils import frame_stack, Runnable
 from .viewer import StatisticsTable
 
 

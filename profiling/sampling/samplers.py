@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.sampling.samplers
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   profiling.sampling.samplers
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 """
 from __future__ import absolute_import
+
 import functools
 import signal
 import sys
@@ -13,7 +14,7 @@ import weakref
 
 import six.moves._thread as _thread
 
-from ..utils import Runnable, deferral
+from ..utils import deferral, Runnable
 
 
 __all__ = ['Sampler', 'ItimerSampler', 'TracingSampler']

@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.remote
-    ~~~~~~~~~~~~~~~~
+   profiling.remote
+   ~~~~~~~~~~~~~~~~
 
-    Utilities for remote profiling.  They help you to implement profiling
-    server and client.
+   Utilities for remote profiling.  They help you to implement profiling
+   server and client.
 
 """
 from __future__ import absolute_import
-from errno import EBADF, EPIPE, ECONNRESET
+
+from errno import EBADF, ECONNRESET, EPIPE
 import functools
 import io
 from logging import getLogger as get_logger

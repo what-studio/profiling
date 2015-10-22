@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.remote.background
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   profiling.remote.background
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    Utilities to run a profiler in a background thread.
+   Utilities to run a profiler in a background thread.
 
 """
 from __future__ import absolute_import
+
 import os
 import signal
 import threading

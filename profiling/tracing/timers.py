@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.tracing.timers
-    ~~~~~~~~~~~~~~~~~~~~~~~~
+   profiling.tracing.timers
+   ~~~~~~~~~~~~~~~~~~~~~~~~
 """
 from __future__ import absolute_import
+
 import sys
 import time
 
-from ..utils import Runnable, lazy_import
+from ..utils import lazy_import, Runnable
 
 
 __all__ = ['Timer', 'ContextualTimer', 'ThreadTimer', 'GreenletTimer']

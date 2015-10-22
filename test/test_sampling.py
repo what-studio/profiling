@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
+
 import sys
 
 import pytest
 
+from _utils import find_stats, spin
 from profiling.sampling import SamplingProfiler
 from profiling.sampling.samplers import ItimerSampler, TracingSampler
-from utils import find_stats, spin
 
 
 def spin_100ms():

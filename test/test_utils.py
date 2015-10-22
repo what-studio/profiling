@@ -3,8 +3,8 @@ from collections import deque
 
 import pytest
 
-from profiling.utils import Runnable, frame_stack, lazy_import, repr_frame
-from utils import foo, mock_code_names
+from _utils import foo, mock_code_names
+from profiling.utils import frame_stack, lazy_import, repr_frame, Runnable
 
 
 def test_runnable():

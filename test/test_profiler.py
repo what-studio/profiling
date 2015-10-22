@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+from _utils import foo, spin
 from profiling.profiler import Profiler, ProfilerWrapper
-from utils import foo, spin
 
 
 class NullProfiler(Profiler):

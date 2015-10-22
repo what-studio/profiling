@@ -4,7 +4,7 @@ from click.testing import CliRunner
 import pytest
 
 from profiling.__about__ import __version__
-from profiling.__main__ import Module, ProfilingCLI, cli
+from profiling.__main__ import cli, Module, ProfilingCLI
 
 
 cli_runner = CliRunner()

@@ -4,9 +4,9 @@ import sys
 import pytest
 import six
 
+from _utils import factorial, find_stats, foo
 from profiling.stats import RecordingStatistics
 from profiling.tracing import TracingProfiler
-from utils import factorial, find_stats, foo
 
 
 if six.PY3:

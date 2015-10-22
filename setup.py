@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-profiling
-~~~~~~~~~
+   profiling
+   ~~~~~~~~~
 
-An interactive profilier.
+   An interactive profilier.
 
 """
 from __future__ import with_statement
+
 import os
+import sys
+from textwrap import dedent
+
 from setuptools import find_packages, setup
 from setuptools.command.install import install
 from setuptools.command.test import test
 from setuptools.extension import Extension
-import sys
-from textwrap import dedent
 
 try:
     import __pypy__

@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.remote.client
-    ~~~~~~~~~~~~~~~~~~~~~~~
+   profiling.remote.client
+   ~~~~~~~~~~~~~~~~~~~~~~~
 
 """
 from __future__ import absolute_import
+
 from datetime import datetime
-from errno import ENOENT, ECONNREFUSED, EINPROGRESS
+from errno import ECONNREFUSED, EINPROGRESS, ENOENT
 import socket
 
 from valuedispatch import valuedispatch
 
-from . import PROFILER, RESULT, WELCOME, recv_msg
+from . import PROFILER, recv_msg, RESULT, WELCOME
 
 
 __all__ = ['ProfilingClient', 'FailoverProfilingClient']

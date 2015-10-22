@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.tracing
-    ~~~~~~~~~~~~~~~~~
+   profiling.tracing
+   ~~~~~~~~~~~~~~~~~
 
-    Profiles deterministically by :func:`sys.setprofile`.
+   Profiles deterministically by :func:`sys.setprofile`.
 
 """
 from __future__ import absolute_import
+
 import sys
 import threading
 
+from .timers import Timer
 from .. import sortkeys
 from ..profiler import Profiler
 from ..stats import RecordingStatistics, VoidRecordingStatistics as void
 from ..utils import deferral
-from ..viewer import StatisticsTable, fmt
-from .timers import Timer
+from ..viewer import fmt, StatisticsTable
 
 
 __all__ = ['TracingProfiler', 'TracingStatisticsTable']

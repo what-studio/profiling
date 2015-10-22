@@ -5,10 +5,10 @@ import time
 
 import pytest
 
+from _utils import factorial, find_stats
 from profiling.__main__ import spawn_thread
 from profiling.tracing import TracingProfiler
-from profiling.tracing.timers import ThreadTimer, GreenletTimer
-from utils import factorial, find_stats
+from profiling.tracing.timers import GreenletTimer, ThreadTimer
 
 
 # is it running on pypy?

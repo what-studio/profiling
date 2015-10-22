@@ -1,23 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.viewer
-    ~~~~~~~~~~~~~~~~
+   profiling.viewer
+   ~~~~~~~~~~~~~~~~
 
-    A text user interface application which inspects statistics.  To run it
-    easily do:
+   A text user interface application which inspects statistics.  To run it
+   easily do:
 
-    .. sourcecode:: console
+   .. sourcecode:: console
 
-       $ profiling view SOURCE
+      $ profiling view SOURCE
 
-    ::
+   ::
 
-       viewer = StatisticsViewer()
-       loop = viewer.loop()
-       loop.run()
+      viewer = StatisticsViewer()
+      loop = viewer.loop()
+      loop.run()
 
 """
 from __future__ import absolute_import
+
 from collections import deque
 
 import urwid

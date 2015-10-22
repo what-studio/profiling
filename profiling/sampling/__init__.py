@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.sampling
-    ~~~~~~~~~~~~~~~~~~
+   profiling.sampling
+   ~~~~~~~~~~~~~~~~~~
 
-    Profiles statistically by ``signal.ITIMER_REAL``.
+   Statistical profiling.
 
 """
 from __future__ import absolute_import
 
+from .samplers import ItimerSampler, Sampler
 from .. import sortkeys
 from ..profiler import Profiler
 from ..stats import RecordingStatistics, VoidRecordingStatistics as void
-from ..viewer import StatisticsTable, fmt
-from .samplers import Sampler, ItimerSampler
+from ..viewer import fmt, StatisticsTable
 
 
 __all__ = ['SamplingProfiler', 'SamplingStatisticsTable']

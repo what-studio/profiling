@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.remote.gevent
-    ~~~~~~~~~~~~~~~~~~~~~~~
+   profiling.remote.gevent
+   ~~~~~~~~~~~~~~~~~~~~~~~
 
-    Implements a profiling server based on `gevent`_.
+   Implements a profiling server based on `gevent`_.
 
-    .. _gevent: http://gevent.org/
+   .. _gevent: http://gevent.org/
 
 """
 from __future__ import absolute_import
+
 import socket
 
 import gevent

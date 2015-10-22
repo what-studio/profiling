@@ -6,7 +6,7 @@ from six import PY3
 
 import profiling
 from profiling.sortkeys import \
-    by_name, by_own_hits, by_deep_time_per_call, by_own_time_per_call
+    by_deep_time_per_call, by_name, by_own_hits, by_own_time_per_call
 from profiling.stats import FrozenStatistics, RecordingStatistics, Statistics
 
 

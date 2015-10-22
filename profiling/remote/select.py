@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.remote.select
-    ~~~~~~~~~~~~~~~~~~~~~~~
+   profiling.remote.select
+   ~~~~~~~~~~~~~~~~~~~~~~~
 
-    Implements a profiling server based on `select`_.
+   Implements a profiling server based on `select`_.
 
-    .. _select: https://docs.python.org/library/select.html
+   .. _select: https://docs.python.org/library/select.html
 
 """
 from __future__ import absolute_import
+
 import select
 
 from . import ProfilingServer

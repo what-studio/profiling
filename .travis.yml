@@ -11,15 +11,14 @@ python:
 install:
 - pip install -e .
 - pip install `python test/fit_requirements.py test/requirements.txt`
-- pip install flake8 pytest-cov coveralls
+- pip install flake8 flake8-import-order pytest-cov coveralls
 script:
 - | # flake8
   if python -c 'import sys; sys.version_info < (3, 3) or sys.exit(1)'
   then
     EXCLUDE=profiling/remote/asyncio.py
   fi
-  flake8 profiling test setup.py \
-    -v --show-source --ignore=E301 --exclude=$EXCLUDE
+  flake8 profiling test setup.py -v --show-source --exclude=$EXCLUDE
 - | # pytest
   py.test -v --cov=profiling --cov-report=term-missing
 after_success:
