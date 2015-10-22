@@ -33,10 +33,10 @@ import click
 from six import exec_, get_function_code
 from six.moves import builtins
 from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
-from valuedispatch import valuedispatch
 
 from . import remote, sampling, tracing
 from .__about__ import __version__
+from .adapting import get_eventloop_ignoring_codes
 from .profiler import Profiler
 from .remote.background import BackgroundProfiler
 from .remote.client import FailoverProfilingClient, ProfilingClient
@@ -423,36 +423,6 @@ class SignalNumber(click.ParamType):
 
     def get_metavar(self, param):
         return 'SIGNUM'
-
-
-@valuedispatch
-def get_eventloop_ignoring_codes(name):
-    return []
-
-
-@get_eventloop_ignoring_codes.register('asyncio')
-def get_asyncio_ignoring_codes(__):
-    import asyncio
-    return map(get_function_code, [
-        asyncio.BaseEventLoop.run_until_complete,
-        asyncio.BaseEventLoop.run_forever, asyncio.BaseEventLoop._run_once,
-        asyncio.Handle._run, asyncio.Task._wakeup, asyncio.Task._step,
-    ])
-
-
-@get_eventloop_ignoring_codes.register('gevent')
-def get_gevent_ignoring_codes(__):
-    import gevent
-    return map(get_function_code, [
-        gevent.hub.Hub.run,
-        gevent.hub.Hub.switch,
-        gevent.hub.Waiter.switch,
-        gevent.Greenlet.run,
-        gevent.Greenlet._report_result,
-        gevent.Greenlet._has_links,
-        gevent.Greenlet._Greenlet__cancel_start,
-        gevent.Greenlet.kwargs.fget,
-    ])
 
 
 # common parameters
