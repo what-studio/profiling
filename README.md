@@ -9,7 +9,7 @@ The profiling package is an interactive Python profiler.  It is inspired from
 - Provides both of statistical and deterministic profiling.
 - Utilities for remote profiling.
 - Thread or greenlet aware CPU timer.
-- Supports Python 2.7, 3.3 and 3.4.
+- Supports Python 2.7, 3.3, 3.4 and 3.5.
 - Currently supports only Linux.
 
 [![Build Status]
