@@ -110,13 +110,16 @@ class read_config_once(object):
     """Reads a config once."""
 
     filenames = ['setup.cfg', '.profiling']
-    config = None
+    ctx_and_config = (None, None)
 
     def __new__(cls):
-        if cls.config is None:
-            cls.config = ConfigParser()
-            cls.config.read(cls.filenames)
-        return cls.config
+        ctx, config = cls.ctx_and_config
+        current_ctx = click.get_current_context()
+        if current_ctx != ctx:
+            config = ConfigParser()
+            config.read(cls.filenames)
+            cls.ctx_and_config = (current_ctx, config)
+        return config
 
 
 def option_getter(type):
@@ -436,7 +439,7 @@ def profiler_options(f):
     @click.option(
         '-T', '--tracing', 'import_profiler_class',
         flag_value=importer('.tracing', 'TracingProfiler'),
-        default=config_flag('profiler', 'TracingProfiler', True),
+        default=config_flag('profiler', 'tracing', True),
         help='Use tracing profiler. (default)')
     @click.option(
         '--timer', 'timer_class',
@@ -447,7 +450,7 @@ def profiler_options(f):
     @click.option(
         '-S', '--sampling', 'import_profiler_class',
         flag_value=importer('.sampling', 'SamplingProfiler'),
-        default=config_flag('profiler', 'SamplingProfiler', False),
+        default=config_flag('profiler', 'sampling', False),
         help='Use sampling profiler.')
     @click.option(
         '--sampler', 'sampler_class',
