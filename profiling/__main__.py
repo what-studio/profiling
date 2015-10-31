@@ -12,7 +12,6 @@
 """
 from __future__ import absolute_import
 
-import __builtin__
 from datetime import datetime
 from functools import partial, wraps
 import importlib
@@ -32,6 +31,7 @@ import traceback
 
 import click
 from six import exec_
+from six.moves import builtins
 from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
 
 from . import remote, sampling, tracing
@@ -140,7 +140,7 @@ def config_default(option, default=None, type=None, section=cli.name):
     config = read_config_once()
     if type is None and default is not None:
         # detect type from default.
-        type = __builtin__.type(default)
+        type = builtins.type(default)
     get_option = option_getter(type)
     try:
         return get_option(config, section, option)
@@ -160,7 +160,7 @@ def config_flag(option, value, default=False, section=cli.name):
 
     """
     config = read_config_once()
-    type = __builtin__.type(value)
+    type = builtins.type(value)
     get_option = option_getter(type)
     try:
         return get_option(config, section, option) == value
