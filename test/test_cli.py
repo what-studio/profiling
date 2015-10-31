@@ -79,7 +79,7 @@ def test_config(mocker):
     profiler, kwargs = f([], standalone_mode=False)
     assert isinstance(profiler, TracingProfiler)
     # config to use SamplingProfiler.
-    mocker.patch('six.moves.builtins.open', return_value=MockFileIO(dedent('''
+    mocker.patch('six.moves.builtins.open', return_value=MockFileIO(dedent(b'''
     [profiling]
     profiler = sampling
     sampler = tracing
