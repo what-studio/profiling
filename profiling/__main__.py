@@ -31,6 +31,8 @@ import traceback
 
 import click
 from six import exec_
+from six.moves import builtins
+from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
 
 from . import remote, sampling, tracing
 from .__about__ import __version__
@@ -102,6 +104,78 @@ class ProfilingCLI(click.Group):
 @click.version_option(__version__)
 def cli():
     pass
+
+
+class read_config(object):
+    """Reads a config once in a Click context."""
+
+    filenames = ['setup.cfg', '.profiling']
+    ctx_and_config = (None, None)
+
+    def __new__(cls):
+        ctx, config = cls.ctx_and_config
+        current_ctx = click.get_current_context(silent=True)
+        if current_ctx != ctx:
+            config = ConfigParser()
+            config.read(cls.filenames)
+            cls.ctx_and_config = (current_ctx, config)
+        return config
+
+
+def option_getter(type):
+    """Gets an unbound method to get a configuration option as the given type.
+    """
+    option_getters = {None: ConfigParser.get,
+                      int: ConfigParser.getint,
+                      float: ConfigParser.getfloat,
+                      bool: ConfigParser.getboolean}
+    return option_getters.get(type, option_getters[None])
+
+
+def config_default(option, default=None, type=None, section=cli.name):
+    """Guesses a default value of a CLI option from the configuration.
+
+    ::
+
+       @click.option('--locale', default=config_default('locale'))
+
+    """
+    def f(option=option, default=default, type=type, section=section):
+        config = read_config()
+        if type is None and default is not None:
+            # detect type from default.
+            type = builtins.type(default)
+        get_option = option_getter(type)
+        try:
+            return get_option(config, section, option)
+        except (NoOptionError, NoSectionError):
+            return default
+    return f
+
+
+def config_flag(option, value, default=False, section=cli.name):
+    """Guesses whether a CLI flag should be turned on or off from the
+    configuration.  If the configuration option value is same with the given
+    value, it returns ``True``.
+
+    ::
+
+       @click.option('--ko-kr', 'locale', is_flag=True,
+                     default=config_flag('locale', 'ko_KR'))
+
+    """
+    class x(object):
+        def __bool__(self, option=option, value=value,
+                     default=default, section=section):
+            config = read_config()
+            type = builtins.type(value)
+            get_option = option_getter(type)
+            try:
+                return get_option(config, section, option) == value
+            except (NoOptionError, NoSectionError):
+                return default
+        __nonzero__ = __bool__
+    return x()
 
 
 def get_title(src_name, src_type=None):
@@ -365,27 +439,32 @@ def profiler_options(f):
     @click.option(
         '-T', '--tracing', 'import_profiler_class',
         flag_value=importer('.tracing', 'TracingProfiler'),
-        default=True,
+        default=config_flag('profiler', 'tracing', True),
         help='Use tracing profiler. (default)')
     @click.option(
         '--timer', 'timer_class',
         type=Class([timers], timers.Timer, 'basic'),
+        default=config_default('timer', 'basic'),
         help='Choose CPU timer for tracing profiler. (basic|thread|greenlet)')
     # sampling profiler options
     @click.option(
         '-S', '--sampling', 'import_profiler_class',
         flag_value=importer('.sampling', 'SamplingProfiler'),
+        default=config_flag('profiler', 'sampling', False),
         help='Use sampling profiler.')
     @click.option(
         '--sampler', 'sampler_class',
         type=Class([samplers], samplers.Sampler),
+        default=config_default('sampler', 'itimer'),
         help='Choose frames sampler for sampling profiler. (itimer|tracing)')
     @click.option(
-        '--sampling-interval', type=float, default=samplers.INTERVAL,
+        '--sampling-interval', type=float,
+        default=config_default('sampling-interval', samplers.INTERVAL),
         help='How often sample. (default: %.3f cpu sec)' % samplers.INTERVAL)
     # etc
     @click.option(
-        '--pickle-protocol', type=int, default=remote.PICKLE_PROTOCOL,
+        '--pickle-protocol', type=int,
+        default=config_default('pickle-protocol', remote.PICKLE_PROTOCOL),
         help='Pickle protocol to dump result.')
     @wraps(f)
     def wrapped(import_profiler_class, timer_class, sampler_class,
