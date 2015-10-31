@@ -5,6 +5,7 @@ import textwrap
 import click
 from click.testing import CliRunner
 import pytest
+from valuedispatch import valuedispatch
 
 from profiling.__about__ import __version__
 from profiling.__main__ import cli, Module, profiler_options, ProfilingCLI
@@ -91,21 +92,23 @@ def test_config(mocker):
     profiler, kwargs = f([], standalone_mode=False)
     assert isinstance(profiler, SamplingProfiler)
     assert isinstance(profiler.sampler, TracingSampler)
-    # setup.cfg and .profiling.
+    # set both of setup.cfg and .profiling.
+    @valuedispatch
     def mock_open(path, *args, **kwargs):
-        if path == 'setup.cfg':
-            return mock_file(u'''
-            [profiling]
-            profiler = sampling
-            pickle-protocol = 3
-            ''')
-        elif path == '.profiling':
-            return mock_file(u'''
-            [profiling]
-            pickle-protocol = 0
-            ''')
-        else:
-            raise IOError
+        raise IOError
+    @mock_open.register('setup.cfg')
+    def open_setup_cfg(*_, **__):
+        return mock_file(u'''
+        [profiling]
+        profiler = sampling
+        pickle-protocol = 3
+        ''')
+    @mock_open.register('.profiling')
+    def open_profiling(*_, **__):
+        return mock_file(u'''
+        [profiling]
+        pickle-protocol = 0
+        ''')
     mocker.patch('six.moves.builtins.open', side_effect=mock_open)
     profiler, kwargs = f([], standalone_mode=False)
     assert isinstance(profiler, SamplingProfiler)  # from setup.cfg
