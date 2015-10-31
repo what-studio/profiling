@@ -92,7 +92,7 @@ def test_config(mocker):
     assert isinstance(profiler, SamplingProfiler)
     assert isinstance(profiler.sampler, TracingSampler)
     # setup.cfg and .profiling.
-    def mock_open(path, *__):
+    def mock_open(path, *args, **kwargs):
         if path == 'setup.cfg':
             return mock_file(u'''
             [profiling]
