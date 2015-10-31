@@ -137,15 +137,17 @@ def config_default(option, default=None, type=None, section=cli.name):
        @click.option('--locale', default=config_default('locale'))
 
     """
-    config = read_config_once()
-    if type is None and default is not None:
-        # detect type from default.
-        type = builtins.type(default)
-    get_option = option_getter(type)
-    try:
-        return get_option(config, section, option)
-    except (NoOptionError, NoSectionError):
-        return default
+    def f(option=option, default=default, type=type, section=section):
+        config = read_config_once()
+        if type is None and default is not None:
+            # detect type from default.
+            type = builtins.type(default)
+        get_option = option_getter(type)
+        try:
+            return get_option(config, section, option)
+        except (NoOptionError, NoSectionError):
+            return default
+    return f
 
 
 def config_flag(option, value, default=False, section=cli.name):
@@ -159,13 +161,18 @@ def config_flag(option, value, default=False, section=cli.name):
                      default=config_flag('locale', 'ko_KR'))
 
     """
-    config = read_config_once()
-    type = builtins.type(value)
-    get_option = option_getter(type)
-    try:
-        return get_option(config, section, option) == value
-    except (NoOptionError, NoSectionError):
-        return default
+    class x(object):
+        def __bool__(self, option=option, value=value,
+                     default=default, section=section):
+            config = read_config_once()
+            type = builtins.type(value)
+            get_option = option_getter(type)
+            try:
+                return get_option(config, section, option) == value
+            except (NoOptionError, NoSectionError):
+                return default
+        __nonzero__ = __bool__
+    return x()
 
 
 def get_title(src_name, src_type=None):
