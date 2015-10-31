@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import io
-from textwrap import dedent
+import textwrap
 
 import click
 from click.testing import CliRunner
@@ -13,10 +13,14 @@ from profiling.sampling.samplers import TracingSampler
 from profiling.tracing import TracingProfiler
 
 
-class MockFileIO(io.BytesIO):
+class MockFileIO(io.StringIO):
 
     def close(self):
         self.seek(0)
+
+
+def mock_file(indented_content):
+    return MockFileIO(textwrap.dedent(indented_content))
 
 
 cli_runner = CliRunner()
@@ -79,11 +83,11 @@ def test_config(mocker):
     profiler, kwargs = f([], standalone_mode=False)
     assert isinstance(profiler, TracingProfiler)
     # config to use SamplingProfiler.
-    mocker.patch('six.moves.builtins.open', return_value=MockFileIO(dedent(b'''
+    mocker.patch('six.moves.builtins.open', return_value=mock_file(u'''
     [profiling]
     profiler = sampling
     sampler = tracing
-    ''')))
+    '''))
     profiler, kwargs = f([], standalone_mode=False)
     assert isinstance(profiler, SamplingProfiler)
     assert isinstance(profiler.sampler, TracingSampler)
