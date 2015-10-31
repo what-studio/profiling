@@ -106,15 +106,15 @@ def cli():
     pass
 
 
-class read_config_once(object):
-    """Reads a config once."""
+class read_config(object):
+    """Reads a config once in a Click context."""
 
     filenames = ['setup.cfg', '.profiling']
     ctx_and_config = (None, None)
 
     def __new__(cls):
         ctx, config = cls.ctx_and_config
-        current_ctx = click.get_current_context()
+        current_ctx = click.get_current_context(silent=True)
         if current_ctx != ctx:
             config = ConfigParser()
             config.read(cls.filenames)
@@ -141,7 +141,7 @@ def config_default(option, default=None, type=None, section=cli.name):
 
     """
     def f(option=option, default=default, type=type, section=section):
-        config = read_config_once()
+        config = read_config()
         if type is None and default is not None:
             # detect type from default.
             type = builtins.type(default)
@@ -167,7 +167,7 @@ def config_flag(option, value, default=False, section=cli.name):
     class x(object):
         def __bool__(self, option=option, value=value,
                      default=default, section=section):
-            config = read_config_once()
+            config = read_config()
             type = builtins.type(value)
             get_option = option_getter(type)
             try:
