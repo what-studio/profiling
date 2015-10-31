@@ -91,3 +91,22 @@ def test_config(mocker):
     profiler, kwargs = f([], standalone_mode=False)
     assert isinstance(profiler, SamplingProfiler)
     assert isinstance(profiler.sampler, TracingSampler)
+    # setup.cfg and .profiling.
+    def mock_open(path, *__):
+        if path == 'setup.cfg':
+            return mock_file(u'''
+            [profiling]
+            profiler = sampling
+            pickle-protocol = 3
+            ''')
+        elif path == '.profiling':
+            return mock_file(u'''
+            [profiling]
+            pickle-protocol = 0
+            ''')
+        else:
+            raise IOError
+    mocker.patch('six.moves.builtins.open', side_effect=mock_open)
+    profiler, kwargs = f([], standalone_mode=False)
+    assert isinstance(profiler, SamplingProfiler)  # from setup.cfg
+    assert kwargs['pickle_protocol'] == 0  # from .profiling
