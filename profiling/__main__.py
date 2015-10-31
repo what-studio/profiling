@@ -12,6 +12,7 @@
 """
 from __future__ import absolute_import
 
+import __builtin__
 from datetime import datetime
 from functools import partial, wraps
 import importlib
@@ -31,6 +32,7 @@ import traceback
 
 import click
 from six import exec_
+from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
 
 from . import remote, sampling, tracing
 from .__about__ import __version__
@@ -102,6 +104,68 @@ class ProfilingCLI(click.Group):
 @click.version_option(__version__)
 def cli():
     pass
+
+
+class read_config_once(object):
+    """Reads a config once."""
+
+    filenames = ['setup.cfg', '.profiling']
+    config = None
+
+    def __new__(cls):
+        if cls.config is None:
+            cls.config = ConfigParser()
+            cls.config.read(cls.filenames)
+        return cls.config
+
+
+def option_getter(type):
+    """Gets an unbound method to get a configuration option as the given type.
+    """
+    option_getters = {None: ConfigParser.get,
+                      int: ConfigParser.getint,
+                      float: ConfigParser.getfloat,
+                      bool: ConfigParser.getboolean}
+    return option_getters.get(type, option_getters[None])
+
+
+def config_default(option, default=None, type=None, section=cli.name):
+    """Guesses a default value of a CLI option from the configuration.
+
+    ::
+
+       @click.option('--locale', default=config_default('locale'))
+
+    """
+    config = read_config_once()
+    if type is None and default is not None:
+        # detect type from default.
+        type = __builtin__.type(default)
+    get_option = option_getter(type)
+    try:
+        return get_option(config, section, option)
+    except (NoOptionError, NoSectionError):
+        return default
+
+
+def config_flag(option, value, default=False, section=cli.name):
+    """Guesses whether a CLI flag should be turned on or off from the
+    configuration.  If the configuration option value is same with the given
+    value, it returns ``True``.
+
+    ::
+
+       @click.option('--ko-kr', 'locale', is_flag=True,
+                     default=config_flag('locale', 'ko_KR'))
+
+    """
+    config = read_config_once()
+    type = __builtin__.type(value)
+    get_option = option_getter(type)
+    try:
+        return get_option(config, section, option) == value
+    except (NoOptionError, NoSectionError):
+        return default
 
 
 def get_title(src_name, src_type=None):
@@ -365,27 +429,32 @@ def profiler_options(f):
     @click.option(
         '-T', '--tracing', 'import_profiler_class',
         flag_value=importer('.tracing', 'TracingProfiler'),
-        default=True,
+        default=config_flag('profiler', 'TracingProfiler', True),
         help='Use tracing profiler. (default)')
     @click.option(
         '--timer', 'timer_class',
         type=Class([timers], timers.Timer, 'basic'),
+        default=config_default('timer', 'basic'),
         help='Choose CPU timer for tracing profiler. (basic|thread|greenlet)')
     # sampling profiler options
     @click.option(
         '-S', '--sampling', 'import_profiler_class',
         flag_value=importer('.sampling', 'SamplingProfiler'),
+        default=config_flag('profiler', 'SamplingProfiler', False),
         help='Use sampling profiler.')
     @click.option(
         '--sampler', 'sampler_class',
         type=Class([samplers], samplers.Sampler),
+        default=config_default('sampler', 'itimer'),
         help='Choose frames sampler for sampling profiler. (itimer|tracing)')
     @click.option(
-        '--sampling-interval', type=float, default=samplers.INTERVAL,
+        '--sampling-interval', type=float,
+        default=config_default('sampling-interval', samplers.INTERVAL),
         help='How often sample. (default: %.3f cpu sec)' % samplers.INTERVAL)
     # etc
     @click.option(
-        '--pickle-protocol', type=int, default=remote.PICKLE_PROTOCOL,
+        '--pickle-protocol', type=int,
+        default=config_default('pickle-protocol', remote.PICKLE_PROTOCOL),
         help='Pickle protocol to dump result.')
     @wraps(f)
     def wrapped(import_profiler_class, timer_class, sampler_class,
