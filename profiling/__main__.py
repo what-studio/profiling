@@ -42,7 +42,7 @@ from .remote.client import FailoverProfilingClient, ProfilingClient
 from .remote.select import SelectProfilingServer
 from .sampling import samplers, SamplingProfiler
 from .tracing import timers, TracingProfiler
-from .viewer import StatisticsViewer
+from .viewer import bind_game_keys, bind_vim_keys, StatisticsViewer
 
 
 __all__ = ['cli', 'profile', 'view']
@@ -188,9 +188,9 @@ def get_title(src_name, src_type=None):
 def make_viewer(mono=False, *loop_args, **loop_kwargs):
     """Makes a :class:`profiling.viewer.StatisticsViewer` with common options.
     """
+    bind_vim_keys()
+    bind_game_keys()
     viewer = StatisticsViewer()
-    viewer.use_vim_command_map()
-    viewer.use_game_command_map()
     loop = viewer.loop(*loop_args, **loop_kwargs)
     if mono:
         loop.screen.set_terminal_properties(1)

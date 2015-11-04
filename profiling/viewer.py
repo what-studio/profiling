@@ -27,7 +27,8 @@ from urwid import connect_signal as on
 from . import sortkeys
 
 
-__all__ = ['StatisticsTable', 'StatisticsViewer', 'fmt']
+__all__ = ['StatisticsTable', 'StatisticsViewer', 'fmt',
+           'bind_vim_keys', 'bind_game_keys']
 
 
 class Formatter(object):
@@ -779,14 +780,16 @@ class StatisticsViewer(object):
             del self._pending
             self.table.set_result(stats, cpu_time, wall_time, title, at)
 
-    def use_vim_command_map(self):
-        urwid.command_map['h'] = urwid.command_map['left']
-        urwid.command_map['j'] = urwid.command_map['down']
-        urwid.command_map['k'] = urwid.command_map['up']
-        urwid.command_map['l'] = urwid.command_map['right']
 
-    def use_game_command_map(self):
-        urwid.command_map['a'] = urwid.command_map['left']
-        urwid.command_map['s'] = urwid.command_map['down']
-        urwid.command_map['w'] = urwid.command_map['up']
-        urwid.command_map['d'] = urwid.command_map['right']
+def bind_vim_keys(urwid=urwid):
+    urwid.command_map['h'] = urwid.command_map['left']
+    urwid.command_map['j'] = urwid.command_map['down']
+    urwid.command_map['k'] = urwid.command_map['up']
+    urwid.command_map['l'] = urwid.command_map['right']
+
+
+def bind_game_keys(urwid=urwid):
+    urwid.command_map['a'] = urwid.command_map['left']
+    urwid.command_map['s'] = urwid.command_map['down']
+    urwid.command_map['w'] = urwid.command_map['up']
+    urwid.command_map['d'] = urwid.command_map['right']
