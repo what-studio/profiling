@@ -137,25 +137,20 @@ Profiling from Code
 You can also profile your program by ``profiling.Profiler`` directly:
 
 ```python
-from profiling import Profiler
-from profiling.viewer import StatisticsViewer
+from profiling.tracing import TracingProfiler
 
 # profile your program.
-profiler = Profiler()
+profiler = TracingProfiler()
 profiler.start()
 ...  # run your program.
 profiler.stop()
 
 # or using context manager.
-with Profiler() as profiler:
+with profiler:
     ...  # run your program.
 
-# view the result.
-stats, cpu_time, wall_time = profiler.result()
-viewer = StatisticsViewer()
-viewer.set_result(stats, cpu_time, wall_time)
-loop = viewer.loop()
-loop.run()
+# view and interact with the result.
+profiler.run_viewer()
 ```
 
 Viewer Key Bindings
