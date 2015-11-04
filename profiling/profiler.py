@@ -63,19 +63,30 @@ class Profiler(Runnable):
             cpu_time = wall_time = 0.0
         return (self.stats, cpu_time, wall_time)
 
-    def viewer(self):
-        """Makes a statistics viewer of the profiling result."""
+    def make_viewer(self, title=None, at=None, mono=False,
+                    *loop_args, **loop_kwargs):
+        """Makes a statistics viewer and that's loop from the profiling result.
+        """
         viewer = StatisticsViewer()
         viewer.set_profiler_class(self.__class__)
-        viewer.set_result(*self.result())
-        return viewer
+        stats, cpu_time, wall_time = self.result()
+        viewer.set_result(stats, cpu_time, wall_time, title=title, at=at)
+        viewer.activate()
+        loop = viewer.loop(*loop_args, **loop_kwargs)
+        if mono:
+            loop.screen.set_terminal_properties(1)
+        return (viewer, loop)
 
-    def run_viewer(self):
-        """A helper function which runs the statistics viewer of the profiling
-        result.
+    def run_viewer(self, *args, **kwargs):
+        """A shorter form of:
+
+        ::
+
+           viewer, loop = profiler.make_viewer()
+           loop.run()
+
         """
-        viewer = self.viewer()
-        loop = viewer.loop()
+        viewer, loop = self.make_viewer(*args, **kwargs)
         loop.run()
 
 

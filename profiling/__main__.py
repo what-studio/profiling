@@ -103,7 +103,8 @@ class ProfilingCLI(click.Group):
 @click.command('profiling', cls=ProfilingCLI)
 @click.version_option(__version__)
 def cli():
-    pass
+    bind_vim_keys()
+    bind_game_keys()
 
 
 class read_config(object):
@@ -188,8 +189,6 @@ def get_title(src_name, src_type=None):
 def make_viewer(mono=False, *loop_args, **loop_kwargs):
     """Makes a :class:`profiling.viewer.StatisticsViewer` with common options.
     """
-    bind_vim_keys()
-    bind_game_keys()
     viewer = StatisticsViewer()
     loop = viewer.loop(*loop_args, **loop_kwargs)
     if mono:
@@ -554,13 +553,8 @@ def __profile__(filename, code, globals_, profiler_factory,
     # discard this __profile__ function from the result.
     profiler.stats.discard_child(frame.f_code)
     if dump_filename is None:
-        stats, cpu_time, wall_time = profiler.result()
-        viewer, loop = make_viewer(mono)
-        viewer.set_profiler_class(profiler.__class__)
-        viewer.set_result(stats, cpu_time, wall_time, get_title(filename))
-        viewer.activate()
         try:
-            loop.run()
+            profiler.run_viewer(get_title(filename), mono=mono)
         except KeyboardInterrupt:
             pass
     else:
@@ -721,7 +715,7 @@ def view(src, mono):
         with open(src_name, 'rb') as f:
             profiler_class, (stats, cpu_time, wall_time) = pickle.load(f)
         viewer.set_profiler_class(profiler_class)
-        viewer.set_result(stats, cpu_time, wall_time, title, time)
+        viewer.set_result(stats, cpu_time, wall_time, title=title, at=time)
         viewer.activate()
     elif src_type in ('tcp', 'sock'):
         family = {'tcp': socket.AF_INET, 'sock': socket.AF_UNIX}[src_type]
