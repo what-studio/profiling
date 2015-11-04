@@ -134,7 +134,8 @@ $ profiling timeit -s 'from trueskill import *' 'rate_1vs1(Rating(), Rating())'
 Profiling from Code
 -------------------
 
-You can also profile your program by ``profiling.Profiler`` directly:
+You can also profile your program by ``profiling.tracing.TracingProfiler`` or
+``profiling.sampling.SamplingProfiler`` directly:
 
 ```python
 from profiling.tracing import TracingProfiler
