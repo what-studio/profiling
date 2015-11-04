@@ -63,13 +63,18 @@ class Profiler(Runnable):
             cpu_time = wall_time = 0.0
         return (self.stats, cpu_time, wall_time)
 
+    def viewer(self):
+        """Makes a statistics viewer of the profiling result."""
+        viewer = StatisticsViewer()
+        viewer.set_profiler_class(self.__class__)
+        viewer.set_result(*self.result())
+        return viewer
+
     def run_viewer(self):
         """A helper function which runs the statistics viewer of the profiling
         result.
         """
-        viewer = StatisticsViewer()
-        viewer.set_profiler_class(self.__class__)
-        viewer.set_result(*self.result())
+        viewer = self.viewer()
         loop = viewer.loop()
         loop.run()
 
