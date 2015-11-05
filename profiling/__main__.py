@@ -55,6 +55,7 @@ class ProfilingCLI(click.Group):
 
     def __init__(self, *args, **kwargs):
         super(ProfilingCLI, self).__init__(*args, **kwargs)
+        self.ignore_unknown_options = True  # for implicit command options.
         self.implicit_command_name = None
         self.command_name_aliases = {}
 
