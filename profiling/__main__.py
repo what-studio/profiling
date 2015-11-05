@@ -48,6 +48,9 @@ from .viewer import bind_game_keys, bind_vim_keys, StatisticsViewer
 __all__ = ['cli', 'profile', 'view']
 
 
+DEFAULT_ENDPOINT = '127.0.0.1:8912'
+
+
 class ProfilingCLI(click.Group):
 
     def __init__(self, *args, **kwargs):
@@ -344,8 +347,8 @@ class Command(click.ParamType):
         return 'PYTHON-COMMAND'
 
 
-class Address(click.ParamType):
-    """A parameter type for IP address."""
+class Endpoint(click.ParamType):
+    """A parameter type for IP endpoint."""
 
     def convert(self, value, param, ctx):
         host, port = value.split(':')
@@ -366,7 +369,7 @@ class ViewerSource(click.ParamType):
             mode = os.stat(value).st_mode
         except OSError:
             try:
-                src_name = Address().convert(value, param, ctx)
+                src_name = Endpoint().convert(value, param, ctx)
             except ValueError:
                 pass
             else:
@@ -378,7 +381,7 @@ class ViewerSource(click.ParamType):
             elif S_ISREG(mode):
                 src_type = 'dump'
         if not src_type:
-            raise ValueError('A dump file or a socket address required.')
+            raise ValueError('Dump file or socket address required.')
         return (src_type, src_name)
 
     def get_metavar(self, param):
@@ -664,13 +667,14 @@ def live_profile(script, argv, profiler_factory, interval, spawn, signum,
 @profiler_arguments
 @profiler_options
 @live_profiler_options
-@click.option('-b', '--bind', 'addr', type=Address(), default='127.0.0.1:8912',
-              help='IP address to serve profiling results.')
+@click.option('-b', '--bind', 'endpoint', type=Endpoint(),
+              default=config_default('endpoint', DEFAULT_ENDPOINT),
+              help='IP endpoint to serve profiling results.')
 @click.option('-v', '--verbose', is_flag=True,
               help='Print profiling server logs.')
 def remote_profile(script, argv, profiler_factory, interval, spawn, signum,
-                   pickle_protocol, addr, verbose):
-    """Launch a server to profile continuously.  The default address is
+                   pickle_protocol, endpoint, verbose):
+    """Launch a server to profile continuously.  The default endpoint is
     127.0.0.1:8912.
     """
     filename, code, globals_ = script
@@ -678,7 +682,7 @@ def remote_profile(script, argv, profiler_factory, interval, spawn, signum,
     # create listener.
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    listener.bind(addr)
+    listener.bind(endpoint)
     listener.listen(1)
     # be verbose or quiet.
     if verbose:
@@ -703,7 +707,8 @@ def remote_profile(script, argv, profiler_factory, interval, spawn, signum,
 
 
 @cli.command()
-@click.argument('src', type=ViewerSource())
+@click.argument('src', type=ViewerSource(),
+                default=config_default('endpoint', DEFAULT_ENDPOINT))
 @viewer_options
 def view(src, mono):
     """Inspect statistics by TUI view."""
