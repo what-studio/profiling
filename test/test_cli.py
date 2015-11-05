@@ -46,13 +46,19 @@ def test_module_param_type():
 
 
 def test_customized_cli():
-    def f():
-        pass
     cli = ProfilingCLI()
-    cli.command(name='foo', aliases=['fooo', 'foooo'])(f)
-    cli.command(name='bar', implicit=True)(f)
+    @cli.command(aliases=['fooo', 'foooo'])
+    def foo():
+        pass
+    @cli.command(implicit=True)
+    @click.argument('l', default='answer')
+    @click.option('-n', type=int, default=0)
+    def bar(l, n=0):
+        click.echo('%s: %d' % (l, n))
     with pytest.raises(RuntimeError):
-        cli.command(name='baz', implicit=True)(f)
+        @cli.command(implicit=True)
+        def baz():
+            pass
     assert len(cli.commands) == 2
     ctx = click.Context(cli)
     assert cli.get_command(ctx, 'foo').name == 'foo'
@@ -60,6 +66,11 @@ def test_customized_cli():
     assert cli.get_command(ctx, 'foooo').name == 'foo'
     assert cli.get_command(ctx, 'bar').name == 'bar'
     assert cli.get_command(ctx, 'hello.txt').name == 'bar'
+    assert 'Usage:' in cli_runner.invoke(cli, []).output
+    assert cli_runner.invoke(cli, ['zero']).output == 'zero: 0\n'
+    assert cli_runner.invoke(cli, ['one', '-n', '1']).output == 'one: 1\n'
+    assert cli_runner.invoke(cli, ['-n', '42']).output == 'answer: 42\n'
+    assert 'no such option' in cli_runner.invoke(cli, ['-x']).output
 
 
 def test_profiling_command_usage():
