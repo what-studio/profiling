@@ -525,15 +525,17 @@ onetime_profiler_options = Params([
 ])
 live_profiler_options = Params([
     click.option(
-        '-i', '--interval', type=float, default=remote.INTERVAL,
+        '-i', '--interval', type=float,
+        default=config_default('interval', remote.INTERVAL),
         help='How often update result. (default: %.0f sec)' % remote.INTERVAL),
     click.option(
         '--spawn', type=click.Choice(spawn.modes),
+        default=config_default('spawn'),
         callback=lambda c, p, v: partial(spawn, v),
         help='How to spawn profiler server in background.'),
     click.option(
         '--signum', type=SignalNumber(),
-        default=BackgroundProfiler.signum,
+        default=config_default('signum', BackgroundProfiler.signum),
         help=(
             'For communication between server and application. (default: %s)' %
             SignalNumber.name_of(BackgroundProfiler.signum)
