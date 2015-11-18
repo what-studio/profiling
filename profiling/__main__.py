@@ -228,9 +228,13 @@ def spawn(mode, func, *args, **kwargs):
         return spawn_thread(func, *args, **kwargs)
     elif mode == 'gevent':
         import gevent
+        import gevent.monkey
+        gevent.monkey.patch_select()
+        gevent.monkey.patch_socket()
         return gevent.spawn(func, *args, **kwargs)
     elif mode == 'eventlet':
         import eventlet
+        eventlet.patcher.monkey_patch(select=True, socket=True)
         return eventlet.spawn(func, *args, **kwargs)
     assert False
 
