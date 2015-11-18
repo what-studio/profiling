@@ -31,28 +31,40 @@ __all__ = ['StatisticsTable', 'StatisticsViewer', 'fmt',
            'bind_vim_keys', 'bind_game_keys']
 
 
+def get_func(f):
+    if isinstance(f, staticmethod):
+        return f.__func__
+    return f
+
+
 class Formatter(object):
 
     def _markup(get_string, get_attr=None):
-        def markup(self, *args, **kwargs):
-            string = get_string(self, *args, **kwargs)
+        get_string = get_func(get_string)
+        get_attr = get_func(get_attr)
+        @staticmethod
+        def markup(*args, **kwargs):
+            string = get_string(*args, **kwargs)
             if get_attr is None:
                 return string
-            attr = get_attr(self, *args, **kwargs)
+            attr = get_attr(*args, **kwargs)
             return (attr, string)
         return markup
 
     _numeric = {'align': 'right', 'wrap': 'clip'}
 
     def _make_text(get_markup, **text_kwargs):
-        def make_text(self, *args, **kwargs):
-            markup = get_markup(self, *args, **kwargs)
+        get_markup = get_func(get_markup)
+        @staticmethod
+        def make_text(*args, **kwargs):
+            markup = get_markup(*args, **kwargs)
             return urwid.Text(markup, **text_kwargs)
         return make_text
 
     # percent
 
-    def format_percent(self, ratio, denom=1, unit=False):
+    @staticmethod
+    def format_percent(ratio, denom=1, unit=False):
         # width: 4~5 (with unit)
         # examples:
         # 0.01: 1.00%
@@ -74,7 +86,8 @@ class Formatter(object):
         else:
             return string
 
-    def attr_ratio(self, ratio, denom=1, unit=False):
+    @staticmethod
+    def attr_ratio(ratio, denom=1, unit=False):
         try:
             ratio /= float(denom)
         except ZeroDivisionError:
@@ -95,7 +108,8 @@ class Formatter(object):
 
     # int
 
-    def format_int(self, num, units='kMGTPEZY'):
+    @staticmethod
+    def format_int(num, units='kMGTPEZY'):
         # width: 1~6
         # examples:
         # 0: 0
@@ -121,7 +135,8 @@ class Formatter(object):
         else:
             return '{:.1f}{}'.format(num, unit)
 
-    def attr_int(self, num):
+    @staticmethod
+    def attr_int(num):
         return None if num else 'zero'
 
     markup_int = _markup(format_int, attr_int)
@@ -129,7 +144,8 @@ class Formatter(object):
 
     # int or n/a
 
-    def format_int_or_na(self, num):
+    @staticmethod
+    def format_int_or_na(num):
         # width: 1~6
         # examples:
         # 0: n/a
@@ -144,14 +160,15 @@ class Formatter(object):
         if num == 0:
             return 'n/a'
         else:
-            return self.format_int(num)
+            return Formatter.format_int(num)
 
     markup_int_or_na = _markup(format_int_or_na, attr_int)
     make_int_or_na_text = _make_text(markup_int_or_na, **_numeric)
 
     # time
 
-    def format_time(self, sec):
+    @staticmethod
+    def format_time(sec):
         # width: 1~6 (most cases)
         # examples:
         # 0: 0
@@ -180,7 +197,8 @@ class Formatter(object):
         else:
             return '{:.0f}min'.format(sec // 60)
 
-    def attr_time(self, sec):
+    @staticmethod
+    def attr_time(sec):
         if sec == 0:
             return 'zero'
         elif sec < 1e-3:
@@ -197,7 +215,8 @@ class Formatter(object):
 
     # stats
 
-    def markup_stats(self, stats):
+    @staticmethod
+    def markup_stats(stats):
         if stats.name:
             loc = ('({0}:{1})'
                    ''.format(stats.module or stats.filename, stats.lineno))
@@ -211,7 +230,7 @@ class Formatter(object):
     del _make_text
 
 
-fmt = Formatter()
+fmt = Formatter
 
 
 class StatisticWidget(urwid.TreeWidget):
