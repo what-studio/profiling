@@ -473,6 +473,7 @@ def profiler_options(f):
     @click.option(
         '--eventloop-aware',
         type=click.Choice(get_eventloop_ignoring_codes.registry.keys()),
+        default=config_default('eventloop-aware'),
         help='Hide code the event-loop uses internally.')
     @click.option(
         '--pickle-protocol', type=int,
