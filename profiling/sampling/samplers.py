@@ -12,9 +12,7 @@ import threading
 import time
 import weakref
 
-import six.moves._thread as _thread
-
-from ..utils import deferral, Runnable
+from ..utils import current_thread_id, deferral, main_thread_id, Runnable
 
 
 __all__ = ['Sampler', 'ItimerSampler', 'TracingSampler']
@@ -39,13 +37,10 @@ class Sampler(Runnable):
 
 class ItimerSampler(Sampler):
 
-    # keep the Id of the math thread.
-    main_thread_id = _thread.get_ident()
-
     def handle_signal(self, profiler, signum, frame):
         frames = self.current_frames()
         # replace frame of the main thread with the interrupted frame.
-        frames[self.main_thread_id] = frame
+        frames[main_thread_id] = frame
         for frame_ in frames.values():
             profiler.sample(frame_)
 
@@ -71,7 +66,7 @@ class TracingSampler(Sampler):
             return
         self.sampled_at = t
         frames = self.current_frames()
-        frames[_thread.get_ident()] = frame
+        frames[current_thread_id()] = frame
         for frame in frames.values():
             profiler.sample(frame)
 
