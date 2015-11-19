@@ -50,6 +50,13 @@ class ItimerSampler(Sampler):
         t = self.interval
         with deferral() as defer:
             prev_handle = signal.signal(signal.SIGPROF, handle)
+            if prev_handle == signal.SIG_DFL:
+                # sometimes the process receives SIGPROF although the sampler
+                # unsets the itimer.  If the previous handler was SIG_DFL, the
+                # process will crash when received SIGPROF.  To prevent this
+                # risk, it makes the process to ignore SIGPROF when it isn't
+                # running if the previous handler was SIG_DFL.
+                prev_handle = signal.SIG_IGN
             defer(signal.signal, signal.SIGPROF, prev_handle)
             prev_itimer = signal.setitimer(signal.ITIMER_PROF, t, t)
             defer(signal.setitimer, signal.ITIMER_PROF, *prev_itimer)
