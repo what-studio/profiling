@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
+import os
+import signal
 import sys
 
 import pytest
@@ -32,7 +34,20 @@ def _test_sampling_profiler(sampler):
 
 @pytest.mark.flaky(reruns=10)
 def test_itimer_sampler():
-    _test_sampling_profiler(ItimerSampler(0.0001))
+    assert signal.getsignal(signal.SIGPROF) == signal.SIG_DFL
+    try:
+        _test_sampling_profiler(ItimerSampler(0.0001))
+        # no crash caused by SIGPROF.
+        assert signal.getsignal(signal.SIGPROF) == signal.SIG_IGN
+        for x in range(10):
+            os.kill(os.getpid(), signal.SIGPROF)
+        # respect custom handler.
+        handler = lambda *x: x
+        signal.signal(signal.SIGPROF, handler)
+        _test_sampling_profiler(ItimerSampler(0.0001))
+        assert signal.getsignal(signal.SIGPROF) == handler
+    finally:
+        signal.signal(signal.SIGPROF, signal.SIG_DFL)
 
 
 @pytest.mark.flaky(reruns=10)
