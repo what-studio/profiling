@@ -12,6 +12,7 @@ from __future__ import absolute_import
 
 from errno import EINTR
 import select
+import socket
 import time
 
 from . import ProfilingServer
@@ -31,7 +32,7 @@ class SelectProfilingServer(ProfilingServer):
             self.dispatch_sockets()
 
     def _send(self, sock, data):
-        sock.sendall(data)
+        sock.sendall(data, socket.MSG_DONTWAIT)
 
     def _close(self, sock):
         sock.close()

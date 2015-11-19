@@ -175,7 +175,7 @@ class ProfilingServer(object):
             excluding_code = frame_stack(sys._getframe())[0].f_code
         while self.clients:
             self.profiler.start()
-            # should sleep
+            # should sleep.
             yield
             self.profiler.stop()
             if on_child_thread:
@@ -184,16 +184,14 @@ class ProfilingServer(object):
             data = pack_msg(RESULT, result,
                             pickle_protocol=self.pickle_protocol)
             self._latest_result_data = data
-            # broadcast
+            # broadcast.
             closed_clients = []
             for client in self.clients:
                 try:
                     self._send(client, data)
-                except socket.error as err:
-                    if err.errno == EPIPE:
+                except socket.error as exc:
+                    if exc.errno == EPIPE:
                         closed_clients.append(client)
-                        continue
-                    pass
             del data
             # handle disconnections.
             for client in closed_clients:
@@ -223,8 +221,8 @@ class ProfilingServer(object):
         if self._latest_result_data is not None:
             try:
                 self._send(client, self._latest_result_data)
-            except socket.error as err:
-                if err.errno in (EBADF, EPIPE):
+            except socket.error as exc:
+                if exc.errno in (EBADF, EPIPE):
                     self.disconnected(client)
                     return
                 raise
