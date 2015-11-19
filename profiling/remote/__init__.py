@@ -22,7 +22,7 @@ import struct
 import sys
 
 from .. import __version__
-from ..utils import frame_stack
+from ..utils import current_thread_id, frame_stack, main_thread_id
 
 
 __all__ = ['LOGGER', 'LOG', 'INTERVAL', 'PICKLE_PROTOCOL',
@@ -169,14 +169,17 @@ class ProfilingServer(object):
 
         """
         self._log_profiler_started()
-        # to exclude statistics of profiler server thread.
-        excluding_code = frame_stack(sys._getframe())[0].f_code
+        on_child_thread = current_thread_id() != main_thread_id
+        if on_child_thread:
+            # to exclude statistics of profiler server thread.
+            excluding_code = frame_stack(sys._getframe())[0].f_code
         while self.clients:
             self.profiler.start()
             # should sleep
             yield
             self.profiler.stop()
-            self.profiler.exclude_code(excluding_code)
+            if on_child_thread:
+                self.profiler.exclude_code(excluding_code)
             result = self.profiler.result()
             data = pack_msg(RESULT, result,
                             pickle_protocol=self.pickle_protocol)
