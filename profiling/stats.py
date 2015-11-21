@@ -134,14 +134,17 @@ class Statistics(with_metaclass(StatisticsMeta)):
         """Statistics can be a key."""
         return hash((self.name, self.filename, self.lineno))
 
-    def __reduce__(self):
-        """Safen for Pickle."""
-        return self.reduce_stats(self)
+    @classmethod
+    def members(cls, stats):
+        return [getattr(stats, attr) for attr in cls.__slots__]
 
     @classmethod
     def reduce_stats(cls, stats):
-        members = [getattr(stats, attr) for attr in cls.__slots__]
-        return (stats_from_members, (cls, members))
+        return (stats_from_members, (cls, cls.members(stats)))
+
+    def __reduce__(self):
+        """Safen for Pickle."""
+        return self.reduce_stats(self)
 
     def __repr__(self):
         # format name
