@@ -25,7 +25,7 @@ import urwid
 from urwid import connect_signal as on
 
 from . import sortkeys
-from .stats import FlatStatistics
+from .stats import FlatFrozenStatistics
 
 
 __all__ = ['StatisticsTable', 'StatisticsViewer', 'fmt',
@@ -787,7 +787,14 @@ class StatisticsViewer(object):
         self.table = table_class(self)
         self.widget.original_widget = self.table
 
+    def set_result(self, stats, cpu_time=0.0, wall_time=0.0,
+                   title=None, at=None):
+        self._final_result = (stats, cpu_time, wall_time, title, at)
+        if not self.paused:
+            self.update_result()
+
     def update_result(self):
+        """Updates the result on the table."""
         if self.paused:
             result = self._paused_result
         else:
@@ -798,15 +805,8 @@ class StatisticsViewer(object):
                 return
         stats, cpu_time, wall_time, title, at = result
         if self.layout == FLAT:
-            stats = FlatStatistics.flatten(stats)
+            stats = FlatFrozenStatistics.flatten(stats)
         self.table.set_result(stats, cpu_time, wall_time, title, at)
-
-    def set_result(self, stats, cpu_time=0.0, wall_time=0.0,
-                   title=None, at=None):
-        self._final_result = (stats, cpu_time, wall_time, title, at)
-        if self.paused:
-            return
-        self.update_result()
 
     def activate(self):
         self.active = True

@@ -8,7 +8,7 @@ import profiling
 from profiling.sortkeys import \
     by_deep_time_per_call, by_name, by_own_hits, by_own_time_per_call
 from profiling.stats import \
-    FlatStatistics, FrozenStatistics, RecordingStatistics, Statistics
+    FlatFrozenStatistics, FrozenStatistics, RecordingStatistics, Statistics
 
 
 def mock_code(name):
@@ -145,7 +145,7 @@ def test_flatten():
         FrozenStatistics('bar', own_hits=40, children=[]),
         FrozenStatistics('baz', own_hits=50, children=[]),
     ])
-    flat_stats = FlatStatistics.flatten(stats)
+    flat_stats = FlatFrozenStatistics.flatten(stats)
     children = {stats.name: stats for stats in flat_stats}
     assert len(children) == 3
     assert children['foo'].own_hits == 30

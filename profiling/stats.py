@@ -18,7 +18,7 @@ from .sortkeys import by_deep_time
 
 
 __all__ = ['Statistics', 'RecordingStatistics', 'VoidRecordingStatistics',
-           'FrozenStatistics', 'FlatStatistics']
+           'FrozenStatistics', 'FlatFrozenStatistics']
 
 
 def stats_from_members(stats_class, members):
@@ -274,7 +274,7 @@ class FrozenStatistics(Statistics):
         return len(self.children)
 
 
-class FlatStatistics(Statistics):
+class FlatFrozenStatistics(FrozenStatistics):
 
     __slots__ = ('name', 'filename', 'lineno', 'module',
                  'own_hits', 'deep_hits', 'own_time', 'deep_time',
@@ -285,12 +285,6 @@ class FlatStatistics(Statistics):
     own_time = default(0.0)
     deep_time = default(0.0)
     children = default(())
-
-    def __iter__(self):
-        return iter(self.children)
-
-    def __len__(self):
-        return len(self.children)
 
     @classmethod
     def flatten(cls, stats):
