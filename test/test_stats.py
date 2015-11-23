@@ -135,6 +135,23 @@ def test_frozen():
     assert len(restored_frozen_stats) == 1
 
 
+def test_flatten():
+    stats = FrozenStatistics(children=[
+        FrozenStatistics('foo', own_hits=10, children=[
+            FrozenStatistics('foo', own_hits=20, children=[]),
+            FrozenStatistics('bar', own_hits=30, children=[]),
+        ]),
+        FrozenStatistics('bar', own_hits=40, children=[]),
+        FrozenStatistics('baz', own_hits=50, children=[]),
+    ])
+    flat_stats = stats.flatten()
+    children = {stats.name: stats for stats in flat_stats}
+    assert len(children) == 3
+    assert children['foo'].own_hits == 30
+    assert children['bar'].own_hits == 70
+    assert children['baz'].own_hits == 50
+
+
 def test_sorting():
     stats = RecordingStatistics(mock_code('foo'))
     stats1 = RecordingStatistics(mock_code('bar'))

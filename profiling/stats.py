@@ -8,9 +8,11 @@
 """
 from __future__ import absolute_import, division
 
+from collections import deque
 import inspect
 
 from six import itervalues, with_metaclass
+from six.moves import zip
 
 from .sortkeys import by_deep_time
 
@@ -80,8 +82,10 @@ class Statistics(with_metaclass(StatisticsMeta)):
     #: The exclusive execution time.
     deep_time = default(0.0)
 
-    def __init__(self, **members):
-        for attr, value in members.items():
+    def __init__(self, *args, **kwargs):
+        for attr, value in zip(self.__slots__, args):
+            setattr(self, attr, value)
+        for attr, value in kwargs.items():
             setattr(self, attr, value)
 
     @property
@@ -268,3 +272,23 @@ class FrozenStatistics(Statistics):
 
     def __len__(self):
         return len(self.children)
+
+    def flatten(self):
+        """Makes a flat statistics from this statistics."""
+        cls = self.__class__
+        flat_children = {}
+        descendants = deque(self)
+        while descendants:
+            stats = descendants.popleft()
+            descendants.extend(stats)
+            key = (stats.name, stats.filename, stats.lineno, stats.module)
+            try:
+                flat_stats = flat_children[key]
+            except KeyError:
+                flat_stats = cls(*key, own_hits=0, deep_time=0, children=())
+                flat_children[key] = flat_stats
+            flat_stats.own_hits += stats.own_hits
+            flat_stats.deep_time += stats.deep_time
+        children = list(itervalues(flat_children))
+        return cls(self.name, self.filename, self.lineno, self.module,
+                   self.own_hits, self.deep_time, children)
