@@ -159,7 +159,7 @@ Viewer Key Bindings
 
 - <tt>q</tt> - Quit.
 - <tt>space</tt> - Pause/Resume.
-- <tt>\</tt> - Toggle layout between NESTED and FLAT.
+- <tt>\\</tt> - Toggle layout between NESTED and FLAT.
 - <tt>↑</tt> and <tt>↓</tt> - Navigate frames.
 - <tt>→</tt> - Expand the frame.
 - <tt>←</tt> - Fold the frame.
