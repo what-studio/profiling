@@ -22,7 +22,6 @@ import struct
 import sys
 
 from .. import __version__
-from ..stats import FrozenStatistics
 from ..utils import current_thread_id, frame_stack, main_thread_id
 
 
@@ -181,9 +180,8 @@ class ProfilingServer(object):
             self.profiler.stop()
             if on_child_thread:
                 self.profiler.exclude_code(excluding_code)
-            stats, cpu_time, wall_time = self.profiler.result()
-            stats_members = FrozenStatistics.members(stats)
-            data = pack_msg(RESULT, (stats_members, cpu_time, wall_time),
+            result = self.profiler.result()
+            data = pack_msg(RESULT, result,
                             pickle_protocol=self.pickle_protocol)
             self._latest_result_data = data
             # broadcast.

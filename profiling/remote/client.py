@@ -13,7 +13,6 @@ import socket
 from valuedispatch import valuedispatch
 
 from . import PROFILER, recv_msg, RESULT, WELCOME
-from ..stats import FrozenStatistics, stats_from_members
 
 
 __all__ = ['ProfilingClient', 'FailoverProfilingClient']
@@ -36,8 +35,7 @@ def handle_profiler(_, profiler_class, client):
 
 @protocol.register(RESULT)
 def handle_result(_, result, client):
-    stats_members, cpu_time, wall_time = result
-    stats = stats_from_members(FrozenStatistics, stats_members)
+    stats, cpu_time, wall_time = result
     client.viewer.set_result(stats, cpu_time, wall_time,
                              client.title, datetime.now())
 
