@@ -25,10 +25,15 @@ import urwid
 from urwid import connect_signal as on
 
 from . import sortkeys
+from .stats import FlatStatistics
 
 
 __all__ = ['StatisticsTable', 'StatisticsViewer', 'fmt',
            'bind_vim_keys', 'bind_game_keys']
+
+
+NESTED = 0
+FLAT = 1
 
 
 def get_func(f):
@@ -572,8 +577,7 @@ class StatisticsTable(urwid.WidgetWrap):
         self.wall_time = wall_time
         self.title = title
         self.at = at
-        if not self.viewer.paused:
-            self.refresh()
+        self.refresh()
 
     def sort_stats(self, order=sortkeys.by_deep_time):
         assert callable(order)
@@ -667,6 +671,10 @@ class StatisticsTable(urwid.WidgetWrap):
         elif key == '>':
             self.focus_hotspot(size)
             return True
+        elif key == '\\':
+            layout = {FLAT: NESTED, NESTED: FLAT}[self.viewer.layout]
+            self.viewer.set_layout(layout)
+            return True
         elif command == self._command_map['esc']:
             self.defocus()
             return True
@@ -750,6 +758,9 @@ class StatisticsViewer(object):
     #: Whether the viewer is paused.
     paused = False
 
+    #: The children statistics layout.  One of `NESTED` or `FLAT`.
+    layout = NESTED
+
     def unhandled_input(self, key):
         if key in ('q', 'Q'):
             raise urwid.ExitMainLoop()
@@ -763,6 +774,12 @@ class StatisticsViewer(object):
         loop = urwid.MainLoop(self.widget, self.palette, *args, **kwargs)
         return loop
 
+    def set_layout(self, layout):
+        if layout == self.layout:
+            return  # ignore.
+        self.layout = layout
+        self.update_result()
+
     def set_profiler_class(self, profiler_class):
         table_class = profiler_class.table_class
         if type(self.table) is table_class:  # don't use isinstance().
@@ -770,12 +787,26 @@ class StatisticsViewer(object):
         self.table = table_class(self)
         self.widget.original_widget = self.table
 
+    def update_result(self):
+        if self.paused:
+            result = self._paused_result
+        else:
+            try:
+                result = self._final_result
+            except AttributeError:
+                self.table.update_frame()
+                return
+        stats, cpu_time, wall_time, title, at = result
+        if self.layout == FLAT:
+            stats = FlatStatistics.flatten(stats)
+        self.table.set_result(stats, cpu_time, wall_time, title, at)
+
     def set_result(self, stats, cpu_time=0.0, wall_time=0.0,
                    title=None, at=None):
+        self._final_result = (stats, cpu_time, wall_time, title, at)
         if self.paused:
-            self._pending = (stats, cpu_time, wall_time, title, at)
-        else:
-            self.table.set_result(stats, cpu_time, wall_time, title, at)
+            return
+        self.update_result()
 
     def activate(self):
         self.active = True
@@ -787,17 +818,13 @@ class StatisticsViewer(object):
 
     def pause(self):
         self.paused = True
+        self._paused_result = self._final_result
         self.table.update_frame()
 
     def resume(self):
         self.paused = False
-        try:
-            stats, cpu_time, wall_time, title, at = self._pending
-        except AttributeError:
-            self.table.update_frame()
-        else:
-            del self._pending
-            self.table.set_result(stats, cpu_time, wall_time, title, at)
+        del self._paused_result
+        self.update_result()
 
 
 def bind_vim_keys(urwid=urwid):

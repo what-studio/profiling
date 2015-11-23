@@ -18,7 +18,7 @@ from .sortkeys import by_deep_time
 
 
 __all__ = ['Statistics', 'RecordingStatistics', 'VoidRecordingStatistics',
-           'FrozenStatistics']
+           'FrozenStatistics', 'FlatStatistics']
 
 
 def stats_from_members(stats_class, members):
@@ -273,22 +273,43 @@ class FrozenStatistics(Statistics):
     def __len__(self):
         return len(self.children)
 
-    def flatten(self):
-        """Makes a flat statistics from this statistics."""
-        cls = self.__class__
+
+class FlatStatistics(Statistics):
+
+    __slots__ = ('name', 'filename', 'lineno', 'module',
+                 'own_hits', 'deep_hits', 'own_time', 'deep_time',
+                 'children')
+
+    own_hits = default(0)
+    deep_hits = default(0)
+    own_time = default(0.0)
+    deep_time = default(0.0)
+    children = default(())
+
+    def __iter__(self):
+        return iter(self.children)
+
+    def __len__(self):
+        return len(self.children)
+
+    @classmethod
+    def flatten(cls, stats):
+        """Makes a flat statistics from the given statistics."""
         flat_children = {}
-        descendants = deque(self)
+        descendants = deque(stats)
         while descendants:
-            stats = descendants.popleft()
-            descendants.extend(stats)
-            key = (stats.name, stats.filename, stats.lineno, stats.module)
+            _stats = descendants.popleft()
+            descendants.extend(_stats)
+            key = (_stats.name, _stats.filename, _stats.lineno, _stats.module)
             try:
                 flat_stats = flat_children[key]
             except KeyError:
-                flat_stats = cls(*key, own_hits=0, deep_time=0, children=())
-                flat_children[key] = flat_stats
-            flat_stats.own_hits += stats.own_hits
-            flat_stats.deep_time += stats.deep_time
+                flat_stats = flat_children[key] = cls(*key)
+            flat_stats.own_hits += _stats.own_hits
+            flat_stats.deep_hits += _stats.deep_hits
+            flat_stats.own_time += _stats.own_time
+            flat_stats.deep_time += _stats.deep_time
         children = list(itervalues(flat_children))
-        return cls(self.name, self.filename, self.lineno, self.module,
-                   self.own_hits, self.deep_time, children)
+        return cls(stats.name, stats.filename, stats.lineno, stats.module,
+                   stats.own_hits, stats.deep_hits, stats.own_time,
+                   stats.deep_time, children)
