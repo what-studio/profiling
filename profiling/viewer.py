@@ -470,6 +470,9 @@ class StatisticsTable(urwid.WidgetWrap):
     #: The initial order.
     order = sortkeys.by_function
 
+    #: The children statistics layout.  One of `NESTED` or `FLAT`.
+    layout = NESTED
+
     title = None
     stats = None
     time = None
@@ -579,8 +582,16 @@ class StatisticsTable(urwid.WidgetWrap):
         self.at = at
         self.refresh()
 
+    def set_layout(self, layout):
+        if layout == self.layout:
+            return  # ignore.
+        self.layout = layout
+        self.refresh()
+
     def sort_stats(self, order=sortkeys.by_deep_time):
         assert callable(order)
+        if order == self.order:
+            return  # ignore.
         self.order = order
         self.refresh()
 
@@ -592,6 +603,8 @@ class StatisticsTable(urwid.WidgetWrap):
 
     def refresh(self):
         stats = self.get_stats()
+        if self.layout == FLAT:
+            stats = FlatFrozenStatistics.flatten(stats)
         node = StatisticNode(stats, table=self)
         path = self.get_path()
         node = self.find_node(node, path)
@@ -672,13 +685,15 @@ class StatisticsTable(urwid.WidgetWrap):
             self.focus_hotspot(size)
             return True
         elif key == '\\':
-            layout = {FLAT: NESTED, NESTED: FLAT}[self.viewer.layout]
-            self.viewer.set_layout(layout)
+            layout = {FLAT: NESTED, NESTED: FLAT}[self.layout]
+            self.set_layout(layout)
             return True
         elif command == self._command_map['esc']:
             self.defocus()
             return True
         elif command == self._command_map['right']:
+            if self.layout == FLAT:
+                return True  # ignore.
             widget, node = self.tbody.get_focus()
             if widget.expanded:
                 heavy_widget = widget.first_child()
@@ -687,6 +702,8 @@ class StatisticsTable(urwid.WidgetWrap):
                     self.tbody.change_focus(size, heavy_node)
                 return True
         elif command == self._command_map['left']:
+            if self.layout == FLAT:
+                return True  # ignore.
             widget, node = self.tbody.get_focus()
             if not widget.expanded:
                 parent_node = node.get_parent()
@@ -758,9 +775,6 @@ class StatisticsViewer(object):
     #: Whether the viewer is paused.
     paused = False
 
-    #: The children statistics layout.  One of `NESTED` or `FLAT`.
-    layout = NESTED
-
     def unhandled_input(self, key):
         if key in ('q', 'Q'):
             raise urwid.ExitMainLoop()
@@ -773,12 +787,6 @@ class StatisticsViewer(object):
         kwargs.setdefault('unhandled_input', self.unhandled_input)
         loop = urwid.MainLoop(self.widget, self.palette, *args, **kwargs)
         return loop
-
-    def set_layout(self, layout):
-        if layout == self.layout:
-            return  # ignore.
-        self.layout = layout
-        self.update_result()
 
     def set_profiler_class(self, profiler_class):
         table_class = profiler_class.table_class
@@ -804,8 +812,6 @@ class StatisticsViewer(object):
                 self.table.update_frame()
                 return
         stats, cpu_time, wall_time, title, at = result
-        if self.layout == FLAT:
-            stats = FlatFrozenStatistics.flatten(stats)
         self.table.set_result(stats, cpu_time, wall_time, title, at)
 
     def activate(self):
