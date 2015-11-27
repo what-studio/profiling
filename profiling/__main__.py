@@ -99,9 +99,16 @@ class ProfilingCLI(click.Group):
         if self.implicit_command_name is None:
             pass
         elif cmd_name not in self.commands:
-            ctx.args.insert(0, self.implicit_command_name)
+            ctx.arg0 = cmd_name
             cmd_name = self.implicit_command_name
         return super(ProfilingCLI, self).get_command(ctx, cmd_name)
+
+    def resolve_command(self, ctx, args):
+        base = super(ProfilingCLI, self)
+        cmd_name, cmd, args = base.resolve_command(ctx, args)
+        if hasattr(ctx, 'arg0'):
+            args.insert(0, ctx.arg0)
+        return cmd_name, cmd, args
 
 
 @click.command('profiling', cls=ProfilingCLI)
