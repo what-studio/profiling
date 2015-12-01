@@ -803,14 +803,14 @@ class StatisticsViewer(object):
 
     def update_result(self):
         """Updates the result on the table."""
-        if self.paused:
-            result = self._paused_result
-        else:
-            try:
+        try:
+            if self.paused:
+                result = self._paused_result
+            else:
                 result = self._final_result
-            except AttributeError:
-                self.table.update_frame()
-                return
+        except AttributeError:
+            self.table.update_frame()
+            return
         stats, cpu_time, wall_time, title, at = result
         self.table.set_result(stats, cpu_time, wall_time, title, at)
 
@@ -824,12 +824,18 @@ class StatisticsViewer(object):
 
     def pause(self):
         self.paused = True
-        self._paused_result = self._final_result
+        try:
+            self._paused_result = self._final_result
+        except AttributeError:
+            pass
         self.table.update_frame()
 
     def resume(self):
         self.paused = False
-        del self._paused_result
+        try:
+            del self._paused_result
+        except AttributeError:
+            pass
         self.update_result()
 
 
