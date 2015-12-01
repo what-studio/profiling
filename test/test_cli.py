@@ -50,13 +50,13 @@ def test_customized_cli():
     @cli.command(aliases=['fooo', 'foooo'])
     def foo():
         pass
-    @cli.command(implicit=True)
+    @cli.command(default=True)
     @click.argument('l', default='answer')
     @click.option('-n', type=int, default=0)
     def bar(l, n=0):
         click.echo('%s: %d' % (l, n))
     with pytest.raises(RuntimeError):
-        @cli.command(implicit=True)
+        @cli.command(default=True)
         def baz():
             pass
     assert len(cli.commands) == 2

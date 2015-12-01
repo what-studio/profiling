@@ -1,4 +1,5 @@
 valuedispatch>=0.0.1
 click>=4.1
+click-default-group>=1.1
 six>=1.8.0
 urwid>=1.2.1
