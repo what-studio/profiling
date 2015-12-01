@@ -89,6 +89,7 @@ class ProfilingCLI(DefaultGroup):
 @click.command('profiling', cls=ProfilingCLI)
 @click.version_option(__version__)
 def cli():
+    sys.path.insert(0, os.curdir)
     bind_vim_keys()
     bind_game_keys()
 
@@ -741,7 +742,6 @@ def timeit_profile(stmt, number, repeat, setup,
                    **_ignored):
     """Profile a Python statement like timeit."""
     del _ignored
-    sys.path.insert(0, os.curdir)
     globals_ = {}
     exec_(setup, globals_)
     if number is None:
