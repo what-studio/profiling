@@ -8,7 +8,8 @@ import profiling
 from profiling.sortkeys import \
     by_deep_time_per_call, by_name, by_own_hits, by_own_time_per_call
 from profiling.stats import \
-    FlatFrozenStatistics, FrozenStatistics, RecordingStatistics, Statistics
+    FlatFrozenStatistics, FrozenStatistics, iter_deeply, RecordingStatistics, \
+    Statistics
 
 
 def mock_code(name):
@@ -151,6 +152,24 @@ def test_flatten():
     assert children['foo'].own_hits == 30
     assert children['bar'].own_hits == 70
     assert children['baz'].own_hits == 50
+
+
+def test_iter_deeply():
+    stats = FrozenStatistics(children=[
+        FrozenStatistics('foo', own_hits=10, children=[
+            FrozenStatistics('foo', own_hits=20, children=[]),
+            FrozenStatistics('bar', own_hits=30, children=[]),
+        ]),
+        FrozenStatistics('bar', own_hits=40, children=[]),
+        FrozenStatistics('baz', own_hits=50, children=[]),
+    ])
+    descendants = list(iter_deeply(stats))
+    assert len(descendants) == 5
+    assert descendants[0].name == 'foo'
+    assert descendants[1].name == 'bar'
+    assert descendants[2].name == 'baz'
+    assert descendants[3].name == 'foo'
+    assert descendants[4].name == 'bar'
 
 
 def test_sorting():

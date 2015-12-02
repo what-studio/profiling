@@ -15,6 +15,7 @@ from six import itervalues, with_metaclass
 from six.moves import zip
 
 from .sortkeys import by_deep_time
+from .utils import noop
 
 
 __all__ = ['Statistics', 'RecordingStatistics', 'VoidRecordingStatistics',
@@ -22,10 +23,20 @@ __all__ = ['Statistics', 'RecordingStatistics', 'VoidRecordingStatistics',
 
 
 def stats_from_members(stats_class, members):
+    """Creates statistics by ordered values of the slots."""
     stats = stats_class()
     for attr, value in zip(stats_class.__slots__, members):
         setattr(stats, attr, value)
     return stats
+
+
+def iter_deeply(stats):
+    """Iterates all descendant statistics under the given root statistics."""
+    descendants = deque(stats)
+    while descendants:
+        _stats = descendants.popleft()
+        yield _stats
+        descendants.extend(_stats)
 
 
 class default(object):
@@ -101,7 +112,9 @@ class Statistics(with_metaclass(StatisticsMeta)):
 
         Calculates as sum of the own hits and deep hits of the children.
         """
-        return self.own_hits + sum(stats.deep_hits for stats in self)
+        hits = [self.own_hits]
+        hits.extend(stats.own_hits for stats in iter_deeply(self))
+        return sum(hits)
 
     @property
     def own_time(self):
@@ -255,10 +268,8 @@ class VoidRecordingStatistics(RecordingStatistics):
 
     __slots__ = ('code', '_children')
 
-    _ignore = lambda x, *a, **k: None
-    own_hits = property(lambda x: 0, _ignore)
-    deep_time = property(lambda x: sum(s.deep_time for s in x), _ignore)
-    del _ignore
+    own_hits = property(lambda x: 0, noop)
+    deep_time = property(lambda x: sum(s.deep_time for s in x), noop)
 
 
 class FrozenStatistics(Statistics):
@@ -290,10 +301,7 @@ class FlatFrozenStatistics(FrozenStatistics):
     def flatten(cls, stats):
         """Makes a flat statistics from the given statistics."""
         flat_children = {}
-        descendants = deque(stats)
-        while descendants:
-            _stats = descendants.popleft()
-            descendants.extend(_stats)
+        for _stats in iter_deeply(stats):
             key = (_stats.name, _stats.filename, _stats.lineno, _stats.module)
             try:
                 flat_stats = flat_children[key]

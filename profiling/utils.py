@@ -17,7 +17,7 @@ except ImportError:
 
 
 __all__ = ['Runnable', 'frame_stack', 'repr_frame', 'lazy_import', 'deferral',
-           'current_thread_id', 'main_thread_id']
+           'current_thread_id', 'main_thread_id', 'noop']
 
 
 class Runnable(object):
@@ -157,3 +157,7 @@ current_thread_id = _thread.get_ident
 
 #: Kept Id of the math thread.
 main_thread_id = current_thread_id()
+
+
+#: Does nothing.  It allows any arguments.
+noop = lambda x, *a, **k: None
