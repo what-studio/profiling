@@ -603,6 +603,8 @@ class StatisticsTable(urwid.WidgetWrap):
 
     def refresh(self):
         stats = self.get_stats()
+        if stats is None:
+            return
         if self.layout == FLAT:
             stats = FlatFrozenStatistics.flatten(stats)
         node = StatisticNode(stats, table=self)
