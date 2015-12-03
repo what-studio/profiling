@@ -200,7 +200,8 @@ def test_sorting():
     assert stats.sorted(by_name) == [stats1, stats2, stats3]
 
 
-def test_recursion_depth():
+def test_recursion_limit():
+    # Define a function with deep recursion.
     def x0(frames):
         frames.append(sys._getframe())
     locals_ = locals()
@@ -215,12 +216,20 @@ def test_recursion_depth():
         exec_(code, locals_)
     f = locals_['x%d' % (limit - 1)]
     frames = []
-    with pytest.raises(RuntimeError):
+    try:
         f(frames)
+    except RuntimeError:
+        # Expected.
+        pass
+    else:
+        # Maybe PyPy.
+        pytest.skip('Recursion limit not exceeded')
+    # Profiler the deepest frame.
     profiler = TracingProfiler()
     profiler._profile(frames[-1], 'call', None)
     spin(0.5)
     profiler._profile(frames[-1], 'return', None)
+    # Test with the result.
     frozen_stats, cpu_time, wall_time = profiler.result()
     deepest_stats = list(spread_stats(frozen_stats))[-1]
     assert deepest_stats.deep_time > 0
