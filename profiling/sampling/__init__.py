@@ -49,13 +49,13 @@ class SamplingProfiler(Profiler):
     #: sampling.samplers.Sampler`.
     sampler = None
 
-    def __init__(self, top_frames=(), top_codes=(),
-                 upper_frames=(), upper_codes=(), sampler=None):
+    def __init__(self, base_frame=None, base_code=None,
+                 ignored_frames=(), ignored_codes=(), sampler=None):
         sampler = sampler or SAMPLER_CLASS()
         if not isinstance(sampler, Sampler):
             raise TypeError('Not a sampler instance')
         base = super(SamplingProfiler, self)
-        base.__init__(top_frames, top_codes, upper_frames, upper_codes)
+        base.__init__(base_frame, base_code, ignored_frames, ignored_codes)
         self.sampler = sampler
 
     def sample(self, frame):

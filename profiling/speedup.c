@@ -1,18 +1,20 @@
 #include "Python.h"
 #include "frameobject.h"
 
+#define PYOBJ PyObject*
+
 static PyObject *
 frame_stack(PyObject *self, PyObject *args)
 {
-    // frame_stack(frame, top_frames, top_codes, upper_frames, upper_codes)
+    // frame_stack(frame, base_frame, base_code, ignored_frames, ignored_codes)
     // returns a list of frames.
     PyFrameObject* frame;
-    const PySetObject* top_frames;
-    const PySetObject* top_codes;
-    const PySetObject* upper_frames;
-    const PySetObject* upper_codes;
-    if (!PyArg_ParseTuple(args, "OOOOO", &frame, &top_frames, &top_codes,
-                          &upper_frames, &upper_codes))
+    const PyFrameObject* base_frame;
+    const PyCodeObject* base_code;
+    const PySetObject* ignored_frames;
+    const PySetObject* ignored_codes;
+    if (!PyArg_ParseTuple(args, "OOOOO", &frame, &base_frame, &base_code,
+                                         &ignored_frames, &ignored_codes))
     {
         return NULL;
     }
@@ -23,19 +25,18 @@ frame_stack(PyObject *self, PyObject *args)
     }
     while (frame != NULL)
     {
-        if (PySet_Contains(upper_frames, frame) == 1 ||
-            PySet_Contains(upper_codes, frame->f_code) == 1)
+        if (frame == base_frame || frame->f_code == base_code)
         {
             break;
         }
-        if (PyList_Append(frame_stack, (PyObject*)frame))
+        if (PySet_Contains((PYOBJ)ignored_frames, (PYOBJ)frame) == 0 &&
+            PySet_Contains((PYOBJ)ignored_codes, (PYOBJ)frame->f_code) == 0)
         {
-            return NULL;
-        }
-        if (PySet_Contains(top_frames, frame) == 1 ||
-            PySet_Contains(top_codes, frame->f_code) == 1)
-        {
-            break;
+            // Not ignored.
+            if (PyList_Append(frame_stack, (PyObject*)frame) == -1)
+            {
+                return NULL;
+            }
         }
         frame = frame->f_back;
     }
