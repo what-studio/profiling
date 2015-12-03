@@ -30,13 +30,34 @@ def stats_from_members(stats_class, members):
     return stats
 
 
-def iter_deeply(stats):
-    """Iterates all descendant statistics under the given root statistics."""
+class spread_t(object):
+    __slots__ = ('flag',)
+    __bool__ = __nonzero__ = lambda x: x.flag
+    def clear(self):
+        self.flag = False
+    def __call__(self):
+        self.flag = True
+
+
+def spread_stats(stats, spreader=False):
+    """Iterates all descendant statistics under the given root statistics.
+
+    When ``spreader=True``, each iteration yields a descendant statistics and
+    `spread()` function together.  You should call `spread()` if you want to
+    spread the yielded statistics also.
+
+    """
+    spread = spread_t() if spreader else True
     descendants = deque(stats)
     while descendants:
         _stats = descendants.popleft()
-        yield _stats
-        descendants.extend(_stats)
+        if spreader:
+            spread.clear()
+            yield _stats, spread
+        else:
+            yield _stats
+        if spread:
+            descendants.extend(_stats)
 
 
 class default(object):
@@ -113,7 +134,7 @@ class Statistics(with_metaclass(StatisticsMeta)):
         Calculates as sum of the own hits and deep hits of the children.
         """
         hits = [self.own_hits]
-        hits.extend(stats.own_hits for stats in iter_deeply(self))
+        hits.extend(stats.own_hits for stats in spread_stats(self))
         return sum(hits)
 
     @property
@@ -269,7 +290,17 @@ class VoidRecordingStatistics(RecordingStatistics):
     __slots__ = ('code', '_children')
 
     own_hits = property(lambda x: 0, noop)
-    deep_time = property(lambda x: sum(s.deep_time for s in x), noop)
+
+    def deep_time(self):
+        times = []
+        for stats, spread in spread_stats(self, spreader=True):
+            if isinstance(stats, VoidRecordingStatistics):
+                spread()
+            else:
+                times.append(stats.deep_time)
+        return sum(times)
+
+    deep_time = property(deep_time, noop)
 
 
 class FrozenStatistics(Statistics):
@@ -301,7 +332,7 @@ class FlatFrozenStatistics(FrozenStatistics):
     def flatten(cls, stats):
         """Makes a flat statistics from the given statistics."""
         flat_children = {}
-        for _stats in iter_deeply(stats):
+        for _stats in spread_stats(stats):
             key = (_stats.name, _stats.filename, _stats.lineno, _stats.module)
             try:
                 flat_stats = flat_children[key]

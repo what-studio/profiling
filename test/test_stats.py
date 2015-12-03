@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
 import pickle
+import sys
+from textwrap import dedent
 from types import CodeType
 
-from six import PY3
+import pytest
+from six import exec_, PY3
 
+from _utils import spin
 import profiling
 from profiling.sortkeys import \
     by_deep_time_per_call, by_name, by_own_hits, by_own_time_per_call
 from profiling.stats import \
-    FlatFrozenStatistics, FrozenStatistics, iter_deeply, RecordingStatistics, \
-    Statistics
+    FlatFrozenStatistics, FrozenStatistics, RecordingStatistics, \
+    spread_stats, Statistics
+from profiling.tracing import TracingProfiler
 
 
 def mock_code(name):
@@ -154,7 +159,7 @@ def test_flatten():
     assert children['baz'].own_hits == 50
 
 
-def test_iter_deeply():
+def test_spread_stats():
     stats = FrozenStatistics(children=[
         FrozenStatistics('foo', own_hits=10, children=[
             FrozenStatistics('foo', own_hits=20, children=[]),
@@ -163,7 +168,7 @@ def test_iter_deeply():
         FrozenStatistics('bar', own_hits=40, children=[]),
         FrozenStatistics('baz', own_hits=50, children=[]),
     ])
-    descendants = list(iter_deeply(stats))
+    descendants = list(spread_stats(stats))
     assert len(descendants) == 5
     assert descendants[0].name == 'foo'
     assert descendants[1].name == 'bar'
@@ -193,3 +198,31 @@ def test_sorting():
     assert stats.sorted(by_deep_time_per_call) == [stats2, stats3, stats1]
     assert stats.sorted(by_own_time_per_call) == [stats2, stats3, stats1]
     assert stats.sorted(by_name) == [stats1, stats2, stats3]
+
+
+def test_recursion_depth():
+    def x0(frames):
+        frames.append(sys._getframe())
+    locals_ = locals()
+    limit = sys.getrecursionlimit()
+    for x in range(1, limit):
+        code = dedent('''
+        import sys
+        def x%d(frames):
+            frames.append(sys._getframe())
+            x%d(frames)
+        ''' % (x, x - 1))
+        exec_(code, locals_)
+    f = locals_['x%d' % (limit - 1)]
+    frames = []
+    with pytest.raises(RuntimeError):
+        f(frames)
+    profiler = TracingProfiler()
+    profiler._profile(frames[-1], 'call', None)
+    spin(0.5)
+    profiler._profile(frames[-1], 'return', None)
+    frozen_stats, cpu_time, wall_time = profiler.result()
+    deepest_stats = list(spread_stats(frozen_stats))[-1]
+    assert deepest_stats.deep_time > 0
+    # It exceeded the recursion limit until 6fe1b48.
+    assert frozen_stats.children[0].deep_time == deepest_stats.deep_time
