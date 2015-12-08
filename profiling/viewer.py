@@ -238,13 +238,13 @@ class Formatter(object):
 fmt = Formatter
 
 
-class StatisticWidget(urwid.TreeWidget):
+class StatisticsWidget(urwid.TreeWidget):
 
     signals = ['expanded', 'collapsed']
     icon_chars = ('+', '-', ' ')  # collapsed, expanded, leaf
 
     def __init__(self, node):
-        super(StatisticWidget, self).__init__(node)
+        super(StatisticsWidget, self).__init__(node)
         self._w = urwid.AttrWrap(self._w, None, StatisticsViewer.focus_map)
 
     def selectable(self):
@@ -312,7 +312,7 @@ class StatisticWidget(urwid.TreeWidget):
             key = '+'
         elif self.expanded and command == urwid.CURSOR_LEFT:
             key = '-'
-        return super(StatisticWidget, self).keypress(size, key)
+        return super(StatisticsWidget, self).keypress(size, key)
 
 
 class EmptyWidget(urwid.Widget):
@@ -329,7 +329,7 @@ class EmptyWidget(urwid.Widget):
         return urwid.SolidCanvas(' ', size[0], self.rows(size, focus))
 
 
-class StatisticsWidget(StatisticWidget):
+class RootStatisticsWidget(StatisticsWidget):
 
     def load_inner_widget(self):
         return EmptyWidget()
@@ -347,15 +347,15 @@ class StatisticsWidget(StatisticWidget):
         pass
 
 
-class StatisticNodeBase(urwid.TreeNode):
+class StatisticsNodeBase(urwid.TreeNode):
 
     def __init__(self, stats=None, parent=None, key=None, depth=None,
                  table=None):
-        super(StatisticNodeBase, self).__init__(stats, parent, key, depth)
+        super(StatisticsNodeBase, self).__init__(stats, parent, key, depth)
         self.table = table
 
     def get_focus(self):
-        widget, focus = super(StatisticNodeBase, self).get_focus()
+        widget, focus = super(StatisticsNodeBase, self).get_focus()
         if self.table is not None:
             self.table.walker.set_focus(self)
         return widget, focus
@@ -377,7 +377,7 @@ class StatisticNodeBase(urwid.TreeNode):
             widget.expand()
 
 
-class NullStatisticWidget(StatisticWidget):
+class NullStatisticsWidget(StatisticsWidget):
 
     def __init__(self, node):
         urwid.TreeWidget.__init__(self, node)
@@ -389,17 +389,17 @@ class NullStatisticWidget(StatisticWidget):
         return widget
 
 
-class NullStatisticNode(StatisticNodeBase):
+class NullStatisticsNode(StatisticsNodeBase):
 
-    _widget_class = NullStatisticWidget
-
-
-class LeafStatisticNode(StatisticNodeBase):
-
-    _widget_class = StatisticWidget
+    _widget_class = NullStatisticsWidget
 
 
-class StatisticNode(StatisticNodeBase, urwid.ParentNode):
+class LeafStatisticsNode(StatisticsNodeBase):
+
+    _widget_class = StatisticsWidget
+
+
+class StatisticsNode(StatisticsNodeBase, urwid.ParentNode):
 
     def deep_usage(self):
         stats = self.get_value()
@@ -411,17 +411,17 @@ class StatisticNode(StatisticNodeBase, urwid.ParentNode):
 
     def load_widget(self):
         if self.is_root():
-            widget_class = StatisticsWidget
+            widget_class = RootStatisticsWidget
         else:
-            widget_class = StatisticWidget
+            widget_class = StatisticsWidget
         widget = widget_class(self)
         widget.collapse()
         return widget
 
     def setup_widget(self, widget):
-        super(StatisticNode, self).setup_widget(widget)
+        super(StatisticsNode, self).setup_widget(widget)
         if self.get_depth() == 0:
-            # just expand the root node
+            # Just expand the root node.
             widget.expand()
             return
         table = self.table
@@ -438,7 +438,7 @@ class StatisticNode(StatisticNodeBase, urwid.ParentNode):
 
     def load_child_node(self, stats):
         depth = self.get_depth() + 1
-        node_class = StatisticNode if len(stats) else LeafStatisticNode
+        node_class = StatisticsNode if len(stats) else LeafStatisticsNode
         return node_class(stats, self, stats, depth, self.table)
 
 
@@ -479,7 +479,7 @@ class StatisticsTable(urwid.WidgetWrap):
 
     def __init__(self, viewer):
         self._expanded_stat_hashes = set()
-        self.walker = StatisticsWalker(NullStatisticNode())
+        self.walker = StatisticsWalker(NullStatisticsNode())
         on(self.walker, 'focus_changed', self._walker_focus_changed)
         tbody = StatisticsListBox(self.walker)
         thead = urwid.AttrMap(self.make_columns([
@@ -546,8 +546,8 @@ class StatisticsTable(urwid.WidgetWrap):
         self.tbody.set_focus(focus)
 
     def get_path(self):
-        """Gets the path to the focused statistic. Each step is a hash of
-        statistic object.
+        """Gets the path to the focused statistics. Each step is a hash of
+        statistics object.
         """
         path = deque()
         __, node = self.get_focus()
@@ -560,7 +560,7 @@ class StatisticsTable(urwid.WidgetWrap):
     def find_node(self, node, path):
         """Finds a node by the given path from the given node."""
         for hash_value in path:
-            if isinstance(node, LeafStatisticNode):
+            if isinstance(node, LeafStatisticsNode):
                 break
             for stats in node.get_child_keys():
                 if hash(stats) == hash_value:
@@ -584,14 +584,14 @@ class StatisticsTable(urwid.WidgetWrap):
 
     def set_layout(self, layout):
         if layout == self.layout:
-            return  # ignore.
+            return  # Ignore.
         self.layout = layout
         self.refresh()
 
     def sort_stats(self, order=sortkeys.by_deep_time):
         assert callable(order)
         if order == self.order:
-            return  # ignore.
+            return  # Ignore.
         self.order = order
         self.refresh()
 
@@ -607,13 +607,13 @@ class StatisticsTable(urwid.WidgetWrap):
             return
         if self.layout == FLAT:
             stats = FlatFrozenStatistics.flatten(stats)
-        node = StatisticNode(stats, table=self)
+        node = StatisticsNode(stats, table=self)
         path = self.get_path()
         node = self.find_node(node, path)
         self.set_focus(node)
 
     def update_frame(self, focus=None):
-        # set thead attr
+        # Set thead attr.
         if self.viewer.paused:
             thead_attr = 'thead.paused'
         elif not self.viewer.active:
@@ -621,7 +621,7 @@ class StatisticsTable(urwid.WidgetWrap):
         else:
             thead_attr = 'thead'
         self.thead.set_attr_map({None: thead_attr})
-        # set sorting column in thead attr
+        # Set sorting column in thead attr.
         for x, (__, __, __, order) in enumerate(self.columns):
             attr = thead_attr + '.sorted' if order is self.order else None
             widget = self.thead.base_widget.contents[x][0]
@@ -629,7 +629,7 @@ class StatisticsTable(urwid.WidgetWrap):
             widget.set_text((attr, text))
         if self.viewer.paused:
             return
-        # update header
+        # Update header.
         stats = self.get_stats()
         if stats is None:
             return
@@ -657,7 +657,7 @@ class StatisticsTable(urwid.WidgetWrap):
         cpu_info = urwid.Text([
             'CPU ', fmt.markup_percent(cpu_usage, unit=True),
             ' ', ('weak', fraction_string)])
-        # set header columns
+        # Set header columns.
         col_opts = ('weight', 1, False)
         self.header.contents = \
             [(w, col_opts) for w in [cpu_info, meta_info] if w]
@@ -690,12 +690,14 @@ class StatisticsTable(urwid.WidgetWrap):
             layout = {FLAT: NESTED, NESTED: FLAT}[self.layout]
             self.set_layout(layout)
             return True
-        elif command == self._command_map['esc']:
+        command = self._command_map[key]
+        if command == 'menu':
+            # key: ESC.
             self.defocus()
             return True
-        elif command == self._command_map['right']:
+        elif command == urwid.CURSOR_RIGHT:
             if self.layout == FLAT:
-                return True  # ignore.
+                return True  # Ignore.
             widget, node = self.tbody.get_focus()
             if widget.expanded:
                 heavy_widget = widget.first_child()
@@ -703,24 +705,25 @@ class StatisticsTable(urwid.WidgetWrap):
                     heavy_node = heavy_widget.get_node()
                     self.tbody.change_focus(size, heavy_node)
                 return True
-        elif command == self._command_map['left']:
+        elif command == urwid.CURSOR_LEFT:
             if self.layout == FLAT:
-                return True  # ignore.
+                return True  # Ignore.
             widget, node = self.tbody.get_focus()
             if not widget.expanded:
                 parent_node = node.get_parent()
                 if not parent_node.is_root():
                     self.tbody.change_focus(size, parent_node)
                 return True
-        elif command == self._command_map[' ']:
+        elif command == urwid.ACTIVATE:
+            # key: Enter or Space.
             if self.viewer.paused:
                 self.viewer.resume()
             else:
                 self.viewer.pause()
             return True
-        return base.keypress(size, key)
+        return super(StatisticsTable, self).keypress(size, key)
 
-    # signal handlers
+    # Signal handlers.
 
     def _walker_focus_changed(self, focus):
         self.update_frame(focus)
@@ -792,7 +795,8 @@ class StatisticsViewer(object):
 
     def set_profiler_class(self, profiler_class):
         table_class = profiler_class.table_class
-        if type(self.table) is table_class:  # don't use isinstance().
+        # NOTE: Don't use isinstance() at the below line.
+        if type(self.table) is table_class:
             return
         self.table = table_class(self)
         self.widget.original_widget = self.table
