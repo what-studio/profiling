@@ -675,7 +675,6 @@ class StatisticsTable(urwid.WidgetWrap):
         self.set_focus(node.get_root())
 
     def keypress(self, size, key):
-        base = super(StatisticsTable, self)
         command = self._command_map[key]
         if key == ']':
             self.shift_order(+1)
