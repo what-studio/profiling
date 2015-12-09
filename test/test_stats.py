@@ -230,8 +230,13 @@ def test_recursion_limit():
     spin(0.5)
     profiler._profile(frames[-1], 'return', None)
     # Test with the result.
-    frozen_stats, cpu_time, wall_time = profiler.result()
-    deepest_stats = list(spread_stats(frozen_stats))[-1]
+    stats, cpu_time, wall_time = profiler.result()
+    deepest_stats = list(spread_stats(stats))[-1]
     assert deepest_stats.deep_time > 0
     # It exceeded the recursion limit until 6fe1b48.
-    assert frozen_stats.children[0].deep_time == deepest_stats.deep_time
+    assert stats.children[0].deep_time == deepest_stats.deep_time
+    # Pickling.
+    assert isinstance(stats, RecordingStatistics)
+    data = pickle.dumps(stats)
+    frozen_stats = pickle.loads(data)
+    assert isinstance(stats, FrozenStatistics)
