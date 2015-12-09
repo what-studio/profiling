@@ -224,7 +224,7 @@ def test_recursion_limit():
     else:
         # Maybe PyPy.
         pytest.skip('Recursion limit not exceeded')
-    # Profiler the deepest frame.
+    # Profile the deepest frame.
     profiler = TracingProfiler()
     profiler._profile(frames[-1], 'call', None)
     spin(0.5)
