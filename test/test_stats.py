@@ -261,3 +261,14 @@ def test_deep_stats_load_performance(benchmark):
     stats = deep_stats(100, skip_if_no_recursion_error=False)
     data = pickle.dumps(stats)
     benchmark(lambda: pickle.loads(data))
+
+
+def test_shallow_stats_dump_performance(benchmark):
+    stats = deep_stats(5, skip_if_no_recursion_error=False)
+    benchmark(lambda: pickle.dumps(stats))
+
+
+def test_shallow_stats_load_performance(benchmark):
+    stats = deep_stats(5, skip_if_no_recursion_error=False)
+    data = pickle.dumps(stats)
+    benchmark(lambda: pickle.loads(data))
