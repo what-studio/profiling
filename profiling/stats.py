@@ -307,6 +307,9 @@ class FrozenStatistics(Statistics):
 
 
 def make_frozen_stats_tree(stats):
+    """Makes a flat members tree of the given statistics.  The statistics can
+    be restored by :func:`frozen_stats_from_tree`.
+    """
     slots = FrozenStatistics.__slots__[:-1]  # Discard children.
     tree, stats_tree = [], [(None, stats)]
     for x in itertools.count():
@@ -320,6 +323,9 @@ def make_frozen_stats_tree(stats):
 
 
 def frozen_stats_from_tree(tree):
+    """Restores a statistics from the given flat members tree.
+    :func:`make_frozen_stats_tree` makes a tree for this function.
+    """
     if not tree:
         raise ValueError('Empty tree')
     slots = FrozenStatistics.__slots__[:-1]  # Discard children.
