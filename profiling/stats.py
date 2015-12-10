@@ -310,14 +310,15 @@ def make_frozen_stats_tree(stats):
     """Makes a flat members tree of the given statistics.  The statistics can
     be restored by :func:`frozen_stats_from_tree`.
     """
-    slots = FrozenStatistics.__slots__[:-1]  # Discard children.
     tree, stats_tree = [], [(None, stats)]
     for x in itertools.count():
-        if x == len(stats_tree):
+        try:
+            parent_offset, _stats = stats_tree[x]
+        except IndexError:
             break
-        parent_offset, _stats = stats_tree[x]
         stats_tree.extend((x, s) for s in _stats)
-        members = [getattr(_stats, attr) for attr in slots]
+        members = (_stats.name, _stats.filename, _stats.lineno,
+                   _stats.module, _stats.own_hits, _stats.deep_time)
         tree.append((parent_offset, members))
     return tree
 
@@ -328,10 +329,9 @@ def frozen_stats_from_tree(tree):
     """
     if not tree:
         raise ValueError('Empty tree')
-    slots = FrozenStatistics.__slots__[:-1]  # Discard children.
     stats_index = []
     for parent_offset, members in tree:
-        stats = FrozenStatistics(**dict(zip(slots, members)))
+        stats = FrozenStatistics(*members)
         stats_index.append(stats)
         if parent_offset is not None:
             stats_index[parent_offset].children.append(stats)
