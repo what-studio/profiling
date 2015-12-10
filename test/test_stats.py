@@ -245,6 +245,8 @@ def test_recursion_limit(deep_stats):
     data = pickle.dumps(deep_stats)
     frozen_stats = pickle.loads(data)
     assert isinstance(frozen_stats, FrozenStatistics)
+    deepest_frozen_stats = list(spread_stats(frozen_stats))[-1]
+    assert deepest_stats.deep_time == deepest_frozen_stats.deep_time
 
 
 def test_deep_stats_dump_performance(benchmark):
