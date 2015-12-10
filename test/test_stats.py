@@ -200,7 +200,8 @@ def test_sorting():
     assert stats.sorted(by_name) == [stats1, stats2, stats3]
 
 
-def test_recursion_limit():
+@pytest.fixture
+def deep_stats():
     # Define a function with deep recursion.
     def x0(frames):
         frames.append(sys._getframe())
@@ -230,13 +231,26 @@ def test_recursion_limit():
     spin(0.5)
     profiler._profile(frames[-1], 'return', None)
     # Test with the result.
-    stats, cpu_time, wall_time = profiler.result()
-    deepest_stats = list(spread_stats(stats))[-1]
+    stats, __, __ = profiler.result()
+    return stats
+
+
+def test_recursion_limit(deep_stats):
+    deepest_stats = list(spread_stats(deep_stats))[-1]
     assert deepest_stats.deep_time > 0
     # It exceeded the recursion limit until 6fe1b48.
-    assert stats.children[0].deep_time == deepest_stats.deep_time
+    assert deep_stats.children[0].deep_time == deepest_stats.deep_time
     # Pickling.
-    assert isinstance(stats, RecordingStatistics)
-    data = pickle.dumps(stats)
+    assert isinstance(deep_stats, RecordingStatistics)
+    data = pickle.dumps(deep_stats)
     frozen_stats = pickle.loads(data)
     assert isinstance(frozen_stats, FrozenStatistics)
+
+
+def test_deep_stats_dump_performance(benchmark, deep_stats):
+    benchmark(lambda: pickle.dumps(deep_stats))
+
+
+def test_deep_stats_load_performance(benchmark, deep_stats):
+    data = pickle.dumps(deep_stats)
+    benchmark(lambda: pickle.loads(data))
