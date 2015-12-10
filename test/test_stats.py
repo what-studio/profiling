@@ -201,13 +201,12 @@ def test_sorting():
 
 
 @pytest.fixture
-def deep_stats():
+def deep_stats(depth=sys.getrecursionlimit(), skip_if_no_recursion_error=True):
     # Define a function with deep recursion.
     def x0(frames):
         frames.append(sys._getframe())
     locals_ = locals()
-    limit = sys.getrecursionlimit()
-    for x in range(1, limit):
+    for x in range(1, depth):
         code = dedent('''
         import sys
         def x%d(frames):
@@ -215,7 +214,7 @@ def deep_stats():
             x%d(frames)
         ''' % (x, x - 1))
         exec_(code, locals_)
-    f = locals_['x%d' % (limit - 1)]
+    f = locals_['x%d' % (depth - 1)]
     frames = []
     try:
         f(frames)
@@ -224,7 +223,8 @@ def deep_stats():
         pass
     else:
         # Maybe PyPy.
-        pytest.skip('Recursion limit not exceeded')
+        if skip_if_no_recursion_error:
+            pytest.skip('Recursion limit not exceeded')
     # Profile the deepest frame.
     profiler = TracingProfiler()
     profiler._profile(frames[-1], 'call', None)
@@ -247,10 +247,12 @@ def test_recursion_limit(deep_stats):
     assert isinstance(frozen_stats, FrozenStatistics)
 
 
-def test_deep_stats_dump_performance(benchmark, deep_stats):
-    benchmark(lambda: pickle.dumps(deep_stats))
+def test_deep_stats_dump_performance(benchmark):
+    stats = deep_stats(100, skip_if_no_recursion_error=False)
+    benchmark(lambda: pickle.dumps(stats))
 
 
-def test_deep_stats_load_performance(benchmark, deep_stats):
-    data = pickle.dumps(deep_stats)
+def test_deep_stats_load_performance(benchmark):
+    stats = deep_stats(100, skip_if_no_recursion_error=False)
+    data = pickle.dumps(stats)
     benchmark(lambda: pickle.loads(data))
