@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import sys
 from textwrap import dedent
 from types import CodeType
