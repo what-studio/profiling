@@ -10,6 +10,7 @@ from __future__ import absolute_import, division
 
 from collections import deque
 import inspect
+import itertools
 
 from six import itervalues, with_metaclass
 from six.moves import zip
@@ -20,14 +21,6 @@ from .utils import noop
 
 __all__ = ['Statistics', 'RecordingStatistics', 'VoidRecordingStatistics',
            'FrozenStatistics', 'FlatFrozenStatistics']
-
-
-def stats_from_members(stats_class, members):
-    """Creates statistics by ordered values of the slots."""
-    stats = stats_class()
-    for attr, value in zip(stats_class.__slots__, members):
-        setattr(stats, attr, value)
-    return stats
 
 
 class spread_t(object):
@@ -173,13 +166,9 @@ class Statistics(with_metaclass(StatisticsMeta)):
         return hash((self.name, self.filename, self.lineno))
 
     def __reduce__(self):
-        """Safen for Pickle."""
-        return self.reduce_stats(self)
-
-    @classmethod
-    def reduce_stats(cls, stats):
-        members = [getattr(stats, attr) for attr in cls.__slots__]
-        return (stats_from_members, (cls, members))
+        """Freezes this statistics to safen to pack/unpack in Pickle."""
+        tree = make_frozen_stats_tree(self)
+        return (frozen_stats_from_tree, (tree,))
 
     def __repr__(self):
         # format name
@@ -279,10 +268,6 @@ class RecordingStatistics(Statistics):
     def __contains__(self, code):
         return code in self._children
 
-    def __reduce__(self):
-        """Freezes this statistics to safen to pack/unpack in Pickle."""
-        return FrozenStatistics.reduce_stats(self)
-
 
 class VoidRecordingStatistics(RecordingStatistics):
     """Statistics for an absent frame."""
@@ -309,11 +294,42 @@ class FrozenStatistics(Statistics):
     __slots__ = ('name', 'filename', 'lineno', 'module',
                  'own_hits', 'deep_time', 'children')
 
+    def __init__(self, *args, **kwargs):
+        super(FrozenStatistics, self).__init__(*args, **kwargs)
+        if not hasattr(self, 'children'):
+            self.children = []
+
     def __iter__(self):
         return iter(self.children)
 
     def __len__(self):
         return len(self.children)
+
+
+def make_frozen_stats_tree(stats):
+    slots = FrozenStatistics.__slots__[:-1]  # Discard children.
+    tree, stats_tree = [], [(None, stats)]
+    for x in itertools.count():
+        if x == len(stats_tree):
+            break
+        parent_offset, _stats = stats_tree[x]
+        stats_tree.extend((x, s) for s in _stats)
+        members = [getattr(_stats, attr) for attr in slots]
+        tree.append((parent_offset, members))
+    return tree
+
+
+def frozen_stats_from_tree(tree):
+    if not tree:
+        raise ValueError('Empty tree')
+    slots = FrozenStatistics.__slots__[:-1]  # Discard children.
+    stats_index = []
+    for parent_offset, members in tree:
+        stats = FrozenStatistics(**dict(zip(slots, members)))
+        stats_index.append(stats)
+        if parent_offset is not None:
+            stats_index[parent_offset].children.append(stats)
+    return stats_index[0]
 
 
 class FlatFrozenStatistics(FrozenStatistics):

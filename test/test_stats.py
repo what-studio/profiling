@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import pickle
+import cPickle as pickle
 import sys
 from textwrap import dedent
 from types import CodeType
@@ -239,4 +239,4 @@ def test_recursion_limit():
     assert isinstance(stats, RecordingStatistics)
     data = pickle.dumps(stats)
     frozen_stats = pickle.loads(data)
-    assert isinstance(stats, FrozenStatistics)
+    assert isinstance(frozen_stats, FrozenStatistics)
