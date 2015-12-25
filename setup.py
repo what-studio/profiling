@@ -87,7 +87,8 @@ setup(
         'console_scripts': ['profiling = profiling.__main__:cli']
     },
     classifiers=[
-        'Development Status :: 1 - Planning',
+        'Development Status :: 4 - Beta',
+        'Environment :: Console',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: POSIX :: Linux',
