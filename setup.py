@@ -3,7 +3,31 @@
    profiling
    ~~~~~~~~~
 
-   An interactive profilier.
+   .. image:: https://img.shields.io/travis/what-studio/profiling.svg
+      :target: https://travis-ci.org/what-studio/profiling
+
+   .. image:: https://img.shields.io/coveralls/what-studio/profiling.svg
+      :target: https://coveralls.io/r/what-studio/profiling
+
+   The profiling package is an interactive continuous Python profiler.  It is
+   inspired from `Unity 3D <http://unity3d.com/>`_ profiler.  This package
+   provides these features:
+
+   - Profiling statistics keep the frame stack.
+   - An interactive TUI profiling statistics viewer.
+   - Provides both of statistical and deterministic profiling.
+   - Utilities for remote profiling.
+   - Thread or greenlet aware CPU timer.
+   - Supports Python 2.7, 3.3, 3.4 and 3.5.
+   - Currently supports only Linux.
+
+   Links
+   '''''
+
+   GitHub:
+      https://github.com/what-studio/profiling
+   Demo:
+      https://asciinema.org/a/25394
 
 """
 from __future__ import with_statement
@@ -80,6 +104,8 @@ setup(
     author=about['__author__'],
     maintainer=about['__maintainer__'],
     maintainer_email=about['__maintainer_email__'],
+    description=about['__description__'],
+    long_description=dedent(__doc__),
     platforms='linux',
     packages=find_packages(),
     ext_modules=ext_modules,

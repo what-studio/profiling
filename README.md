@@ -1,8 +1,8 @@
 Profiling
 =========
 
-The profiling package is an interactive Python profiler.  It is inspired from
-[Unity 3D] profiler.  This package provides these features:
+The profiling package is an interactive continuous Python profiler.  It is
+inspired from [Unity 3D] profiler.  This package provides these features:
 
 - Profiling statistics keep the frame stack.
 - An interactive TUI profiling statistics viewer.
@@ -24,11 +24,10 @@ The profiling package is an interactive Python profiler.  It is inspired from
 Installation
 ------------
 
-This project is still under development, so you should install it via GitHub
-instead of PyPI:
+Install the latest release via PyPI:
 
 ```sh
-$ pip install git+https://github.com/what-studio/profiling.git
+$ pip install profiling
 ```
 
 Profiling
