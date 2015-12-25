@@ -3,7 +3,9 @@ pytest-benchmark>=3.0.0
 pytest-mock>=0.8.1
 pytest-rerunfailures>=0.05
 eventlet>=0.15  # python>=2.6,<3
-gevent>=1  # python>=2.5,<3 no-pypy
-gevent>=1.1a1  # python>=3
+gevent>=1  # python>=2.5,<3 !pypy
+gevent>=1.1a1  # python>=3 !pypy
+gevent==1.1rc1  # pypy<2.6.1
+gevent>=1.1rc2  # pypy>=2.6.1
 greenlet>=0.4.4  # python>=2.4
-yappi>=0.92  # python>=2.6,!=3.0 no-pypy
+yappi>=0.92  # python>=2.6,!=3.0 !pypy
