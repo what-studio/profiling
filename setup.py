@@ -104,6 +104,7 @@ setup(
     author=about['__author__'],
     maintainer=about['__maintainer__'],
     maintainer_email=about['__maintainer_email__'],
+    url=about['__url__'],
     description=about['__description__'],
     long_description=dedent(__doc__),
     platforms='linux',
