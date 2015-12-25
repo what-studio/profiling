@@ -14,12 +14,9 @@ comment_re = re.compile(r'#\s*(.+)\s*$')
 # Detect the Python and PyPy versions.
 PYTHON_VERSION = '{0}.{1}.{2}'.format(*sys.version_info)
 try:
-    import __pypy__
-except ImportError:
-    PYPY_VERSION = None
-else:
     PYPY_VERSION = '{0}.{1}.{2}'.format(*sys.pypy_version_info)
-    del __pypy__
+except AttributeError:
+    PYPY_VERSION = None
 
 
 def installs(sysreq_string,
@@ -31,7 +28,9 @@ def installs(sysreq_string,
             if python_version not in pkg_resources.Requirement.parse(sysreq):
                 return False
         elif sysreq.startswith('pypy'):
-            if pypy_version not in pkg_resources.Requirement.parse(sysreq):
+            if pypy_version is None:
+                return False
+            elif pypy_version not in pkg_resources.Requirement.parse(sysreq):
                 return False
     return True
 
