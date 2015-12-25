@@ -13,10 +13,10 @@ inspired from [Unity 3D] profiler.  This package provides these features:
 - Currently supports only Linux.
 
 [![Build Status]
-(https://travis-ci.org/what-studio/profiling.svg?branch=master)]
+(https://img.shields.io/travis/what-studio/profiling.svg)]
 (https://travis-ci.org/what-studio/profiling)
 [![Coverage Status]
-(https://coveralls.io/repos/what-studio/profiling/badge.svg?branch=master)]
+(https://img.shields.io/coveralls/what-studio/profiling.svg)]
 (https://coveralls.io/r/what-studio/profiling)
 
 [Unity 3D]: http://unity3d.com/
