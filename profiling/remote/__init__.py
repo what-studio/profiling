@@ -6,6 +6,9 @@
    Utilities for remote profiling.  They help you to implement profiling
    server and client.
 
+   :copyright: (c) 2014-2016, What! Studio
+   :license: BSD, see LICENSE for more details.
+
 """
 from __future__ import absolute_import
 

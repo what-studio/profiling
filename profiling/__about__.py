@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-    profiling.__about__
-    ~~~~~~~~~~~~~~~~~~~
+   profiling.__about__
+   ~~~~~~~~~~~~~~~~~~~
+
+   :copyright: (c) 2014-2016, What! Studio
+   :license: BSD, see LICENSE for more details.
+
 """
 __version__ = '0.1.1'
 __license__ = 'BSD'

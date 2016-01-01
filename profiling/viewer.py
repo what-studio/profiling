@@ -16,6 +16,9 @@
       loop = viewer.loop()
       loop.run()
 
+   :copyright: (c) 2014-2016, What! Studio
+   :license: BSD, see LICENSE for more details.
+
 """
 from __future__ import absolute_import
 
