@@ -10,7 +10,7 @@ python:
 - pypy3
 install:
 - pip install -e .
-- pip install `python test/fit_requirements.py test/requirements.txt`
+- pip install -U `python test/fit_requirements.py test/requirements.txt`
 - pip install flake8 flake8-import-order pytest-cov coveralls
 script:
 - | # flake8
