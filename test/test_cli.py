@@ -5,6 +5,7 @@ import textwrap
 import click
 from click.testing import CliRunner
 import pytest
+from six.moves import builtins
 from valuedispatch import valuedispatch
 
 from profiling.__about__ import __version__
@@ -84,18 +85,20 @@ def test_version():
     assert r.output.strip() == 'profiling, version %s' % __version__
 
 
-def test_config(mocker):
+def test_config(monkeypatch):
     @click.command()
     @profiler_options
     def f(profiler_factory, **kwargs):
         profiler = profiler_factory()
         return profiler, kwargs
     # no config.
-    mocker.patch('six.moves.builtins.open', side_effect=IOError)
+    def io_error(*args, **kwargs):
+        raise IOError
+    monkeypatch.setattr(builtins, 'open', io_error)
     profiler, kwargs = f([], standalone_mode=False)
     assert isinstance(profiler, TracingProfiler)
     # config to use SamplingProfiler.
-    mocker.patch('six.moves.builtins.open', return_value=mock_file(u'''
+    monkeypatch.setattr(builtins, 'open', lambda *a, **k: mock_file(u'''
     [profiling]
     profiler = sampling
     sampler = tracing
@@ -120,7 +123,7 @@ def test_config(mocker):
         [profiling]
         pickle-protocol = 0
         ''')
-    mocker.patch('six.moves.builtins.open', side_effect=mock_open)
+    monkeypatch.setattr(builtins, 'open', mock_open)
     profiler, kwargs = f([], standalone_mode=False)
     assert isinstance(profiler, SamplingProfiler)  # from setup.cfg
     assert kwargs['pickle_protocol'] == 0  # from .profiling

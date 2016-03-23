@@ -1,6 +1,5 @@
 pytest>=2.6.1
 pytest-benchmark>=3.0.0
-pytest-mock>=0.8.1
 pytest-rerunfailures>=0.05
 eventlet>=0.15  # python>=2.6,<3
 gevent>=1  # python>=2.5,<3 !pypy
