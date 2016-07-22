@@ -87,7 +87,7 @@ class ProfilingCLI(DefaultGroup):
         return super(ProfilingCLI, self).get_command(ctx, cmd_name)
 
 
-@click.command('profiling', cls=ProfilingCLI)
+@click.command('profiling', cls=ProfilingCLI, default='profile')
 @click.version_option(__version__)
 def cli():
     sys.path.insert(0, os.curdir)
@@ -583,7 +583,7 @@ class ProfilingCommand(click.Command):
         return pieces
 
 
-@cli.command(default=True, cls=ProfilingCommand)
+@cli.command(cls=ProfilingCommand)
 @profiler_arguments
 @profiler_options
 @onetime_profiler_options

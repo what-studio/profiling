@@ -4,7 +4,6 @@ import textwrap
 
 import click
 from click.testing import CliRunner
-import pytest
 from valuedispatch import valuedispatch
 
 from profiling.__about__ import __version__
@@ -46,19 +45,15 @@ def test_module_param_type():
 
 
 def test_customized_cli():
-    cli = ProfilingCLI()
+    cli = ProfilingCLI(default='bar')
     @cli.command(aliases=['fooo', 'foooo'])
     def foo():
         pass
-    @cli.command(default=True)
+    @cli.command()
     @click.argument('l', default='answer')
     @click.option('-n', type=int, default=0)
     def bar(l, n=0):
         click.echo('%s: %d' % (l, n))
-    with pytest.raises(RuntimeError):
-        @cli.command(default=True)
-        def baz():
-            pass
     assert len(cli.commands) == 2
     ctx = click.Context(cli)
     assert cli.get_command(ctx, 'foo').name == 'foo'
