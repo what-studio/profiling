@@ -171,7 +171,10 @@ class ProfilingServer(object):
         """
         self._log_profiler_started()
         while self.clients:
-            self.profiler.start()
+            try:
+                self.profiler.start()
+            except RuntimeError:
+                return
             # should sleep.
             yield
             self.profiler.stop()
