@@ -13,7 +13,7 @@
 """
 from __future__ import absolute_import
 
-from errno import ECONNRESET, EINTR
+from errno import ECONNRESET, EINTR, ENOTCONN
 import select
 import socket
 import time
@@ -41,7 +41,12 @@ class SelectProfilingServer(ProfilingServer):
         sock.close()
 
     def _addr(self, sock):
-        return sock.getpeername()
+        try:
+            return sock.getpeername()
+        except socket.error as exc:
+            if exc.errno == ENOTCONN:
+                return ('?', 0)
+            raise
 
     def _start_profiling(self):
         self.profile_periodically()
