@@ -9,7 +9,7 @@
 
       $ profiling --help
 
-   :copyright: (c) 2014-2016, What! Studio
+   :copyright: (c) 2014-2017, What! Studio
    :license: BSD, see LICENSE for more details.
 
 """
