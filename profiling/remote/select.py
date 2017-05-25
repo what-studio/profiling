@@ -41,7 +41,7 @@ class SelectProfilingServer(ProfilingServer):
         sock.close()
 
     def _addr(self, sock):
-        return sock.getsockname()
+        return sock.getpeername()
 
     def _start_profiling(self):
         self.profile_periodically()
