@@ -501,6 +501,8 @@ def profiler_arguments(f):
         kwargs.update(script=script, argv=argv)
         return f(**kwargs)
     return wrapped
+
+
 viewer_options = Params([
     click.option('--mono', is_flag=True, help='Disable coloring.'),
 ])
