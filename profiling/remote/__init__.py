@@ -174,7 +174,7 @@ class ProfilingServer(object):
             try:
                 self.profiler.start()
             except RuntimeError:
-                return
+                pass
             # should sleep.
             yield
             self.profiler.stop()
