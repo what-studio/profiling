@@ -5,9 +5,8 @@ python:
 - 3.3
 - 3.4
 - 3.5
-- 3.5-dev
+- 3.6
 - pypy
-- pypy3
 install:
 - pip install -e .
 - pip install -U `python test/fit_requirements.py test/requirements.txt`
