@@ -13,7 +13,7 @@
 """
 from __future__ import absolute_import
 
-from errno import EINTR
+from errno import ECONNRESET, EINTR
 import select
 import socket
 import time
@@ -98,5 +98,9 @@ class SelectProfilingServer(ProfilingServer):
                 sock, addr = listener.accept()
                 self.connected(sock)
             else:
-                sock.recv(1)
+                try:
+                    sock.recv(1)
+                except socket.error as exc:
+                    if exc.errno != ECONNRESET:
+                        raise
                 self.disconnected(sock)
