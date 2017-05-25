@@ -74,7 +74,6 @@ def requirements(filename):
 # use pytest instead.
 def run_tests(self):
     raise SystemExit(__import__('pytest').main(['-v']))
-test.run_tests = run_tests
 
 
 # replace files which are incompatible with the current python version.
@@ -86,6 +85,9 @@ def replace_incompatible_files():
         code = INCOMPATIBLE_PYTHON_VERSION_PLACEHOLDER.format(version=version)
         with open(filename, 'w') as f:
             f.write(code)
+
+
+test.run_tests = run_tests
 run_install = install.run
 install.run = lambda x: (replace_incompatible_files(), run_install(x))
 
