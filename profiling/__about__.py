@@ -7,7 +7,7 @@
    :license: BSD, see LICENSE for more details.
 
 """
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 __license__ = 'BSD'
 __author__ = 'What! Studio'
 __maintainer__ = 'Heungsub Lee'
