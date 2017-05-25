@@ -45,8 +45,9 @@ class SelectProfilingServer(ProfilingServer):
             return sock.getpeername()
         except socket.error as exc:
             if exc.errno == ENOTCONN:
-                return ('?', 0)
-            raise
+                return None
+            else:
+                raise
 
     def _start_profiling(self):
         self.profile_periodically()
