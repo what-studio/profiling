@@ -12,8 +12,6 @@ from __future__ import absolute_import
 from collections import deque
 from contextlib import contextmanager
 
-import six.moves._thread as _thread
-
 try:
     from profiling import speedup
 except ImportError:
@@ -21,7 +19,7 @@ except ImportError:
 
 
 __all__ = ['Runnable', 'frame_stack', 'repr_frame', 'lazy_import', 'deferral',
-           'current_thread_id', 'main_thread_id', 'noop']
+           'noop']
 
 
 class Runnable(object):
@@ -154,12 +152,6 @@ def deferral():
             f(*a, **k)
 
 
-#: Alias of :func:`_thread.get_ident`.
-current_thread_id = _thread.get_ident
-
-
-#: Kept Id of the math thread.
-main_thread_id = current_thread_id()
 
 
 #: Does nothing.  It allows any arguments.
