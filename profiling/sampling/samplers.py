@@ -76,7 +76,7 @@ class TracingSampler(Sampler):
         self.sampled_times[thread_id] = t
         profiler.sample(frame)
         self.counter += 1
-        if self.counter > 10000:
+        if self.counter % 10000 == 0:
             self._collect_dead_threads()
 
     def _collect_dead_threads(self):
