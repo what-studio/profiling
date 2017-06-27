@@ -11,6 +11,7 @@ from __future__ import absolute_import
 
 from collections import deque
 from contextlib import contextmanager
+import sys
 
 try:
     from profiling import speedup
@@ -153,9 +154,11 @@ def deferral():
 
 
 if sys.version_info < (3, 3):
-    yappi = lazy_import('yappi')
+    class _yappi_holder_type(object):
+        yappi = lazy_import('yappi')
+    _yappi_holder = _yappi_holder_type()
     def thread_clock():
-        return yappi.get_clock_time()
+        return _yappi_holder.yappi.get_clock_time()
 else:
     import time
     def thread_clock():
