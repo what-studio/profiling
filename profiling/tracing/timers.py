@@ -9,7 +9,6 @@
 """
 from __future__ import absolute_import
 
-import sys
 import time
 
 from profiling.utils import lazy_import, Runnable, thread_clock
