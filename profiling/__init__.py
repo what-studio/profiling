@@ -9,8 +9,8 @@
 """
 from __future__ import absolute_import
 
-from .__about__ import __version__  # noqa
-from .profiler import Profiler
+from profiling.__about__ import __version__  # noqa
+from profiling.profiler import Profiler
 
 
 __all__ = ['Profiler']

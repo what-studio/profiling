@@ -20,7 +20,7 @@ from gevent.lock import Semaphore
 from gevent.server import StreamServer
 from gevent.util import wrap_errors
 
-from . import INTERVAL, LOG, PICKLE_PROTOCOL, ProfilingServer
+from profiling.remote import INTERVAL, LOG, PICKLE_PROTOCOL, ProfilingServer
 
 
 __all__ = ['GeventProfilingServer']

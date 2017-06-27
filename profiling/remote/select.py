@@ -18,7 +18,7 @@ import select
 import socket
 import time
 
-from . import ProfilingServer
+from profiling.remote import ProfilingServer
 
 
 __all__ = ['SelectProfilingServer']

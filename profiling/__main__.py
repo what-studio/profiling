@@ -38,15 +38,15 @@ from six import exec_
 from six.moves import builtins
 from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
 
-from . import remote, sampling, tracing
-from .__about__ import __version__
-from .profiler import Profiler
-from .remote.background import BackgroundProfiler
-from .remote.client import FailoverProfilingClient, ProfilingClient
-from .remote.select import SelectProfilingServer
-from .sampling import samplers, SamplingProfiler
-from .tracing import timers, TracingProfiler
-from .viewer import bind_game_keys, bind_vim_keys, StatisticsViewer
+from profiling import remote, sampling, tracing
+from profiling.__about__ import __version__
+from profiling.profiler import Profiler
+from profiling.remote.background import BackgroundProfiler
+from profiling.remote.client import FailoverProfilingClient, ProfilingClient
+from profiling.remote.select import SelectProfilingServer
+from profiling.sampling import samplers, SamplingProfiler
+from profiling.tracing import timers, TracingProfiler
+from profiling.viewer import bind_game_keys, bind_vim_keys, StatisticsViewer
 
 
 __all__ = ['cli', 'profile', 'view']

@@ -11,11 +11,12 @@
 """
 from __future__ import absolute_import
 
-from .samplers import ItimerSampler, Sampler
-from .. import sortkeys
-from ..profiler import Profiler
-from ..stats import RecordingStatistics, VoidRecordingStatistics as void
-from ..viewer import fmt, StatisticsTable
+from profiling import sortkeys
+from profiling.profiler import Profiler
+from profiling.sampling.samplers import ItimerSampler, Sampler
+from profiling.stats import (
+    RecordingStatistics, VoidRecordingStatistics as void)
+from profiling.viewer import fmt, StatisticsTable
 
 
 __all__ = ['SamplingProfiler', 'SamplingStatisticsTable']

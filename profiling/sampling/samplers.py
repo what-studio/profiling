@@ -16,7 +16,8 @@ import threading
 import time
 import weakref
 
-from ..utils import current_thread_id, deferral, main_thread_id, Runnable
+from profiling.utils import (
+    current_thread_id, deferral, main_thread_id, Runnable)
 
 
 __all__ = ['Sampler', 'ItimerSampler', 'TracingSampler']

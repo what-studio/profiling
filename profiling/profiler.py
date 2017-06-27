@@ -11,9 +11,9 @@ from __future__ import absolute_import
 
 import time
 
-from .stats import RecordingStatistics
-from .utils import frame_stack, Runnable
-from .viewer import StatisticsTable, StatisticsViewer
+from profiling.stats import RecordingStatistics
+from profiling.utils import frame_stack, Runnable
+from profiling.viewer import StatisticsTable, StatisticsViewer
 
 
 __all__ = ['Profiler', 'ProfilerWrapper']

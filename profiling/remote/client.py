@@ -15,7 +15,7 @@ import socket
 
 from valuedispatch import valuedispatch
 
-from . import PROFILER, recv_msg, RESULT, WELCOME
+from profiling.remote import PROFILER, recv_msg, RESULT, WELCOME
 
 
 __all__ = ['ProfilingClient', 'FailoverProfilingClient']

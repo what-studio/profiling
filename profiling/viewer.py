@@ -27,8 +27,8 @@ from collections import deque
 import urwid
 from urwid import connect_signal as on
 
-from . import sortkeys
-from .stats import FlatFrozenStatistics
+from profiling import sortkeys
+from profiling.stats import FlatFrozenStatistics
 
 
 __all__ = ['StatisticsTable', 'StatisticsViewer', 'fmt',

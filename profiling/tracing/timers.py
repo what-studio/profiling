@@ -12,7 +12,7 @@ from __future__ import absolute_import
 import sys
 import time
 
-from ..utils import lazy_import, Runnable
+from profiling.utils import lazy_import, Runnable
 
 
 __all__ = ['Timer', 'ContextualTimer', 'ThreadTimer', 'GreenletTimer']

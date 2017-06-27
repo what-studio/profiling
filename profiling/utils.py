@@ -15,7 +15,7 @@ from contextlib import contextmanager
 import six.moves._thread as _thread
 
 try:
-    from . import speedup
+    from profiling import speedup
 except ImportError:
     speedup = False
 

@@ -16,7 +16,7 @@ from __future__ import absolute_import
 
 import asyncio
 
-from . import ProfilingServer
+from profiling.remote import ProfilingServer
 
 
 __all__ = ['AsyncIOProfilingServer']

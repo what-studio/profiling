@@ -15,7 +15,7 @@ import os
 import signal
 import threading
 
-from ..profiler import ProfilerWrapper
+from profiling.profiler import ProfilerWrapper
 
 
 __all__ = ['BackgroundProfiler']

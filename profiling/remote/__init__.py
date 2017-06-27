@@ -23,7 +23,7 @@ except ImportError:
 import socket
 import struct
 
-from .. import __version__
+from profiling.__about__ import __version__
 
 
 __all__ = ['LOGGER', 'LOG', 'INTERVAL', 'PICKLE_PROTOCOL',

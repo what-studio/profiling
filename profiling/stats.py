@@ -18,8 +18,8 @@ import itertools
 from six import itervalues, with_metaclass
 from six.moves import zip
 
-from .sortkeys import by_deep_time
-from .utils import noop
+from profiling.sortkeys import by_deep_time
+from profiling.utils import noop
 
 
 __all__ = ['Statistics', 'RecordingStatistics', 'VoidRecordingStatistics',

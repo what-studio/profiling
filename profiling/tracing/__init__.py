@@ -14,12 +14,13 @@ from __future__ import absolute_import
 import sys
 import threading
 
-from .timers import Timer
-from .. import sortkeys
-from ..profiler import Profiler
-from ..stats import RecordingStatistics, VoidRecordingStatistics as void
-from ..utils import deferral
-from ..viewer import fmt, StatisticsTable
+from profiling import sortkeys
+from profiling.profiler import Profiler
+from profiling.stats import (
+    RecordingStatistics, VoidRecordingStatistics as void)
+from profiling.tracing.timers import Timer
+from profiling.utils import deferral
+from profiling.viewer import fmt, StatisticsTable
 
 
 __all__ = ['TracingProfiler', 'TracingStatisticsTable']
