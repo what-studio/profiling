@@ -12,7 +12,7 @@ from __future__ import absolute_import
 import sys
 import time
 
-from profiling.utils import lazy_import, Runnable
+from profiling.utils import lazy_import, Runnable, thread_clock
 
 
 __all__ = ['Timer', 'ContextualTimer', 'ThreadTimer', 'GreenletTimer']
@@ -69,13 +69,8 @@ class ThreadTimer(Timer):
     .. _Yappi: https://code.google.com/p/yappi/
     """
 
-    if sys.version_info < (3, 3):
-        yappi = lazy_import('yappi')
-        def __call__(self):
-            return self.yappi.get_clock_time()
-    else:
-        def __call__(self):
-            return time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+    def __call__(self):
+        return thread_clock()
 
 
 class GreenletTimer(ContextualTimer):

@@ -19,7 +19,7 @@ except ImportError:
 
 
 __all__ = ['Runnable', 'frame_stack', 'repr_frame', 'lazy_import', 'deferral',
-           'noop']
+           'thread_clock', 'noop']
 
 
 class Runnable(object):
@@ -152,6 +152,14 @@ def deferral():
             f(*a, **k)
 
 
+if sys.version_info < (3, 3):
+    yappi = lazy_import('yappi')
+    def thread_clock():
+        return yappi.get_clock_time()
+else:
+    import time
+    def thread_clock():
+        return time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
 
 #: Does nothing.  It allows any arguments.
