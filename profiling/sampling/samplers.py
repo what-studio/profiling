@@ -13,10 +13,11 @@ import functools
 import signal
 import sys
 import threading
-import time
 import weakref
 
-from profiling.utils import deferral, Runnable
+import six.moves._thread as _thread
+
+from profiling.utils import deferral, Runnable, thread_clock
 
 
 __all__ = ['Sampler', 'ItimerSampler', 'TracingSampler']
@@ -61,18 +62,32 @@ class ItimerSampler(Sampler):
 
 class TracingSampler(Sampler):
 
-    sampled_at = 0
+    def __init__(self, *args, **kwargs):
+        super(TracingSampler, self).__init__(*args, **kwargs)
+        self.sampled_times = {}
+        self.counter = 0
 
     def _profile(self, profiler, frame, event, arg):
-        t = time.clock()
-        if t - self.sampled_at < self.interval:
+        t = thread_clock()
+        thread_id = _thread.get_ident()
+        sampled_at = self.sampled_times.get(thread_id, 0)
+        if t - sampled_at < self.interval:
             return
-        self.sampled_at = t
+        self.sampled_times[thread_id] = t
         profiler.sample(frame)
+        self.counter += 1
+        if self.counter > 10000:
+            self._collect_dead_threads()
+
+    def _collect_dead_threads(self):
+        for thread_id in sys._current_frames().keys():
+            self.sampled_times.pop(thread_id, None)
 
     def run(self, profiler):
         profile = functools.partial(self._profile, profiler)
         with deferral() as defer:
             sys.setprofile(profile)
             defer(sys.setprofile, None)
+            threading.setprofile(profile)
+            defer(threading.setprofile, None)
             yield
