@@ -235,7 +235,7 @@ noop = lambda x: x
 def import_(module_name, name):
     """Imports an object by a relative module path::
 
-       Profiler = import_('.profiler', 'Profiler')
+       Profiler = import_('profiling.profiler', 'Profiler')
 
     """
     module = importlib.import_module(module_name, __package__)
@@ -431,7 +431,7 @@ def profiler_options(f):
     # tracing profiler options
     @click.option(
         '-T', '--tracing', 'import_profiler_class',
-        flag_value=importer('.tracing', 'TracingProfiler'),
+        flag_value=importer('profiling.tracing', 'TracingProfiler'),
         default=config_flag('profiler', 'tracing', True),
         help='Use tracing profiler. (default)')
     @click.option(
@@ -442,7 +442,7 @@ def profiler_options(f):
     # sampling profiler options
     @click.option(
         '-S', '--sampling', 'import_profiler_class',
-        flag_value=importer('.sampling', 'SamplingProfiler'),
+        flag_value=importer('profiling.sampling', 'SamplingProfiler'),
         default=config_flag('profiler', 'sampling', False),
         help='Use sampling profiler.')
     @click.option(
