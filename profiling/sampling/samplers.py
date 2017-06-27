@@ -16,8 +16,7 @@ import threading
 import time
 import weakref
 
-from profiling.utils import (
-    current_thread_id, deferral, main_thread_id, Runnable)
+from profiling.utils import deferral, Runnable
 
 
 __all__ = ['Sampler', 'ItimerSampler', 'TracingSampler']
@@ -35,19 +34,11 @@ class Sampler(Runnable):
     def __init__(self, interval=INTERVAL):
         self.interval = interval
 
-    @staticmethod
-    def current_frames():
-        return sys._current_frames()
-
 
 class ItimerSampler(Sampler):
 
     def handle_signal(self, profiler, signum, frame):
-        frames = self.current_frames()
-        # replace frame of the main thread with the interrupted frame.
-        frames[main_thread_id] = frame
-        for frame_ in frames.values():
-            profiler.sample(frame_)
+        profiler.sample(frame)
 
     def run(self, profiler):
         weak_profiler = weakref.proxy(profiler)
@@ -77,16 +68,11 @@ class TracingSampler(Sampler):
         if t - self.sampled_at < self.interval:
             return
         self.sampled_at = t
-        frames = self.current_frames()
-        frames[current_thread_id()] = frame
-        for frame in frames.values():
-            profiler.sample(frame)
+        profiler.sample(frame)
 
     def run(self, profiler):
         profile = functools.partial(self._profile, profiler)
         with deferral() as defer:
             sys.setprofile(profile)
             defer(sys.setprofile, None)
-            threading.setprofile(profile)
-            defer(threading.setprofile, None)
             yield
