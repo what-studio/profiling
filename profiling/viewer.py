@@ -713,7 +713,7 @@ class StatisticsTable(urwid.WidgetWrap):
             widget, node = self.tbody.get_focus()
             if not widget.expanded:
                 parent_node = node.get_parent()
-                if not parent_node.is_root():
+                if parent_node is not None and not parent_node.is_root():
                     self.tbody.change_focus(size, parent_node)
                 return True
         elif command == urwid.ACTIVATE:
