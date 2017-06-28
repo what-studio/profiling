@@ -52,11 +52,13 @@ def test_itimer_sampler():
 
 @pytest.mark.flaky(reruns=10)
 def test_tracing_sampler():
+    pytest.importorskip('yappi')
     _test_sampling_profiler(TracingSampler(0.0001))
 
 
 @pytest.mark.flaky(reruns=10)
 def test_tracing_sampler_does_not_sample_too_often():
+    pytest.importorskip('yappi')
     # pytest-cov cannot detect a callback function registered by
     # :func:`sys.setprofile`.
     class fake_profiler(object):
