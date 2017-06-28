@@ -37,6 +37,14 @@ class Sampler(Runnable):
 
 
 class ItimerSampler(Sampler):
+    """Uses ``signal.ITIMER_PROF`` to sample running frames.
+
+    .. note::
+
+       ``signal.SIGPROF`` is triggeres by only the main thread.  If you need
+       sample multiple threads, use :class:`TracingSampler` instead.
+
+    """
 
     def handle_signal(self, profiler, signum, frame):
         profiler.sample(frame)
@@ -61,6 +69,16 @@ class ItimerSampler(Sampler):
 
 
 class TracingSampler(Sampler):
+    """Uses :func:`sys.setprofile` and :func:`threading.setprofile` to sample
+    running frames per thread.  It can be used at systems which do not support
+    profiling signals.
+
+    Just like :class:`profiling.tracing.timers.ThreadTimer`, `Yappi`_ is
+    required for earlier than Python 3.3.
+
+    .. _Yappi: https://code.google.com/p/yappi/
+
+    """
 
     def __init__(self, *args, **kwargs):
         super(TracingSampler, self).__init__(*args, **kwargs)

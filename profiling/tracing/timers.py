@@ -66,6 +66,7 @@ class ThreadTimer(Timer):
     be installed.
 
     .. _Yappi: https://code.google.com/p/yappi/
+
     """
 
     def __call__(self):
