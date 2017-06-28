@@ -9,10 +9,6 @@ from profiling.stats import RecordingStatistics
 from profiling.tracing import TracingProfiler
 
 
-if six.PY3:
-    map = lambda *x: list(six.moves.map(*x))
-
-
 def test_setprofile():
     profiler = TracingProfiler()
     assert sys.getprofile() is None
