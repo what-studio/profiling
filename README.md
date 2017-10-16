@@ -12,12 +12,8 @@ inspired from [Unity 3D] profiler.  This package provides these features:
 - Supports Python 2.7, 3.3, 3.4 and 3.5.
 - Currently supports only Linux.
 
-[![Build Status]
-(https://img.shields.io/travis/what-studio/profiling.svg)]
-(https://travis-ci.org/what-studio/profiling)
-[![Coverage Status]
-(https://img.shields.io/coveralls/what-studio/profiling.svg)]
-(https://coveralls.io/r/what-studio/profiling)
+[![Build Status](https://img.shields.io/travis/what-studio/profiling.svg)](https://travis-ci.org/what-studio/profiling)
+[![Coverage Status](https://img.shields.io/coveralls/what-studio/profiling.svg)](https://coveralls.io/r/what-studio/profiling)
 
 [Unity 3D]: http://unity3d.com/
 
