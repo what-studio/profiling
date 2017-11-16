@@ -104,7 +104,7 @@ you can choose it by just `--sampling` (shortly `-S`) option:
 
 ```sh
 $ profiling live-profile -S webserver.py
-                                   ^^
+                         ^^
 ```
 
 ![](screenshots/sampling.png)
