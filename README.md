@@ -192,6 +192,22 @@ Columns
                                excution of the function.
 - `%` after `DEEP` - Inclusive samples per number of the total samples.
 
+Testing
+-------
+
+There are some additional requirements to run the test code, which can be
+installed by running the following command.
+
+```sh
+$ pip install $(python test/fit_requirements.py test/requirements.txt)
+```
+
+Then you should be able to run `pytest`.
+
+```sh
+$ pytest -v
+```
+
 Thanks to
 ---------
 
