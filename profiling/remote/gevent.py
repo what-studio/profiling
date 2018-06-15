@@ -50,6 +50,7 @@ class GeventProfilingServer(StreamServer, ProfilingServer):
         ProfilingServer.__init__(self, profiler, interval,
                                  log, pickle_protocol)
         self.lock = Semaphore()
+        self.profiling_greenlet = None
 
     def _send(self, sock, data):
         sock.sendall(data)
@@ -61,7 +62,7 @@ class GeventProfilingServer(StreamServer, ProfilingServer):
         return sock.getsockname()
 
     def _start_profiling(self):
-        gevent.spawn(self.profile_periodically)
+        self.profiling_greenlet = gevent.spawn(self.profile_periodically)
 
     def _start_watching(self, sock):
         disconnected = lambda x: self.disconnected(sock)
@@ -75,3 +76,7 @@ class GeventProfilingServer(StreamServer, ProfilingServer):
 
     def handle(self, sock, addr=None):
         self.connected(sock)
+
+        # Disconnect once profiling has stopped.
+        if self.profiling_greenlet:
+            self.profiling_greenlet.join()
