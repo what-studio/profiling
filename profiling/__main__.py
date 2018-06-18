@@ -542,7 +542,7 @@ def __profile__(filename, code, globals_, profiler_factory,
     profiler.start()
     try:
         exec_(code, globals_)
-    except:
+    except BaseException:
         # don't profile print_exc().
         profiler.stop()
         traceback.print_exc()
@@ -615,7 +615,7 @@ def live_profile(script, argv, profiler_factory, interval, spawn, signum,
             loop.run()
         except KeyboardInterrupt:
             os.kill(pid, signal.SIGINT)
-        except:
+        except BaseException:
             # unexpected profiler error.
             os.kill(pid, signal.SIGTERM)
             raise

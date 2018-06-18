@@ -82,9 +82,9 @@ def test_frame_stack():
 
 
 def test_lazy_import():
-    class O(object):
+    class MathHolder(object):
         math = lazy_import('math')
-    assert O.math is __import__('math')
+    assert MathHolder.math is __import__('math')
 
 
 def test_repr_frame():
