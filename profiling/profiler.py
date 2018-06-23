@@ -9,6 +9,10 @@
 """
 from __future__ import absolute_import
 
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import time
 
 from profiling.stats import RecordingStatistics
@@ -65,7 +69,21 @@ class Profiler(Runnable):
             wall_time = max(0, time.time() - self._wall_time_started)
         except AttributeError:
             cpu_time = wall_time = 0.0
-        return (self.stats, cpu_time, wall_time)
+        return self.stats, cpu_time, wall_time
+
+    def dump(self, dump_filename, pickle_protocol=pickle.HIGHEST_PROTOCOL):
+        """Saves the profiling result to a file
+
+        :param dump_filename: path to a file
+        :type dump_filename: str
+
+        :param pickle_protocol: version of pickle protocol
+        :type dump_filename: int
+        """
+        result = self.result()
+
+        with open(dump_filename, 'wb') as f:
+            pickle.dump((self.__class__, result), f, pickle_protocol)
 
     def make_viewer(self, title=None, at=None):
         """Makes a statistics viewer from the profiling result.
