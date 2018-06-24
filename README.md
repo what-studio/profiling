@@ -147,6 +147,8 @@ with profiler:
 
 # view and interact with the result.
 profiler.run_viewer()
+# or save profile data to file
+profiler.dump('path/to/file')
 ```
 
 Viewer Key Bindings

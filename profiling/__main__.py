@@ -556,9 +556,8 @@ def __profile__(filename, code, globals_, profiler_factory,
         except KeyboardInterrupt:
             pass
     else:
-        result = profiler.result()
-        with open(dump_filename, 'wb') as f:
-            pickle.dump((profiler.__class__, result), f, pickle_protocol)
+        profiler.dump(dump_filename, pickle_protocol)
+
         click.echo('To view statistics:')
         click.echo('  $ profiling view ', nl=False)
         click.secho(dump_filename, underline=True)

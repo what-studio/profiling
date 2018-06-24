@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+from os import path
+import tempfile
+
 import pytest
 
 from _utils import foo, spin
@@ -43,6 +50,21 @@ def test_result(profiler):
     __, cpu_time, wall_time = profiler.result()
     assert cpu_time > 0.0
     assert wall_time >= 0.1
+
+
+def test_dump(profiler):
+    temp_dir = tempfile.mkdtemp()
+    temp_file = path.join(temp_dir, "file.prf")
+
+    profiler.dump(temp_file)
+
+    assert path.getsize(temp_file) > 0
+
+    with open(temp_file, 'rb') as f:
+        profiler_class, (stats, cpu_time, wall_time) = pickle.load(f)
+
+    assert profiler.__class__ == profiler_class
+    assert cpu_time == wall_time == 0.0
 
 
 def test_wrapper(profiler):
