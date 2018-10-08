@@ -78,7 +78,7 @@ class Profiler(Runnable):
         :type dump_filename: str
 
         :param pickle_protocol: version of pickle protocol
-        :type dump_filename: int
+        :type pickle_protocol: int
         """
         result = self.result()
 
