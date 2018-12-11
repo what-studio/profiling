@@ -201,9 +201,9 @@ class Formatter(object):
             return '{:.1f}sec'.format(sec)
         elif sec < 600:
             # 1min0s ~ 9min59s
-            return '{:.0f}min{:.0f}s'.format(sec // 60, sec % 60)
+            return '{:.0f}m{:.0f}s'.format(sec // 60, sec % 60)
         else:
-            return '{:.0f}min'.format(sec // 60)
+            return '{:.0f}m'.format(sec // 60)
 
     @staticmethod
     def attr_time(sec):
