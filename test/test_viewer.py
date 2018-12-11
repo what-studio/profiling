@@ -46,8 +46,8 @@ def test_format_time():
     assert fmt.format_time(0.123456) == '123ms'
     assert fmt.format_time(1.234567) == '1.2sec'
     assert fmt.format_time(12.34567) == '12.3sec'
-    assert fmt.format_time(123.4567) == '2min3s'
-    assert fmt.format_time(6120.000) == '102min'
+    assert fmt.format_time(123.4567) == '2m3s'
+    assert fmt.format_time(6120.000) == '102m'
 
 
 def test_format_percent():
