@@ -28,7 +28,7 @@ def _test_sampling_profiler(sampler):
     stat1 = find_stats(profiler.stats, 'spin_100ms')
     stat2 = find_stats(profiler.stats, 'spin_500ms')
     ratio = stat1.deep_hits / stat2.deep_hits
-    # 1:5 expaected, but tolerate (0.8~1.2):5
+    # 1:5 expected, but tolerate (0.8~1.2):5
     assert 0.8 <= ratio * 5 <= 1.2
 
 
