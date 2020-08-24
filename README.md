@@ -1,3 +1,9 @@
+☠ This project is not maintained anymore. We highly recommend switching to
+[py-spy](https://github.com/benfred/py-spy) which provides better performance
+and usability.
+
+---
+
 Profiling
 =========
 
